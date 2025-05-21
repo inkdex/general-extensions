@@ -14,8 +14,8 @@ import { blacklistedTags, blacklistedType, Metadata } from "./helper";
 
 export class Parser {
     /**
-     * Ottieni dettagli Manga
-     * @param {cheerio.CheerioAPI} $ - Richiesta
+     * Get Manga Detail
+     * @param {cheerio.CheerioAPI} $ - Request
      * @param {string} mangaId - MangaID
      * @param {string} shareURL - shareURL
      * @return {SourceManga} - SourceManga
@@ -100,10 +100,10 @@ export class Parser {
     }
 
     /**
-     * Ottieni Lista Capitoli
-     * @param {cheerio.CheerioAPI} $ - Richiesta
+     * Get Chapter List
+     * @param {cheerio.CheerioAPI} $ - Request
      * @param {SourceManga} sourceManga - Manga
-     * @return {Chapter[]} - Capitoli
+     * @return {Chapter[]} - Chapters
      */
     parseChapters($: cheerio.CheerioAPI, sourceManga: SourceManga): Chapter[] {
         const chapters: Chapter[] = [];
@@ -148,15 +148,15 @@ export class Parser {
     }
 
     /**
-     * Parsing dettagli capitolo
-     * @param {cheerio.CheerioAPI} $ - Richiesta
+     * Parsing chapter details
+     * @param {cheerio.CheerioAPI} $ - Request
      * @param {string} mangaId - ID manga
-     * @param {string} id - ID capitolo
+     * @param {string} id - ID chapter
      * @return {{
      *   id: string
      *   mangaId: string
      *   pages: string[]
-     * }} - Dettagli
+     * }} - Details
      */
     parseChapterDetails(
         $: cheerio.CheerioAPI,
@@ -179,8 +179,8 @@ export class Parser {
     }
 
     /**
-     * Parsing pagina
-     * @param {cheerio.CheerioAPI} $ - Richiesta
+     * Page Parsing
+     * @param {cheerio.CheerioAPI} $ - Request
      * @return {[{id:string,title:string,image:string,tags:string[], authors: string, type: string}]}
      */
     parsePage($: cheerio.CheerioAPI): {
@@ -233,8 +233,8 @@ export class Parser {
     }
 
     /**
-     * Parsing ricerca
-     * @param {cheerio.CheerioAPI} $ - Richiesta
+     * Search Parsing
+     * @param {cheerio.CheerioAPI} $ - Request
      * @return {SearchResultItem[]} items
      */
     parseSearchResults($: cheerio.CheerioAPI): SearchResultItem[] {
@@ -255,12 +255,12 @@ export class Parser {
     }
 
     /**
-     * Parsing capitoli in tendenza
+     * Parsing trending chapters
      * @param {Metadata} metadata - metadata
-     * @param {cheerio.CheerioAPI} $ - Richiesta
+     * @param {cheerio.CheerioAPI} $ - Request
      * @return { items: DiscoverSectionItem[] }
      */
-    parseCapitoliInTendenza(
+    parseTrendingChapters(
         $: cheerio.CheerioAPI,
         metadata: Metadata,
     ): { items: DiscoverSectionItem[] } {
@@ -290,12 +290,12 @@ export class Parser {
     }
 
     /**
-     * Parsing in tendenza nel mese
+     * Parsing month trending
      * @param {Metadata} metadata - metadata
-     * @param {cheerio.CheerioAPI} $ - Richiesta
+     * @param {cheerio.CheerioAPI} $ - Request
      * @return [ { items: DiscoverSectionItem[], metadata: Metadata }, { items: DiscoverSectionItem[], metadata: Metadata } ]
      */
-    parseInTendenzaMese(
+    parseMonthTrending(
         $: cheerio.CheerioAPI,
         metadata: Metadata,
     ): { items: DiscoverSectionItem[]; metadata: Metadata } {
@@ -325,7 +325,7 @@ export class Parser {
     }
 
     /**
-     * Parsing ultimi manga aggiunti
+     * Parsing last added
      * @param {Metadata} metadata - metadata
      * @param {string} url - Url
      * @return {{ items: DiscoverSectionItem[], metadata: Metadata }}
@@ -363,8 +363,8 @@ export class Parser {
     }
 
     /**
-     * Parse nuovi capitoli
-     * @param {cheerio.CheerioAPI} $ - pagina
+     * Parse new chapters
+     * @param {cheerio.CheerioAPI} $ - page
      * @param {Metadata} metadata - manga metadata
      * @param {string} url - url
      * @return {{
@@ -440,9 +440,9 @@ export class Parser {
     }
 
     /**
-     * Trasforma una stringa in data
-     * @param {string} dataString - data in formato stringa
-     * @return {Date} - stringa in formato data
+     * String to date
+     * @param {string} dataString - date in string format
+     * @return {Date} - Date
      */
     getDate(dataString: string): Date {
         const mesi: { [key: string]: number } = {

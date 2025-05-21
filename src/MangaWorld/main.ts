@@ -280,11 +280,11 @@ export class MangaWorldExtension implements ContentTemplateImplementation {
         switch (section.id) {
             case "popular_section": {
                 console.log("Loading popular_section loaded");
-                return this.parser.parseCapitoliInTendenza($, metadata);
+                return this.parser.parseTrendingChapters($, metadata);
             }
             case "mese_section": {
                 console.log("Loading mese_section loaded");
-                return this.parser.parseInTendenzaMese($, metadata);
+                return this.parser.parseMonthTrending($, metadata);
             }
             case "updated_section": {
                 console.log("Loading updated_section loaded");

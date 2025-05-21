@@ -5,10 +5,10 @@ type QueryValue = string | number | boolean | undefined | null;
 type QueryParam = QueryValue | QueryValue[] | Record<string, QueryValue>;
 
 /**
- * controllo Tag Blacklistati da impostazioni
+ * Check Blacklisted tags
  * @param tags : string[] - tags
  * @type {tags:string[]} => boolean
- * @return {boolean} - true: da nascondere
+ * @return {boolean} - true: hide
  */
 export function blacklistedTags(tags: string[]): boolean {
     const blacklistedSettings =
@@ -25,9 +25,9 @@ export function blacklistedTags(tags: string[]): boolean {
 }
 
 /**
- * controllo Tipi Manga Blacklistati da impostazioni
- * @param {string}  type - tag da controllare
- * @return {boolean} da nascondere
+ * Check Blacklisted types
+ * @param {string}  type - type
+ * @return {boolean} - true: hide
  */
 export function blacklistedType(type: string): boolean {
     const blacklistedSettings =
@@ -41,7 +41,7 @@ export function blacklistedType(type: string): boolean {
 }
 
 /**
- * Ottieni le tipologie
+ * Get Manga Type
  * @return [{ value: string, id: string }]
  */
 export function getMangaTypeFilter() {
@@ -55,7 +55,7 @@ export function getMangaTypeFilter() {
     ];
 }
 /**
- * Ottieni i tipi di ordinamento
+ * Get Ordering Type
  * @return [{value: string, id: string}]
  */
 export function getOrderFilter() {
@@ -69,7 +69,7 @@ export function getOrderFilter() {
     ];
 }
 /**
- * Ottieni i generi
+ * Get Genre
  * @return [{ value: string, id: string }]
  */
 export function getGenreFilter() {
