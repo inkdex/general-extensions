@@ -10,6 +10,7 @@ Paperback extensions for websites with unique, non-generic themes.
 - [MangaDex](https://mangadex.org)
 - [MangaFire](https://mangafire.to)
 - [MangaFox](https://fanfox.net)
+- [MangaWorldAdult](https://www.mangaworldadult.net)
 - [MangaWorld](https://www.mangaworld.nz)
 - [MangaKatana](https://mangakatana.com)
 - [Manga Plus](https://mangaplus.shueisha.co.jp)
