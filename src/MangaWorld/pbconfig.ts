@@ -3,7 +3,7 @@ import { ContentRating, SourceInfo, SourceIntents } from "@paperback/types";
 export default {
     version: "1.2",
     name: "MangaWorld",
-    description: "Extension that pulls manga from MangaWorld (0.9).",
+    description: "Extension that pulls manga from MangaWorld.",
     icon: "MangaWorldIcon.png",
     language: "it",
     contentRating: ContentRating.EVERYONE,
@@ -16,8 +16,8 @@ export default {
     badges: [
         {
             label: "Italian",
-            textColor: "#186180",
-            backgroundColor: "#c2ecd8",
+            textColor: "#ffffff",
+            backgroundColor: "#53c2ae",
         },
     ],
     developers: [
