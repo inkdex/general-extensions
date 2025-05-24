@@ -174,9 +174,14 @@ export const parseViewMore = ($: CheerioAPI): DiscoverSectionItem[] => {
             $("a", obj).attr("href")?.replace(/\/$/, "").split("/").pop() ?? "";
         const getChapter = $("div.novel-stats > strong", obj).text().trim();
 
-        const chapNumRegex = /(\d+\.?\d?)+/.exec(getChapter);
+        const chapNumRegex = /(\d+)(?:[-.]\d+)?/.exec(getChapter);
         let chapNum = 0;
-        if (chapNumRegex?.[1]) chapNum = Number(chapNumRegex[1]);
+        if (chapNumRegex?.[1]) {
+            let chapRegex = chapNumRegex[1];
+            if (chapRegex.includes("-"))
+                chapRegex = chapRegex.replace("-", ".");
+            chapNum = Number(chapRegex);
+        }
 
         const subtitle = chapNum
             ? `Chapter ${chapNum.toString()}`
@@ -225,13 +230,18 @@ export const parseSearch = (
         const id =
             $("a", obj).attr("href")?.replace(/\/$/, "").split("/").pop() ?? "";
         const getChapter = $("div.novel-stats > strong", obj).text().trim();
-        const chapNumRegex = /(\d+\.?\d?)+/.exec(getChapter);
+        const chapNumRegex = /(\d+)(?:[-.]\d+)?/.exec(getChapter);
 
         let chapNum = 0;
-        if (chapNumRegex?.[1]) chapNum = Number(chapNumRegex[1]);
+        if (chapNumRegex?.[1]) {
+            let chapRegex = chapNumRegex[1];
+            if (chapRegex.includes("-"))
+                chapRegex = chapRegex.replace("-", ".");
+            chapNum = Number(chapRegex);
+        }
 
         const subtitle = chapNum
-            ? `Chapter ' ${chapNum.toString()}`
+            ? `Chapter ${chapNum.toString()}`
             : "Chapter N/A";
         if (!id || !title) continue;
 
