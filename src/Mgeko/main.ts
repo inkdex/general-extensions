@@ -26,7 +26,6 @@ import {
     TagSection,
 } from "@paperback/types";
 import * as cheerio from "cheerio";
-import { CheerioAPI } from "cheerio";
 import { URLBuilder } from "../utils/url-builder/base";
 import {
     isLastPage,
@@ -117,11 +116,11 @@ export class MgekoExtension implements MgekoImplementation {
     ): Promise<PagedResults<DiscoverSectionItem>> {
         switch (section.id) {
             case "most_viewed":
-                return this.getMostViewedSectionItems(metadata);
+                return this.getFilteredSectionItems("Views", metadata);
             case "new":
-                return this.getNewSectionItems(metadata);
+                return this.getFilteredSectionItems("New", metadata);
             case "latest_updates":
-                return this.getLatestUpdatesSectionItems(metadata);
+                return this.getFilteredSectionItems("Updated", metadata);
             case "genres":
                 return this.getGenreSectionItems();
             default:
@@ -211,24 +210,25 @@ export class MgekoExtension implements MgekoImplementation {
         let request: Request;
 
         // Regular search
-        if (query.title) {
+        if (query.title?.trim()) {
             request = {
                 url: new URLBuilder(MGEKO_DOMAIN)
                     .addPath("search")
-                    .addQuery("search", encodeURI(query.title))
+                    .addQuery("search", encodeURI(query.title.trim()))
                     .build(),
                 method: "GET",
             };
-
-            // Tag Search
         } else {
+            // Tag/Filter Search
             const getFilterValue = (id: string) =>
-                query.filters.find((filter) => filter.id === id)?.value;
+                query.filters?.find((filter) => filter.id === id)?.value;
 
-            const genres = getFilterValue("genres") as Record<
-                string,
-                "included" | "excluded"
-            >;
+            const genres =
+                (getFilterValue("genres") as Record<
+                    string,
+                    "included" | "excluded"
+                >) ?? {};
+
             const genreIncluded = Object.entries(genres)
                 .filter(([, value]) => value === "included")
                 .map(([key]) => key)
@@ -239,7 +239,7 @@ export class MgekoExtension implements MgekoImplementation {
                 .map(([key]) => key)
                 .join(",");
 
-            const sortBy = getFilterValue("sortBy") as string;
+            const sortBy = (getFilterValue("sortBy") as string) ?? "Views";
 
             request = {
                 url: new URLBuilder(MGEKO_DOMAIN)
@@ -257,11 +257,10 @@ export class MgekoExtension implements MgekoImplementation {
         const manga = parseSearch($, MGEKO_DOMAIN);
 
         metadata = !isLastPage($) ? { page: page + 1 } : undefined;
-        const pagedResults: PagedResults<SearchResultItem> = {
+        return {
             items: manga,
             metadata: metadata,
         };
-        return pagedResults;
     }
 
     async getSearchFilters(): Promise<SearchFilter[]> {
@@ -298,7 +297,8 @@ export class MgekoExtension implements MgekoImplementation {
         return filters;
     }
 
-    async getMostViewedSectionItems(
+    private async getFilteredSectionItems(
+        filter: string,
         metadata: Mgeko.Metadata | undefined,
     ): Promise<PagedResults<DiscoverSectionItem>> {
         if (metadata?.completed) return EndOfPageResults;
@@ -309,7 +309,7 @@ export class MgekoExtension implements MgekoImplementation {
             url: new URLBuilder(MGEKO_DOMAIN)
                 .addPath("browse-comics")
                 .addQuery("results", page)
-                .addQuery("filter", "Views")
+                .addQuery("filter", filter)
                 .build(),
             method: "GET",
         };
@@ -317,63 +317,10 @@ export class MgekoExtension implements MgekoImplementation {
         const manga = parseViewMore($);
         metadata = !isLastPage($) ? { page: page + 1 } : undefined;
 
-        const pagedResults: PagedResults<DiscoverSectionItem> = {
+        return {
             items: manga,
             metadata: metadata,
         };
-        return pagedResults;
-    }
-
-    async getNewSectionItems(
-        metadata: Mgeko.Metadata | undefined,
-    ): Promise<PagedResults<DiscoverSectionItem>> {
-        if (metadata?.completed) return EndOfPageResults;
-
-        const page: number = metadata?.page ?? 1;
-
-        const request: Request = {
-            url: new URLBuilder(MGEKO_DOMAIN)
-                .addPath("browse-comics")
-                .addQuery("results", page)
-                .addQuery("filter", "New")
-                .build(),
-            method: "GET",
-        };
-        const $ = await this.fetchCheerio(request);
-        const manga = parseViewMore($);
-        metadata = !isLastPage($) ? { page: page + 1 } : undefined;
-
-        const pagedResults: PagedResults<DiscoverSectionItem> = {
-            items: manga,
-            metadata: metadata,
-        };
-        return pagedResults;
-    }
-
-    async getLatestUpdatesSectionItems(
-        metadata: Mgeko.Metadata | undefined,
-    ): Promise<PagedResults<DiscoverSectionItem>> {
-        if (metadata?.completed) return EndOfPageResults;
-
-        const page: number = metadata?.page ?? 1;
-
-        const request: Request = {
-            url: new URLBuilder(MGEKO_DOMAIN)
-                .addPath("browse-comics")
-                .addQuery("results", page)
-                .addQuery("filter", "Updated")
-                .build(),
-            method: "GET",
-        };
-        const $ = await this.fetchCheerio(request);
-        const manga = parseViewMore($);
-        metadata = !isLastPage($) ? { page: page + 1 } : undefined;
-
-        const pagedResults: PagedResults<DiscoverSectionItem> = {
-            items: manga,
-            metadata: metadata,
-        };
-        return pagedResults;
     }
 
     async getGenreSectionItems(): Promise<PagedResults<DiscoverSectionItem>> {
@@ -401,7 +348,7 @@ export class MgekoExtension implements MgekoImplementation {
         }
     }
 
-    async fetchCheerio(request: Request): Promise<CheerioAPI> {
+    async fetchCheerio(request: Request): Promise<cheerio.CheerioAPI> {
         const [response, data] = await Application.scheduleRequest(request);
         this.checkCloudflareStatus(response.status);
         return cheerio.load(Application.arrayBufferToUTF8String(data), {

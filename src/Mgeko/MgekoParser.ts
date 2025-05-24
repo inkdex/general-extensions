@@ -17,7 +17,9 @@ export const parseMangaDetails = (
     mangaId: string,
     sourceUrl: string,
 ): SourceManga => {
-    const primaryTitle = $(".novel-title").text().trim();
+    const primaryTitle = Application.decodeHTMLEntities(
+        $(".novel-title").text().trim(),
+    );
 
     const secondaryTitles: string[] = [];
     secondaryTitles.push(
