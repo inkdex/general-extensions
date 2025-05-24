@@ -722,7 +722,7 @@ export class MangaFoxExtension implements MangaFoxImplementation {
                     ?.replace("eval", "");
                 if (script) {
                     const deobfuscatedScript = (
-                        eval(script) as unknown as { toString(): string }
+                        (0, eval)(script) as unknown as { toString(): string }
                     ).toString();
                     const urlsMatch =
                         deobfuscatedScript.match(/newImgs=\['(.+?)'\]/);
@@ -740,7 +740,7 @@ export class MangaFoxExtension implements MangaFoxImplementation {
                     ?.replace("eval", "");
                 if (script) {
                     const deobfuscatedScript = (
-                        eval(script) as unknown as { toString(): string }
+                        (0, eval)(script) as unknown as { toString(): string }
                     ).toString();
 
                     // Extract secret key
@@ -752,7 +752,7 @@ export class MangaFoxExtension implements MangaFoxImplementation {
                     let secretKey = "";
                     try {
                         secretKey = (
-                            eval(secretKeyResultScript) as unknown as {
+                            (0, eval)(secretKeyResultScript) as unknown as {
                                 toString(): string;
                             }
                         ).toString();
@@ -834,7 +834,7 @@ export class MangaFoxExtension implements MangaFoxImplementation {
                                 if (responseString) {
                                     try {
                                         const deobfuscatedPageScript = (
-                                            eval(
+                                            (0, eval)(
                                                 responseString.replace(
                                                     "eval",
                                                     "",
