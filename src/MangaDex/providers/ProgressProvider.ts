@@ -218,7 +218,7 @@ export class ProgressProvider {
                             action.readChapter?.chapterId &&
                             guidRegex.test(action.readChapter.chapterId),
                     )
-                    .map((action) => action.readChapter.chapterId),
+                    .map((action) => action.chapterId),
             };
         }
 
@@ -235,7 +235,7 @@ export class ProgressProvider {
                             action.readChapter?.chapterId &&
                             guidRegex.test(action.readChapter.chapterId),
                     )
-                    .map((action) => action.readChapter.chapterId),
+                    .map((action) => action.chapterId),
             };
         }
 
