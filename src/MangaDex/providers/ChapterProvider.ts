@@ -88,7 +88,7 @@ export class ChapterProvider {
         );
         if (!isRatingAllowed) {
             throw new Error(
-                `If you see UNKNOWN at the top left under the Read button, go back and then re-open this manga. Otherwise, this manga has a content rating (${mangaPbRating}) which might not be enabled in your source settings. Please adjust your content filter settings to view chapters`,
+                `If you see UNKNOWN at the top left under the Read button, go back and then re-open this manga. Otherwise, this manga has a content rating (${mangaPbRating}) which might not be enabled in your source settings`,
             );
         }
 
@@ -108,8 +108,8 @@ export class ChapterProvider {
         let sortingIndex = 0;
         let hasResults = true;
         let prevChapNum = 0;
-        let totalChaptersFetched = 0;
-        let hasExternalChapters = false;
+        //let totalChaptersFetched = 0;
+        //let hasExternalChapters = false;
 
         let verifiedLatestChapterId: string | null = null;
         if (getOptimizeUpdates()) {
@@ -231,15 +231,15 @@ export class ChapterProvider {
                 throw new Error(`Failed to create chapters for ${mangaId}`);
 
             for (const chapter of json.data) {
-                totalChaptersFetched++;
+                //totalChaptersFetched++;
                 const chapterId = chapter.id;
                 const chapterDetails = chapter.attributes;
-                if (
-                    chapterDetails.externalUrl &&
-                    chapterDetails.externalUrl.trim() !== ""
-                ) {
-                    hasExternalChapters = true;
-                }
+                //if (
+                //    chapterDetails.externalUrl &&
+                //    chapterDetails.externalUrl.trim() !== ""
+                //) {
+                //    hasExternalChapters = true;
+                //}
                 const time = new Date(chapterDetails.publishAt);
                 const createdAt = new Date(chapterDetails.createdAt);
 
@@ -337,23 +337,23 @@ export class ChapterProvider {
             }
         }
 
-        if (chapters.length === 0) {
-            const langStr = languages.join(", ");
-            const ratingStr = ratings.join(", ");
-            if (totalChaptersFetched > 0 && hasExternalChapters) {
-                throw new Error(
-                    `Chapters are hosted externally outside MangaDex, you'll need to use another source or read it online`,
-                );
-            } else if (totalChaptersFetched > 0) {
-                throw new Error(
-                    `No chapters found matching your selected language(s) [${langStr}]. Chapters in other languages might exist`,
-                );
-            } else {
-                throw new Error(
-                    `No chapters found. This manga has no chapters in your selected language(s) [${langStr}] or content ratings [${ratingStr}]`,
-                );
-            }
-        }
+        // if (chapters.length === 0) {
+        //     const langStr = languages.join(", ");
+        //     const ratingStr = ratings.join(", ");
+        //     if (totalChaptersFetched > 0 && hasExternalChapters) {
+        //         throw new Error(
+        //             `Chapters are hosted externally outside MangaDex, you'll need to use another source or read it online`,
+        //         );
+        //     } else if (totalChaptersFetched > 0) {
+        //         throw new Error(
+        //             `No chapters found matching your selected language(s) [${langStr}]. Chapters in other languages might exist`,
+        //         );
+        //     } else {
+        //         throw new Error(
+        //             `No chapters found. This manga has no chapters in your selected language(s) [${langStr}] or content ratings [${ratingStr}]`,
+        //         );
+        //     }
+        // }
 
         return chapters.map((chapter) => {
             chapter.sortingIndex =
