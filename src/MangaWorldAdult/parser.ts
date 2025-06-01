@@ -10,7 +10,13 @@ import {
     TagSection,
 } from "@paperback/types";
 import * as cheerio from "cheerio";
-import { blacklistedTags, blacklistedType, Metadata } from "./helper";
+import {
+    blacklistedTags,
+    blacklistedType,
+    excludedTags,
+    excludedTypes,
+    Metadata,
+} from "./helper";
 
 export class Parser {
     /**
@@ -114,22 +120,13 @@ export class Parser {
                 "null",
                 "",
             ])[1];
-            const name = $("a", item).attr("title") ?? "";
+            //const name = $("a", item).attr("title") ?? "";
             const volN = $(item)
                 .closest(".volume-element")
                 .find(".volume-name")
                 .text()
                 .split(" ")[1];
             const chapN = $(".d-inline-block", item).text().split(" ")[1];
-            console.log("New Chapters");
-            console.log(
-                "Parsed: Manga " +
-                    name +
-                    " Chapter: " +
-                    chapN +
-                    " Volume: " +
-                    volN,
-            );
             const chapNum = isNaN(Number(chapN)) ? 1 : Number(chapN);
             const volumeNum = isNaN(Number(volN)) ? undefined : Number(volN);
 
@@ -235,13 +232,20 @@ export class Parser {
     /**
      * Search Parsing
      * @param {cheerio.CheerioAPI} $ - Request
+     * @param excluded
      * @return {SearchResultItem[]} items
      */
-    parseSearchResults($: cheerio.CheerioAPI): SearchResultItem[] {
+    async parseSearchResults(
+        $: cheerio.CheerioAPI,
+        excluded: { generi: string[]; tipi: string[] },
+    ): Promise<SearchResultItem[]> {
         const results: SearchResultItem[] = [];
         const parse = this.parsePage($);
         for (const item of parse) {
-            if (!blacklistedTags(item.tags) && !blacklistedType(item.type)) {
+            if (
+                !excludedTypes(item.type, excluded.tipi) &&
+                !excludedTags(item.tags, excluded.generi)
+            ) {
                 results.push({
                     imageUrl: item.image,
                     title: item.title,
@@ -419,7 +423,7 @@ export class Parser {
             const match = $.html().match(regexDinamica);
             let data = new Date();
             if (match) {
-                console.log("Data trovata:" + match[1]);
+                //console.log("Data trovata:" + match[1]);
                 data = this.getDate(match[1]);
             }
             if (!blacklistedType(mangaType)) {

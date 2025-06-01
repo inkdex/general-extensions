@@ -3,6 +3,7 @@ import {
     Chapter,
     ChapterDetails,
     ChapterProviding,
+    ContentRating,
     DiscoverSection,
     DiscoverSectionItem,
     DiscoverSectionProviding,
@@ -29,7 +30,10 @@ import {
     getGenreFilter,
     getMangaTypeFilter,
     getOrderFilter,
+    getStatusFilter,
+    getYearFilter,
     Metadata,
+    populateFilter,
     URLBuilder,
 } from "./helper";
 import { Parser } from "./parser";
@@ -87,32 +91,59 @@ export class MangaWorldExtension implements ContentTemplateImplementation {
     }
 
     async getSearchFilters(): Promise<SearchFilter[]> {
+        await populateFilter(this.baseUrl);
         const filters: SearchFilter[] = [];
         const def_value = ((Application.getState("def_type") as string[]) ??
             [])[0];
+        const getExcludedTypeObject = {
+            ...Object.fromEntries(
+                getMangaTypeFilter()
+                    .filter((option) => blacklistedType(option.id))
+                    .map((item) => [item.id, "excluded" as const]),
+            ),
+            ...(def_value
+                ? { [def_value.toLowerCase()]: "included" as const }
+                : {}),
+        } as Record<string, "included" | "excluded">;
+
+        const getExcludedValueObject = Object.fromEntries(
+            getGenreFilter()
+                .filter((option) => blacklistedTags([option.id]))
+                .map((item) => [item.id, "excluded" as const]),
+        ) as Record<string, "included" | "excluded">;
         filters.push({
             type: "multiselect",
-            options: getMangaTypeFilter().filter(
-                (option) => !blacklistedType(option.value),
-            ),
+            options: getMangaTypeFilter(),
             id: "types",
-            allowExclusion: false,
+            allowExclusion: true,
             title: "Tipo",
-            value: def_value ? { [def_value]: "included" } : {},
+            value: getExcludedTypeObject,
             allowEmptySelection: true,
-            maximum: 1,
+            maximum: 3,
         });
         filters.push({
             type: "multiselect",
-            options: getGenreFilter().filter(
-                (option) => !blacklistedTags([option.value]),
-            ),
+            options: getGenreFilter(),
             id: "genres",
-            allowExclusion: false,
+            allowExclusion: true,
             title: "Generi",
-            value: {},
+            value: getExcludedValueObject,
             allowEmptySelection: true,
             maximum: 5,
+        });
+        filters.push({
+            type: "dropdown",
+            options: getStatusFilter(),
+            id: "status",
+            title: "Stato",
+            value: "",
+        });
+        filters.push({
+            type: "dropdown",
+            options: getYearFilter(),
+            id: "year",
+            title: "Anno",
+            value: "",
         });
         return filters;
     }
@@ -123,27 +154,33 @@ export class MangaWorldExtension implements ContentTemplateImplementation {
         metadata: Metadata,
         sorting: SortingOption,
     ): Promise<PagedResults<SearchResultItem>> {
-        let manga: SearchResultItem[] = [];
+        const manga: SearchResultItem[] = [];
         let page = metadata?.page ?? 1;
-        if (page == -1) return { items: [] };
-        const url = this.constructSearchRequestURL(page, query, sorting);
-        const data = (
-            await Application.scheduleRequest({
-                url: `${url}`,
+        if (page === -1) return { items: [] };
+        for (let cycle = 0; cycle < 5 && manga.length <= 16; cycle++, page++) {
+            const { url, excluded } = this.constructSearchRequestURL(
+                page,
+                query,
+                sorting,
+            );
+            const [_, data] = await Application.scheduleRequest({
+                url,
                 method: "GET",
-            })
-        )[1];
-        const $: cheerio.CheerioAPI = cheerio.load(
-            Application.arrayBufferToUTF8String(data),
-        );
-        manga = this.parser.parseSearchResults($);
-        page++;
-        return { items: manga, metadata: { page: page } };
+            });
+            const $ = cheerio.load(Application.arrayBufferToUTF8String(data));
+            const newPage = await this.parser.parseSearchResults($, excluded);
+            manga.push(...newPage);
+            const pag = $(".search-quantity").text().split(" ")[0];
+            if (Number(pag) === manga.length) {
+                break;
+            }
+        }
+
+        return { items: manga.slice(0, 16), metadata: { page } };
     }
 
     // Populates the title details
     async getMangaDetails(mangaId: string): Promise<SourceManga> {
-        console.log(mangaId);
         console.log("Get Details of MangaID " + mangaId);
         const data = (
             await Application.scheduleRequest({
@@ -232,6 +269,7 @@ export class MangaWorldExtension implements ContentTemplateImplementation {
         section: DiscoverSection,
         metadata: Metadata,
     ): Promise<PagedResults<DiscoverSectionItem>> {
+        await populateFilter(this.baseUrl);
         const data = (
             await Application.scheduleRequest({
                 url: `${this.baseUrl}`,
@@ -242,8 +280,16 @@ export class MangaWorldExtension implements ContentTemplateImplementation {
         const mangaType: DiscoverSectionItem[] = [];
         const allGenres: DiscoverSectionItem[] = [];
         getGenreFilter()
-            .filter((option) => !blacklistedTags([option.value]))
+            .filter((option) => !blacklistedTags([option.id]))
             .forEach((filter) => {
+                const getExcludedValueObject = {
+                    ...Object.fromEntries(
+                        getGenreFilter()
+                            .filter((option) => blacklistedTags([option.id]))
+                            .map((item) => [item.id, "excluded" as const]),
+                    ),
+                    [filter.id]: "included" as const,
+                } as Record<string, "included" | "excluded">;
                 allGenres.push({
                     type: "genresCarouselItem",
                     searchQuery: {
@@ -251,7 +297,7 @@ export class MangaWorldExtension implements ContentTemplateImplementation {
                         filters: [
                             {
                                 id: "genres",
-                                value: { [filter.id]: "included" },
+                                value: getExcludedValueObject,
                             },
                         ],
                     },
@@ -260,20 +306,32 @@ export class MangaWorldExtension implements ContentTemplateImplementation {
                     contentRating: this.parser.getRating([filter.value]),
                 });
             });
+
         getMangaTypeFilter()
             .filter((option) => !blacklistedType(option.value))
             .forEach((filter) => {
+                const getExcludedTypeObject = {
+                    ...Object.fromEntries(
+                        getMangaTypeFilter()
+                            .filter((option) => blacklistedType(option.value))
+                            .map((item) => [item.id, "excluded" as const]),
+                    ),
+                    [filter.id]: "included" as const,
+                } as Record<string, "included" | "excluded">;
                 mangaType.push({
                     type: "genresCarouselItem",
                     searchQuery: {
                         title: "",
                         filters: [
-                            { id: "types", value: { [filter.id]: "included" } },
+                            {
+                                id: "types",
+                                value: getExcludedTypeObject,
+                            },
                         ],
                     },
                     name: filter.value,
                     metadata: metadata,
-                    contentRating: undefined,
+                    contentRating: ContentRating.EVERYONE,
                 });
             });
 
@@ -321,36 +379,66 @@ export class MangaWorldExtension implements ContentTemplateImplementation {
     }
 
     async getSortingOptions(): Promise<SortingOption[]> {
-        return getOrderFilter();
+        return getOrderFilter().map((item) => ({
+            id: item.id,
+            label: item.value,
+        }));
     }
 
     constructSearchRequestURL(
         page: number,
         query: SearchQuery = { title: "", filters: [] },
         sorting: SortingOption | undefined,
-    ): string {
+    ): {
+        url: string;
+        excluded: { generi: string[]; tipi: string[] };
+    } {
         const generi: string[] = [];
+        const generi_esclusi: string[] = [];
+        const tipi_esclusi: string[] = [];
         const tipologia: string[] = [];
+        const stato: string[] = [];
+        const anno: string[] = [];
         const getFilterValue = (id: string) =>
             query.filters.find((filter) => filter.id == id)?.value;
-        console.log(getFilterValue("genres"));
         const genres: string | Record<string, "included" | "excluded"> =
             getFilterValue("genres") ?? "";
         const types: string | Record<string, "included" | "excluded"> =
             getFilterValue("types") ?? "";
+        const status: string | Record<string, "included" | "excluded"> =
+            getFilterValue("status") ?? "";
+        const year: string | Record<string, "included" | "excluded"> =
+            getFilterValue("year") ?? "";
         if (genres && typeof genres === "object") {
             for (const tag of Object.entries(genres)) {
-                if (tag[0].length > 0) generi.push(tag[0]);
+                if (tag[1] == "included") generi.push(tag[0]);
+                if (tag[1] == "excluded")
+                    generi_esclusi.push(
+                        getGenreFilter().find((item) => item.id === tag[0])
+                            ?.value ?? "",
+                    );
             }
-        } else if (genres.length > 0) generi.push(genres);
+        }
 
         if (types && typeof types === "object") {
             for (const tag of Object.entries(types)) {
-                if (tag[0].length > 0) tipologia.push(tag[0]);
+                if (tag[1] == "included") tipologia.push(tag[0]);
+                if (tag[1] == "excluded") tipi_esclusi.push(tag[0]);
             }
-        } else if (types.length > 0) tipologia.push(types);
+        }
 
-        console.log("Search query: " + query.title);
+        if (status && typeof status === "object") {
+            for (const tag of Object.entries(status)) {
+                if (tag[0].length > 0) stato.push(tag[0]);
+            }
+        } else if (status.length > 0) stato.push(status);
+
+        if (year && typeof year === "object") {
+            for (const tag of Object.entries(year)) {
+                if (tag[0].length > 0) anno.push(tag[0]);
+            }
+        } else if (year.length > 0) anno.push(year);
+
         const urlBuilder = new URLBuilder(this.baseUrl).addPathComponent(
             "archive",
         );
@@ -365,7 +453,12 @@ export class MangaWorldExtension implements ContentTemplateImplementation {
         if (generi.length > 0) urlBuilder.addQueryParameter("genre", generi);
         if (tipologia.length > 0)
             urlBuilder.addQueryParameter("type", tipologia);
-        return urlBuilder.buildUrl();
+        if (stato.length > 0) urlBuilder.addQueryParameter("status", stato[0]);
+        if (anno.length > 0) urlBuilder.addQueryParameter("year", anno[0]);
+        return {
+            url: urlBuilder.buildUrl(),
+            excluded: { generi: generi_esclusi, tipi: tipi_esclusi },
+        };
     }
 }
 

@@ -121,6 +121,7 @@ class FilterSettings extends Form {
         Application.setState(status, "hide_tags");
     }
     async handleHideTagsStatusChange(value: string[]): Promise<void> {
+        //console.log("handleHideTagsStatusChange " + value.join(", "));
         await this.HideTagsStatusState.updateValue(value);
         this.setHideTagsStatus(value);
         this.reloadForm();
@@ -140,6 +141,7 @@ class FilterSettings extends Form {
         Application.setState(status, "hide_type");
     }
     async handleHideTypeStatusChange(value: string[]): Promise<void> {
+        //console.log("handleHideTypeStatusChange " + value.join(", "));
         await this.HideTypeStatusState.updateValue(value);
         this.setHideTypeStatus(value);
         this.reloadForm();

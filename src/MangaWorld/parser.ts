@@ -13,8 +13,8 @@ import * as cheerio from "cheerio";
 import {
     blacklistedTags,
     blacklistedType,
-    getAdultFilter,
-    getMatureFilter,
+    excludedTags,
+    excludedTypes,
     Metadata,
 } from "./helper";
 
@@ -24,34 +24,13 @@ export class Parser {
      * @param {string[]} tags - tags
      * @return {ContentRating} - ContentRating
      */
-    getRating(tags: string[]): ContentRating | undefined {
+    getRating(tags: string[]): ContentRating {
         let rating = ContentRating.EVERYONE;
-        const storedAdultTags = Application.getState("adult_tags") as string[];
-        const adult_pref = storedAdultTags
-            ? storedAdultTags
-            : getAdultFilter().map(({ id }) => id);
-
-        const storedMatureTags = Application.getState(
-            "mature_tags",
-        ) as string[];
-        const mature_pref = storedMatureTags
-            ? storedMatureTags
-            : getMatureFilter().map(({ id }) => id);
-        console.log("AdultTags: " + adult_pref.join(","));
-        console.log("MatureTags: " + mature_pref.join(","));
         for (const tag of tags) {
-            if (
-                adult_pref
-                    .map((item) => item.toUpperCase())
-                    .includes(tag.toUpperCase())
-            ) {
+            if (tag.toUpperCase() === "ADULTI") {
                 rating = ContentRating.ADULT;
                 break;
-            } else if (
-                mature_pref
-                    .map((item) => item.toUpperCase())
-                    .includes(tag.toUpperCase())
-            ) {
+            } else if (tag.toUpperCase() === "MATURO") {
                 rating = ContentRating.MATURE;
                 break;
             }
@@ -135,7 +114,7 @@ export class Parser {
                 thumbnailUrl: image,
                 synopsis: desc,
                 primaryTitle: title,
-                contentRating: rating,
+                contentRating: rating ?? ContentRating.EVERYONE,
                 status: status,
                 author: author,
                 tagGroups: tagSections,
@@ -161,22 +140,13 @@ export class Parser {
                 "null",
                 "",
             ])[1];
-            const name = $("a", item).attr("title") ?? "";
+            //const name = $("a", item).attr("title") ?? "";
             const volN = $(item)
                 .closest(".volume-element")
                 .find(".volume-name")
                 .text()
                 .split(" ")[1];
             const chapN = $(".d-inline-block", item).text().split(" ")[1];
-            console.log("New Chapters");
-            console.log(
-                "Parsed: Manga " +
-                    name +
-                    " Chapter: " +
-                    chapN +
-                    " Volume: " +
-                    volN,
-            );
             const chapNum = isNaN(Number(chapN)) ? 1 : Number(chapN);
             const volumeNum = isNaN(Number(volN)) ? undefined : Number(volN);
 
@@ -282,13 +252,20 @@ export class Parser {
     /**
      * Search Parsing
      * @param {cheerio.CheerioAPI} $ - Request
+     * @param excluded
      * @return {SearchResultItem[]} items
      */
-    parseSearchResults($: cheerio.CheerioAPI): SearchResultItem[] {
+    async parseSearchResults(
+        $: cheerio.CheerioAPI,
+        excluded: { generi: string[]; tipi: string[] },
+    ): Promise<SearchResultItem[]> {
         const results: SearchResultItem[] = [];
         const parse = this.parsePage($);
         for (const item of parse) {
-            if (!blacklistedTags(item.tags) && !blacklistedType(item.type)) {
+            if (
+                !excludedTypes(item.type, excluded.tipi) &&
+                !excludedTags(item.tags, excluded.generi)
+            ) {
                 results.push({
                     imageUrl: item.image,
                     title: item.title,
@@ -326,7 +303,7 @@ export class Parser {
             trending.push({
                 metadata: metadata,
                 type: "featuredCarouselItem",
-                contentRating: undefined,
+                contentRating: ContentRating.EVERYONE,
                 supertitle: chapNum,
                 imageUrl: image,
                 mangaId: id,
@@ -361,7 +338,7 @@ export class Parser {
                 hot.push({
                     metadata: metadata,
                     type: "prominentCarouselItem",
-                    contentRating: undefined,
+                    contentRating: ContentRating.EVERYONE,
                     imageUrl: image,
                     mangaId: id,
                     title: title,
@@ -466,7 +443,7 @@ export class Parser {
             const match = $.html().match(regexDinamica);
             let data = new Date();
             if (match) {
-                console.log("Data trovata:" + match[1]);
+                //console.log("Data trovata:" + match[1]);
                 data = this.getDate(match[1]);
             }
             if (!blacklistedType(mangaType)) {
@@ -475,7 +452,7 @@ export class Parser {
                     metadata: metadata,
                     type: "chapterUpdatesCarouselItem",
                     publishDate: data,
-                    contentRating: undefined,
+                    contentRating: ContentRating.EVERYONE,
                     imageUrl: image,
                     mangaId: id,
                     title: title,
