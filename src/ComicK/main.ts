@@ -36,6 +36,7 @@ import {
     ComicKSettingsForm,
     getAggresiveUploadersFiltering,
     getChapterScoreFiltering,
+    getCloudflareRateLimitBackoff,
     getHideUnreleasedChapters,
     getLanguages,
     getShowTitle,
@@ -516,12 +517,42 @@ export class ComicKExtension implements ComicKImplementation {
         };
     }
 
-    async fetchApi<T>(request: Request): Promise<T> {
+    async fetchApi<T>(
+        request: Request,
+        attempt = 1,
+        maxAttempts = 4,
+    ): Promise<T> {
+        let response: Response;
+        let data: ArrayBuffer;
         try {
-            const [, data] = await Application.scheduleRequest(request);
+            [response, data] = await Application.scheduleRequest(request);
+        } catch {
+            throw new Error(
+                `Failed to fetch data from ${request.url} (request error)`,
+            );
+        }
+
+        if (response.status === 429 && getCloudflareRateLimitBackoff()) {
+            if (attempt < maxAttempts) {
+                const delay = 2 ** attempt * (1 + Math.random() / 2);
+                console.log(
+                    `Failed to fetch data from ${request.url} (Cloudflare rate limit, attempt ${attempt}, retrying in ${delay}s)`,
+                );
+                await Application.sleep(delay);
+                return this.fetchApi(request, attempt + 1, maxAttempts);
+            }
+
+            throw new Error(
+                `Failed to fetch data from ${request.url} (Cloudflare rate limit)`,
+            );
+        }
+
+        try {
             return JSON.parse(Application.arrayBufferToUTF8String(data)) as T;
         } catch {
-            throw new Error(`Failed to fetch data from ${request.url}`);
+            throw new Error(
+                `Failed to fetch data from ${request.url} (invalid response)`,
+            );
         }
     }
 }

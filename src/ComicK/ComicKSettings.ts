@@ -64,6 +64,10 @@ export function getHideUnreleasedChapters(): boolean {
     return getState("hide_unreleased_chapters", true);
 }
 
+export function getCloudflareRateLimitBackoff(): boolean {
+    return getState("cloudflare_rate_limit_backoff", false);
+}
+
 export class ComicKSettingsForm extends Form {
     override getSections(): FormSectionElement[] {
         return [
@@ -83,6 +87,12 @@ export class ComicKSettingsForm extends Form {
                 NavigationRow("uploaderForm", {
                     title: "Uploader Settings",
                     form: new UploaderForm(),
+                }),
+            ]),
+            Section("debugForm", [
+                NavigationRow("debugForm", {
+                    title: "Debug Settings",
+                    form: new DebugForm(),
                 }),
             ]),
         ];
@@ -378,5 +388,26 @@ export class UploaderForm extends Form {
 
     async onStrictNameMatching(value: boolean) {
         Application.setState(value, "strict_name_matching");
+    }
+}
+
+export class DebugForm extends Form {
+    override getSections(): FormSectionElement[] {
+        return [
+            Section({ id: "debug" }, [
+                ToggleRow("cloudflare_rate_limit_backoff_switch", {
+                    title: "Enable dynamic Cloudflare rate limit handling",
+                    value: getCloudflareRateLimitBackoff(),
+                    onValueChange: Application.Selector(
+                        this as DebugForm,
+                        "onCloudflareRateLimitBackoff",
+                    ),
+                }),
+            ]),
+        ];
+    }
+
+    async onCloudflareRateLimitBackoff(value: boolean) {
+        Application.setState(value, "cloudflare_rate_limit_backoff");
     }
 }

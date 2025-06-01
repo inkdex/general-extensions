@@ -3,7 +3,7 @@ import { ContentRating, SourceInfo, SourceIntents } from "@paperback/types";
 export default {
     name: "ComicK",
     description: "Extension that pulls content from comick.io.",
-    version: "1.0.0-alpha.10",
+    version: "1.0.0-alpha.11",
     icon: "icon.png",
     language: "en",
     contentRating: ContentRating.EVERYONE,
