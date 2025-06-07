@@ -189,7 +189,24 @@ export class LanguageForm extends Form {
     }
 
     async onSetLanguage(value: string[]) {
-        Application.setState(value, "languages");
+        // Get current languages
+        const currentLanguages = getLanguages();
+
+        // If "all" is being added, set only "all"
+        const added = value.filter((v) => !currentLanguages.includes(v));
+        if (added.includes("all")) {
+            Application.setState(["all"], "languages");
+            return;
+        }
+
+        // If "all" is currently selected and other languages are being added,
+        // remove "all" from the selection
+        let finalValue = value;
+        if (currentLanguages.includes("all") && value.length > 1) {
+            finalValue = value.filter((lang) => lang !== "all");
+        }
+
+        Application.setState(finalValue, "languages");
     }
 
     async onLanguageHomeFilter(value: boolean) {
