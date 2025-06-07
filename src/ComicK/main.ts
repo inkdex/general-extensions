@@ -27,15 +27,10 @@ import {
     parseChapterDetails,
     parseChapters,
     parseChapterSinceDate,
-    parseComicTypeFilters,
-    parseCreatedAtFilters,
-    parseDemographicFilters,
     parseDiscoverSection,
     parseMangaDetails,
     parseSearch,
-    parseSortFilter,
     parseTags,
-    parseTypeFilters,
 } from "./ComicKParser";
 import {
     ComicKSettingsForm,
@@ -50,6 +45,13 @@ import {
     getUploadersFiltering,
     getUploadersWhitelisted,
 } from "./ComicKSettings";
+import {
+    COMIC_TYPE_FILTER,
+    CREATED_AT_FILTER,
+    DEMOGRAPHIC_FILTER,
+    SEARCH_BY_FILTER,
+    SORT_FILTER,
+} from "./utils/filters";
 
 const COMICK_DOMAIN = "https://comick.io";
 const COMICK_API = "https://api.comick.fun";
@@ -273,60 +275,50 @@ export class ComicKExtension implements ComicKImplementation {
     async getSearchFilters(): Promise<SearchFilter[]> {
         const filters: SearchFilter[] = [];
 
-        const sortFilters = parseSortFilter();
-
         filters.push({
             id: "sort",
             type: "dropdown",
-            options: sortFilters,
+            options: SORT_FILTER,
             value: "",
             title: "Sort",
         });
 
-        const demographicFilters = parseDemographicFilters();
-
         filters.push({
             type: "multiselect",
-            options: demographicFilters,
+            options: DEMOGRAPHIC_FILTER,
             id: "demographic",
             allowExclusion: false,
             title: "Demographic",
             value: {},
             allowEmptySelection: true,
-            maximum: demographicFilters.length,
+            maximum: DEMOGRAPHIC_FILTER.length,
         });
-
-        const typeFilters = parseTypeFilters();
 
         filters.push({
             id: "type",
             type: "dropdown",
-            options: typeFilters,
+            options: SEARCH_BY_FILTER,
             value: "",
-            title: "Type",
+            title: "Search by Entity Type",
         });
-
-        const createdAtFilters = parseCreatedAtFilters();
 
         filters.push({
             id: "created-at",
             type: "dropdown",
-            options: createdAtFilters,
+            options: CREATED_AT_FILTER,
             value: "",
             title: "Created At",
         });
 
-        const comicTypeFilters = parseComicTypeFilters();
-
         filters.push({
             type: "multiselect",
-            options: comicTypeFilters,
+            options: COMIC_TYPE_FILTER,
             id: "comic-type",
             allowExclusion: false,
             title: "Comic Type",
             value: {},
             allowEmptySelection: true,
-            maximum: comicTypeFilters.length,
+            maximum: COMIC_TYPE_FILTER.length,
         });
 
         // Genre Filters

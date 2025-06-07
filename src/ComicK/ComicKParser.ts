@@ -10,6 +10,7 @@ import {
     TagSection,
 } from "@paperback/types";
 import { URLBuilder } from "../utils/url-builder/array-query-variant";
+import { COMIC_TYPE_FILTER } from "./utils/filters";
 import { getLanguageName } from "./utils/language";
 
 export const parseMangaDetails = (
@@ -204,50 +205,6 @@ export function parseDiscoverSection(
         });
 }
 
-export function parseSortFilter() {
-    return [
-        { id: "follow", value: "Most follows" },
-        { id: "view", value: "Most views" },
-        { id: "rating", value: "High rating" },
-        { id: "uploaded", value: "Last updated" },
-    ];
-}
-
-export function parseDemographicFilters() {
-    return [
-        { id: "1", value: "Shonen" },
-        { id: "2", value: "Shoujo" },
-        { id: "3", value: "Seinen" },
-        { id: "4", value: "Josei" },
-    ];
-}
-
-export function parseTypeFilters() {
-    return [
-        { id: "user", value: "User" },
-        { id: "author", value: "Author" },
-        { id: "group", value: "Group" },
-        { id: "comic", value: "Comic" },
-    ];
-}
-
-export function parseCreatedAtFilters() {
-    return [
-        { id: "30", value: "30 days" },
-        { id: "90", value: "3 months" },
-        { id: "180", value: "6 months" },
-        { id: "365", value: "1 year" },
-    ];
-}
-
-export function parseComicTypeFilters() {
-    return [
-        { id: "kr", value: "Manhwa" },
-        { id: "jp", value: "Manga" },
-        { id: "cn", value: "Manhua" },
-    ];
-}
-
 function parseContentRating(contentRating: string): ContentRating {
     if (contentRating === "erotica") {
         return ContentRating.ADULT;
@@ -261,8 +218,7 @@ function parseContentRating(contentRating: string): ContentRating {
 }
 
 function parseComicType(country: string): string | undefined {
-    const comicTypeFilters = parseComicTypeFilters();
-    return comicTypeFilters.find((filter) => filter.id === country)?.value;
+    return COMIC_TYPE_FILTER.find((filter) => filter.id === country)?.value;
 }
 
 function parseComicStatus(status: number): string {
