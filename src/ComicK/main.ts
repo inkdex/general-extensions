@@ -175,7 +175,7 @@ export class ComicKExtension implements ComicKImplementation {
         };
         const parsedData = await this.fetchApi<ComicK.MangaDetails>(request);
 
-        return parseMangaDetails(parsedData, mangaId, COMICK_API);
+        return parseMangaDetails(parsedData, mangaId, COMICK_DOMAIN);
     }
 
     async getChapters(

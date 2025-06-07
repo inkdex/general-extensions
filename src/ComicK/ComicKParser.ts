@@ -15,7 +15,7 @@ import { getLanguageName } from "./utils/language";
 export const parseMangaDetails = (
     data: ComicK.MangaDetails,
     mangaId: string,
-    apiUrl: string,
+    baseUrl: string,
 ): SourceManga => {
     const { comic, authors, artists } = data;
 
@@ -57,10 +57,9 @@ export const parseMangaDetails = (
         author: authors.map((author: ComicK.Item) => author.name).join(","),
         artist: artists.map((artists: ComicK.Item) => artists.name).join(","),
         tagGroups: tagSections,
-        shareUrl: new URLBuilder(apiUrl)
+        shareUrl: new URLBuilder(baseUrl)
             .addPath("comic")
-            .addPath(mangaId)
-            .addQuery("tachiyomi", true)
+            .addPath(comic.slug)
             .build(),
     };
 
