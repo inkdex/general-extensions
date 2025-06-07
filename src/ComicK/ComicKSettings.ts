@@ -305,6 +305,12 @@ export class UploaderForm extends Form {
     async onAddUploader() {
         const [uploader, setUploader] = this.uploaderState;
         const uploaders = getUploaders();
+        if (uploader().trim().length == 0) {
+            throw new Error("Uploader name cannot be blank.");
+        }
+        if (!/^[a-zA-Z0-9]+$/.test(uploader())) {
+            throw new Error("Uploader name must be alphanumeric.");
+        }
         if (uploader() in uploaders) {
             throw new Error(`Uploader ${uploader()} already exists.`);
         }
@@ -317,8 +323,11 @@ export class UploaderForm extends Form {
     async onRemoveUploader() {
         const [uploader, setUploader] = this.uploaderState;
         const uploaders = getUploaders();
-        if (!(uploader() in uploaders)) {
-            throw new Error(`Uploader ${uploader()} does not exists.`);
+        if (uploader().trim().length == 0) {
+            throw new Error("Uploader name cannot be blank.");
+        }
+        if (!uploaders.includes(uploader())) {
+            throw new Error(`Uploader ${uploader()} does not exist.`);
         }
 
         Application.setState(
