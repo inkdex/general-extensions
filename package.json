@@ -24,7 +24,7 @@
         "@paperback/types": "^1.0.0-alpha.53",
         "@types/eslint": "^9.6.1",
         "@types/upng-js": "^2.1.5",
-        "cheerio": "^1.0.0",
+        "cheerio": "^1.1.0",
         "eslint": "^9.28.0",
         "fastest-levenshtein": "^1.0.16",
         "husky": "^9.1.7",
@@ -33,7 +33,7 @@
         "prettier": "^3.5.3",
         "stemmer": "^2.0.1",
         "typescript": "^5.8.3",
-        "typescript-eslint": "^8.33.0",
+        "typescript-eslint": "^8.33.1",
         "upng-js": "^2.1.0"
     }
 }
