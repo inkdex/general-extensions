@@ -19,7 +19,7 @@ export async function populateFilter(baseUrl: string) {
         Application.getState("last-filter-fetch-date") ?? 0,
     );
     if (lastFilterFetch + 604800 > new Date().valueOf() / 1000) {
-        console.log("Use Cached Filters");
+        console.log("[CACHE] Use Cached Filters");
         setGenreFilter(
             JSON.parse(
                 Application.getState(".genres") as string,
@@ -53,11 +53,62 @@ export async function populateFilter(baseUrl: string) {
         setStatusFilter(extractOptions($, ".status"));
         setOrderFilter(extractOptions($, ".sort"));
         setYearFilter(extractOptions($, ".year"));
+        console.log("[CACHE] Cache New Filters");
         Application.setState(
             String(new Date().valueOf() / 1000),
             "last-filter-fetch-date",
         );
     }
+}
+
+const cacheMap = new Map<string, { expires: number; data: ArrayBuffer }>();
+const requestMap = new Map<string, Promise<ArrayBuffer>>();
+
+async function fetchPage(url: string): Promise<ArrayBuffer> {
+    const [, responseData] = await Application.scheduleRequest({
+        url,
+        method: "GET",
+    });
+    return responseData;
+}
+
+export async function getPageCache(
+    name: string,
+    url: string,
+    cacheTime: number = 60,
+): Promise<ArrayBuffer> {
+    const cached = cacheMap.get(name);
+    if (cached && cached.expires > Math.floor(Date.now() / 1000)) {
+        console.log(`[CACHE] Use Cached Page "${name}"`);
+        return cached.data;
+    }
+
+    // If a request is already in progress for this name, return that promise
+    if (requestMap.has(name)) {
+        console.log(`[CACHE] Awaiting Request "${name}"`);
+        return requestMap.get(name)!;
+    }
+
+    console.log(`[CACHE] Fetching New Page "${name}"`);
+
+    const fetchPromise = fetchPage(url)
+        .then((data) => {
+            cacheMap.set(name, {
+                expires: Math.floor(Date.now() / 1000) + cacheTime, // cache for 1 minute
+                data,
+            });
+            console.log(`[CACHE] New Cached "${name}"`);
+            requestMap.delete(name); // cleanup
+            return data;
+        })
+        .catch((error) => {
+            console.log(`[CACHE] Error on cache "${name} - ${error}"`);
+            requestMap.delete(name); // cleanup on error
+            throw error;
+        });
+
+    requestMap.set(name, fetchPromise);
+    return fetchPromise;
 }
 
 /**
@@ -68,11 +119,7 @@ export async function populateFilter(baseUrl: string) {
  */
 export const excludedTags = (tags: string[], exc: string[]): boolean => {
     return tags.some((tag) => {
-        const found = exc.includes(tag);
-        if (found) {
-            console.log("Detected :" + tag + " manga rimosso dalla lista");
-        }
-        return found;
+        return exc.includes(tag);
     });
 };
 
@@ -83,11 +130,7 @@ export const excludedTags = (tags: string[], exc: string[]): boolean => {
  * @param excluded
  */
 export const excludedTypes = (type: string, excluded: string[]): boolean => {
-    if (excluded.includes(type.toLowerCase())) {
-        console.log("Detected :" + type + " manga rimosso dalla lista");
-        return true;
-    }
-    return false;
+    return excluded.includes(type.toLowerCase());
 };
 
 /**
@@ -130,11 +173,7 @@ export const blacklistedTags = (tags: string[]): boolean => {
     const blacklistedSettings =
         (Application.getState("hide_tags") as string[] | undefined) ?? [];
     return tags.some((tag) => {
-        const isBlacklisted = blacklistedSettings.includes(tag);
-        if (isBlacklisted) {
-            console.log(`Detected: ${tag} manga rimosso dalla lista`);
-        }
-        return isBlacklisted;
+        return blacklistedSettings.includes(tag);
     });
 };
 
@@ -146,11 +185,7 @@ export const blacklistedTags = (tags: string[]): boolean => {
 export const blacklistedType = (type: string): boolean => {
     const blacklistedSettings =
         (Application.getState("hide_type") as string[] | undefined) ?? [];
-    if (blacklistedSettings.includes(type.toLowerCase())) {
-        console.log("Detected :" + type + " manga rimosso dalla lista");
-        return true;
-    }
-    return false;
+    return blacklistedSettings.includes(type.toLowerCase());
 };
 
 /**
@@ -159,6 +194,7 @@ export const blacklistedType = (type: string): boolean => {
 function setMangaTypeFilter(newValue: OptionItem[]) {
     MangaTypeFilter = newValue;
 }
+
 /**
  * Get Manga Type
  * @return [{ value: string, id: string }]
@@ -166,12 +202,14 @@ function setMangaTypeFilter(newValue: OptionItem[]) {
 export function getMangaTypeFilter() {
     return MangaTypeFilter;
 }
+
 /**
  * Set Ordering Filter
  */
 function setOrderFilter(newValue: OptionItem[]) {
     OrderFilter = newValue;
 }
+
 /**
  * Get Ordering Type
  * @return [{value: string, id: string}]
@@ -179,12 +217,14 @@ function setOrderFilter(newValue: OptionItem[]) {
 export function getOrderFilter() {
     return OrderFilter;
 }
+
 /**
  * Set Status Filter
  */
 function setStatusFilter(newValue: OptionItem[]) {
     StatusFilter = newValue;
 }
+
 /**
  * Get Status
  * @return [{value: string, id: string}]
@@ -192,12 +232,14 @@ function setStatusFilter(newValue: OptionItem[]) {
 export function getStatusFilter() {
     return StatusFilter;
 }
+
 /**
  * Set Genres
  */
 function setGenreFilter(newValue: OptionItem[]) {
     GenreFilter = newValue;
 }
+
 /**
  * Get Genres
  * @return [{ value: string, id: string }]
@@ -205,12 +247,14 @@ function setGenreFilter(newValue: OptionItem[]) {
 export function getGenreFilter() {
     return GenreFilter;
 }
+
 /**
  * Set Years
  */
 function setYearFilter(newValue: OptionItem[]) {
     YearFilter = newValue;
 }
+
 /**
  * Get Years
  * @return [{ value: string, id: string }]

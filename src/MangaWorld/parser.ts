@@ -10,6 +10,7 @@ import {
     TagSection,
 } from "@paperback/types";
 import * as cheerio from "cheerio";
+import { getPageCache } from "../MangaWorldAdult/helper";
 import {
     blacklistedTags,
     blacklistedType,
@@ -298,8 +299,8 @@ export class Parser {
             const image = $("a img", obj).attr("src") ?? "";
             const chapNum = $("a div", obj).text() ?? "";
             const title = $(".manga-title", obj).text().trim();
-            console.log("Capitoli in tendenza");
-            console.log("Parsed: Manga " + title + " Chap: " + chapNum);
+            //console.log("Capitoli in tendenza");
+            //console.log("Parsed: Manga " + title + " Chap: " + chapNum);
             trending.push({
                 metadata: metadata,
                 type: "featuredCarouselItem",
@@ -332,8 +333,8 @@ export class Parser {
                 ) ?? ["null"])[0] ?? "";
             const image = $(".img-fluid", obj).attr("src") ?? "";
             const title = $(".name", obj).first().text().trim() ?? "";
-            console.log("In tendenza Mese");
-            console.log("Parsed: Manga " + title);
+            //console.log("In tendenza Mese");
+            //console.log("Parsed: Manga " + title);
             if (hot.length < 10) {
                 hot.push({
                     metadata: metadata,
@@ -360,14 +361,25 @@ export class Parser {
     ): Promise<{ items: DiscoverSectionItem[]; metadata: Metadata }> {
         const latest: DiscoverSectionItem[] = [];
         let page = metadata?.page ?? 1;
-
-        const data = (
-            await Application.scheduleRequest({
-                url: `${url}/archive?sort=newest&page=${page}`,
-                method: "GET",
-            })
-        )[1];
-        const $ = cheerio.load(Application.arrayBufferToUTF8String(data));
+        let $ = cheerio.load(``);
+        if (page > 1) {
+            const data = (
+                await Application.scheduleRequest({
+                    url: `${url}/archive?sort=newest&page=${page}`,
+                    method: "GET",
+                })
+            )[1];
+            $ = cheerio.load(Application.arrayBufferToUTF8String(data));
+        } else {
+            $ = cheerio.load(
+                Application.arrayBufferToUTF8String(
+                    await getPageCache(
+                        "LastMangaAddedSection",
+                        `${url}/archive?sort=newest&page=${page}`,
+                    ),
+                ),
+            );
+        }
         page++;
         const parse = this.parsePage($);
         for (const item of parse) {
@@ -433,9 +445,9 @@ export class Parser {
             const chapterId: string = ((
                 $(".d-flex.flex-wrap.flex-row a", obj).attr("href") ?? ""
             ).match(/\/read\/([a-f0-9]+)(?:\?.*)?$/i) ?? ["null", ""])[1];
-            console.log("Ultime Aggiunte");
-            console.log("Parsed: Manga " + title);
-            console.log("Parsed: Ch " + chapterId);
+            //console.log("Ultime Aggiunte");
+            //console.log("Parsed: Manga " + title);
+            //console.log("Parsed: Ch " + chapterId);
             const regexDinamica = new RegExp(
                 `"createdAtTWithYear":\\s*"([^"]+)"\\s*,\\s*"isNew":\\s*(true|false)\\s*,\\s*"id":\\s*"${chapterId}"`,
                 "m",
