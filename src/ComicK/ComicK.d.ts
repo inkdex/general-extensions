@@ -14,8 +14,10 @@ declare namespace ComicK {
         slug: string;
         country: string;
         md_titles: { title: string }[];
-        cover_url: string;
+        cover_url?: string;
         md_comic_md_genres: { md_genres: Item }[];
+        bayesian_rating: number;
+        md_covers: { vol: string; w: number; h: number; b2key: string }[];
     };
 
     type MangaDetails = {

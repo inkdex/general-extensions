@@ -13,6 +13,20 @@ import { URLBuilder } from "../utils/url-builder/array-query-variant";
 import { COMIC_TYPE_FILTER } from "./utils/filters";
 import { getLanguageName } from "./utils/language";
 
+export function parseCover(
+    thumbnailUrl?: string,
+    mdCovers: ComicK.Comic["md_covers"] = [],
+): string {
+    const b2key = mdCovers[0]?.b2key;
+    if (!b2key) return thumbnailUrl ?? "";
+
+    const vol = mdCovers[0]?.vol ?? "";
+    const lastSlashIndex = thumbnailUrl?.lastIndexOf("/");
+    return lastSlashIndex !== undefined && lastSlashIndex !== -1
+        ? thumbnailUrl!.substring(0, lastSlashIndex + 1) + `${b2key}#${vol}`
+        : (thumbnailUrl ?? "");
+}
+
 export const parseMangaDetails = (
     data: ComicK.MangaDetails,
     mangaId: string,
@@ -49,14 +63,15 @@ export const parseMangaDetails = (
     );
 
     const mangaInfo: MangaInfo = {
-        thumbnailUrl: comic.cover_url,
+        thumbnailUrl: parseCover(comic.cover_url, comic.md_covers),
         synopsis: comic.desc ? Application.decodeHTMLEntities(comic.desc) : "",
         primaryTitle: titles[0],
         secondaryTitles: titles,
         contentRating: parseContentRating(comic.content_rating),
         status: parseComicStatus(comic.status),
-        author: authors.map((author: ComicK.Item) => author.name).join(","),
         artist: artists.map((artists: ComicK.Item) => artists.name).join(","),
+        author: authors.map((author: ComicK.Item) => author.name).join(","),
+        rating: comic.bayesian_rating,
         tagGroups: tagSections,
         shareUrl: new URLBuilder(baseUrl)
             .addPath("comic")
