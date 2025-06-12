@@ -16,7 +16,7 @@ declare namespace ComicK {
         md_titles: { title: string }[];
         cover_url?: string;
         md_comic_md_genres: { md_genres: Item }[];
-        bayesian_rating: number;
+        bayesian_rating: string;
         md_covers: { vol: string; w: number; h: number; b2key: string }[];
     };
 

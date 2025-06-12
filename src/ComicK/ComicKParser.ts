@@ -39,7 +39,7 @@ export const parseMangaDetails = (
         ...comic.md_titles.map((titleObj) => titleObj.title),
     ];
 
-    const description = Application.decodeHTMLEntities(comic.desc ?? "")
+    const synopsis = Application.decodeHTMLEntities(comic.desc ?? "")
         .split("---")[0]
         .trim();
 
@@ -66,16 +66,19 @@ export const parseMangaDetails = (
         ),
     );
 
+    const bayesianRating = parseFloat(comic.bayesian_rating);
+    const rating = isNaN(bayesianRating) ? undefined : bayesianRating / 10;
+
     const mangaInfo: MangaInfo = {
         thumbnailUrl: parseCover(comic.cover_url, comic.md_covers),
-        synopsis: description,
+        synopsis,
         primaryTitle: titles[0],
         secondaryTitles: titles,
         contentRating: parseContentRating(comic.content_rating),
         status: parseComicStatus(comic.status),
         artist: artists.map((artists: ComicK.Item) => artists.name).join(","),
         author: authors.map((author: ComicK.Item) => author.name).join(","),
-        rating: comic.bayesian_rating,
+        rating,
         tagGroups: tagSections,
         shareUrl: new URLBuilder(baseUrl)
             .addPath("comic")
