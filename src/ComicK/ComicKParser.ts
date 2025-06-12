@@ -86,7 +86,7 @@ export function parseChapters(
         return {
             chapterId: chapter.hid,
             sourceManga,
-            title: formatChapterTitle(chapter, filter.showTitle),
+            title: filter.showTitle && chapter.title ? `${chapter.title}` : "",
             chapNum: !isNaN(chapNum) ? chapNum : 0,
             sortingIndex: sortingIndex--,
             volume: filter.showVol && !isNaN(volume) ? volume : undefined,
@@ -236,22 +236,24 @@ function filterChapters(
     chapters: ComicK.ChapterData[],
     filter: ComicK.ChapterFilter,
 ): ComicK.ChapterData[] {
+    let filteredChapters = chapters;
+
     if (filter.hideUnreleasedChapters) {
         const currentDate = new Date();
-        chapters = chapters.filter(
+        filteredChapters = filteredChapters.filter(
             (chapter) => new Date(chapter.publish_at) <= currentDate,
         );
     }
 
     if (filter.chapterScoreFiltering) {
-        return filterByScore(chapters);
+        filteredChapters = filterByScore(filteredChapters);
     }
 
     if (filter.uploadersToggled && filter.uploaders.length) {
-        return filterByUploaders(chapters, filter);
+        filteredChapters = filterByUploaders(filteredChapters, filter);
     }
 
-    return chapters;
+    return filteredChapters;
 }
 
 function filterByScore(chapters: ComicK.ChapterData[]): ComicK.ChapterData[] {
@@ -284,6 +286,10 @@ function filterByUploaders(
         strictNameMatching,
     } = filter;
 
+    if (uploaders.length === 0) {
+        return chapters;
+    }
+
     return chapters.filter((chapter) => {
         const groups = chapter.group_name ?? [];
         const matchesUploader = (group: string, uploader: string) =>
@@ -307,11 +313,4 @@ function filterByUploaders(
 
         return uploadersWhitelisted ? hasMatchingUploader : !hasAllUploaders;
     });
-}
-
-function formatChapterTitle(
-    chapter: ComicK.ChapterData,
-    showTitle: boolean,
-): string {
-    return showTitle && chapter.title ? `${chapter.title}` : "";
 }

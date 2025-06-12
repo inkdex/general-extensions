@@ -1,8 +1,10 @@
 const SORT_FILTER = [
-    { id: "follow", value: "Most follows" },
+    { id: "follow", value: "Most popular" },
+    { id: "user_follow_count", value: "Most follows" },
     { id: "view", value: "Most views" },
     { id: "rating", value: "High rating" },
     { id: "uploaded", value: "Last updated" },
+    { id: "created_at", value: "Newest" },
 ];
 
 const DEMOGRAPHIC_FILTER = [
@@ -10,6 +12,7 @@ const DEMOGRAPHIC_FILTER = [
     { id: "2", value: "Shoujo" },
     { id: "3", value: "Seinen" },
     { id: "4", value: "Josei" },
+    { id: "5", value: "None" },
 ];
 
 const SEARCH_BY_FILTER = [
@@ -20,6 +23,8 @@ const SEARCH_BY_FILTER = [
 ];
 
 const CREATED_AT_FILTER = [
+    { id: "3", value: "3 days" },
+    { id: "7", value: "7 days" },
     { id: "30", value: "30 days" },
     { id: "90", value: "3 months" },
     { id: "180", value: "6 months" },
@@ -30,6 +35,7 @@ const COMIC_TYPE_FILTER = [
     { id: "kr", value: "Manhwa" },
     { id: "jp", value: "Manga" },
     { id: "cn", value: "Manhua" },
+    { id: "others", value: "Others" },
 ];
 
 export {
