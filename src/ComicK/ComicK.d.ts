@@ -71,15 +71,10 @@ declare namespace ComicK {
     };
 
     type ChapterFilter = {
-        aggressiveUploadersFilter: boolean;
         chapterScoreFiltering: boolean;
         hideUnreleasedChapters: boolean;
         showTitle: boolean;
         showVol: boolean;
-        strictNameMatching: boolean;
-        uploaders: string[];
-        uploadersToggled: boolean;
-        uploadersWhitelisted: boolean;
     };
 
     type Metadata = {

@@ -34,17 +34,12 @@ import {
 } from "./ComicKParser";
 import {
     ComicKSettingsForm,
-    getAggresiveUploadersFiltering,
     getChapterScoreFiltering,
     getCloudflareRateLimitBackoff,
     getHideUnreleasedChapters,
     getLanguages,
     getShowTitle,
     getShowVolumeNumber,
-    getStrictNameMatching,
-    getUploaders,
-    getUploadersFiltering,
-    getUploadersWhitelisted,
 } from "./ComicKSettings";
 import {
     COMIC_TYPE_FILTER,
@@ -508,11 +503,6 @@ export class ComicKExtension implements ComicKImplementation {
             showTitle: getShowTitle(),
             showVol: getShowVolumeNumber(),
             chapterScoreFiltering: getChapterScoreFiltering(),
-            uploadersToggled: getUploadersFiltering(),
-            uploadersWhitelisted: getUploadersWhitelisted(),
-            aggressiveUploadersFilter: getAggresiveUploadersFiltering(),
-            strictNameMatching: getStrictNameMatching(),
-            uploaders: getUploaders(),
             hideUnreleasedChapters: getHideUnreleasedChapters(),
         };
     }

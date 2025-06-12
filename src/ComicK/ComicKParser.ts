@@ -249,10 +249,6 @@ function filterChapters(
         filteredChapters = filterByScore(filteredChapters);
     }
 
-    if (filter.uploadersToggled && filter.uploaders.length) {
-        filteredChapters = filterByUploaders(filteredChapters, filter);
-    }
-
     return filteredChapters;
 }
 
@@ -273,44 +269,4 @@ function filterByScore(chapters: ComicK.ChapterData[]): ComicK.ChapterData[] {
     });
 
     return Array.from(chapterMap.values()).map((v) => v.chapter);
-}
-
-function filterByUploaders(
-    chapters: ComicK.ChapterData[],
-    filter: ComicK.ChapterFilter,
-): ComicK.ChapterData[] {
-    const {
-        uploaders,
-        uploadersWhitelisted,
-        aggressiveUploadersFilter,
-        strictNameMatching,
-    } = filter;
-
-    if (uploaders.length === 0) {
-        return chapters;
-    }
-
-    return chapters.filter((chapter) => {
-        const groups = chapter.group_name ?? [];
-        const matchesUploader = (group: string, uploader: string) =>
-            strictNameMatching
-                ? uploader === group
-                : group.toLowerCase().includes(uploader.toLowerCase());
-
-        const hasMatchingUploader = groups.some((group) =>
-            uploaders.some((uploader) => matchesUploader(group, uploader)),
-        );
-
-        const hasAllUploaders = groups.every((group) =>
-            uploaders.some((uploader) => matchesUploader(group, uploader)),
-        );
-
-        if (aggressiveUploadersFilter) {
-            return uploadersWhitelisted
-                ? hasAllUploaders
-                : !hasMatchingUploader;
-        }
-
-        return uploadersWhitelisted ? hasMatchingUploader : !hasAllUploaders;
-    });
 }
