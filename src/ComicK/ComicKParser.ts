@@ -39,9 +39,13 @@ export const parseMangaDetails = (
         ...comic.md_titles.map((titleObj) => titleObj.title),
     ];
 
+    const description = Application.decodeHTMLEntities(comic.desc ?? "")
+        .split("---")[0]
+        .trim();
+
     const tagSections: TagSection[] = [];
 
-    // Add tyoe tag section
+    // Add type tag section
     const countryTitle = parseComicType(comic.country);
     if (countryTitle) {
         tagSections.push(
@@ -64,7 +68,7 @@ export const parseMangaDetails = (
 
     const mangaInfo: MangaInfo = {
         thumbnailUrl: parseCover(comic.cover_url, comic.md_covers),
-        synopsis: comic.desc ? Application.decodeHTMLEntities(comic.desc) : "",
+        synopsis: description,
         primaryTitle: titles[0],
         secondaryTitles: titles,
         contentRating: parseContentRating(comic.content_rating),
