@@ -7,13 +7,8 @@ import {
     SourceManga,
 } from "@paperback/types";
 import { Cheerio, CheerioAPI } from "cheerio";
-import type { AnyNode, Element } from "domhandler";
-import {
-    formatDate,
-    getDateDayFormat,
-    getLanguagesTitle,
-    Language,
-} from "./WebtoonI18NHelper";
+import type { Element } from "domhandler";
+import { formatDate, getLanguagesTitle, Language } from "./WebtoonI18NHelper";
 import { WebtoonSettings } from "./WebtoonSettings";
 
 type CheerioElement = Cheerio<Element>;
@@ -37,7 +32,7 @@ export abstract class WebtoonParser extends WebtoonSettings {
 
     parseDetails($: CheerioAPI, mangaId: string): SourceManga {
         const detailElement = $(
-            "#content > div.cont_box > div.detail_header > div.info",
+            "#wrap > #container > #content > div.cont_box > div.detail_header > div.info",
         );
         const infoElement = $("#_asideDetail") as CheerioElement;
         const isCanvas = mangaId.startsWith(
@@ -76,11 +71,14 @@ export abstract class WebtoonParser extends WebtoonSettings {
                             .find(".genre")
                             .toArray()
                             .map((genre) => ({
-                                id: $(genre).text().replaceAll(" ", "-"),
+                                id: $(genre)
+                                    .text()
+                                    .replaceAll(/\s+|\//gm, "_"),
                                 title: $(genre).text(),
                             })),
                     },
                 ],
+                shareUrl: this.BASE_URL + "/" + mangaId,
             },
         };
     }
@@ -92,11 +90,12 @@ export abstract class WebtoonParser extends WebtoonSettings {
     }
 
     parseDetailsThumbnail($: CheerioAPI): string {
-        return (
-            $("#content > div.cont_box > div.detail_body")
+        const thumb =
+            $("#wrap > #container > #content > div.detail_bg")
                 .attr("style")
-                ?.match(/url\('(.*?)'\)/)?.[1] ?? ""
-        );
+                ?.match(/url\('(.*?)'\)/)?.[1] ?? "";
+        const meta = $("meta[property='og:image']").attr("content") ?? "";
+        return meta ?? thumb;
     }
 
     parseCanvasDetailsThumbnail($: CheerioAPI): string {
@@ -124,6 +123,7 @@ export abstract class WebtoonParser extends WebtoonSettings {
             chapNum: Number(
                 elem.find("a > div.row > div.num").text()?.substring(1),
             ),
+            volume: 0,
             publishDate: formatDate(
                 elem
                     .find("a > div.row > div.info > div.sub_info > span.date")
@@ -145,9 +145,9 @@ export abstract class WebtoonParser extends WebtoonSettings {
 
     parsePopularTitles($: CheerioAPI): PagedResults<SearchResultItem> {
         return {
-            items: $("div#content div.NE\\=a\\:tnt li a")
+            items: $("div#content div.webtoon_list_wrap ul.webtoon_list li a")
                 .toArray()
-                .filter((elem) => $(elem).find("p.subj"))
+                .filter((elem) => $(elem).find("strong.title"))
                 .map((elem) => this.parseMangaFromElement($(elem))),
         };
     }
@@ -159,63 +159,63 @@ export abstract class WebtoonParser extends WebtoonSettings {
         const mangas: SearchResultItem[] = [];
 
         const list = $(
-            `div#dailyList div.daily_section._list_${getDateDayFormat()} li a.daily_card_item`,
+            `div#content div.webtoon_list_wrap ul.webtoon_list li a`,
         );
         for (
             let i = 0;
-            i <= list.length && (allTitles || mangas.length < 10);
+            i <= list.length - 1 && (allTitles || mangas.length < 10);
             i++
         ) {
-            if ($(list[i]).find("p.subj"))
+            if ($(list[i]).find("strong.title"))
                 mangas.push(this.parseMangaFromElement($(list[i])));
         }
 
         return { items: mangas };
     }
 
-    parseOngoingTitles(
-        $: CheerioAPI,
-        allTitles: boolean,
-    ): PagedResults<SearchResultItem> {
-        const mangas: SearchResultItem[] = [];
-        let maxChild = 0;
+    // parseTrendingTitles(
+    //     $: CheerioAPI,
+    //     allTitles: boolean,
+    // ): PagedResults<SearchResultItem> {
+    //     const mangas: SearchResultItem[] = [];
+    //     let maxChild = 0;
 
-        $("div#dailyList > div").each((_: number, elem: Element) => {
-            if ($(elem).find("li").length > maxChild)
-                maxChild = $(elem).find("li").length;
-        });
+    //     $("div#content div.webtoon_list_wrap ul.webtoon_list").each((_: number, elem: Element) => {
+    //         if ($(elem).find("li").length > maxChild)
+    //             maxChild = $(elem).find("li").length;
+    //     });
 
-        for (let i = 1; i <= maxChild; i++) {
-            if (!allTitles && mangas.length >= 14) return { items: mangas };
-            $(
-                "div#dailyList > div li:nth-child(" + i + ") a.daily_card_item",
-            ).each((_: number, elem: AnyNode) => {
-                if ($(elem).find("p.subj"))
-                    mangas.push(this.parseMangaFromElement($(elem as Element)));
-            });
-        }
+    //     for (let i = 1; i <= maxChild; i++) {
+    //         if (!allTitles && mangas.length >= 14) return { items: mangas };
+    //         $(
+    //             "div#content div.webtoon_list_wrap ul.webtoon_list li a",
+    //         ).each((_: number, elem: AnyNode) => {
+    //             if ($(elem).find("strong.title"))
+    //                 mangas.push(this.parseMangaFromElement($(elem as Element)));
+    //         });
+    //     }
 
-        return { items: mangas };
-    }
+    //     return { items: mangas };
+    // }
 
-    parseCompletedTitles(
-        $: CheerioAPI,
-        allTitles: boolean,
-    ): PagedResults<SearchResultItem> {
-        const mangas: SearchResultItem[] = [];
+    // parseCompletedTitles(
+    //     $: CheerioAPI,
+    //     allTitles: boolean,
+    // ): PagedResults<SearchResultItem> {
+    //     const mangas: SearchResultItem[] = [];
 
-        const list = $("div.daily_lst.comp li a");
-        for (
-            let i = 0;
-            i <= list.length && (allTitles || mangas.length < 10);
-            i++
-        ) {
-            if ($(list[i]).find("p.subj"))
-                mangas.push(this.parseMangaFromElement($(list[i])));
-        }
+    //     const list = $("div#content div.webtoon_list_wrap ul.webtoon_list li a");
+    //     for (
+    //         let i = 0;
+    //         i <= list.length-1 && (allTitles || mangas.length < 10);
+    //         i++
+    //     ) {
+    //         if ($(list[i]).find("strong.title"))
+    //             mangas.push(this.parseMangaFromElement($(list[i])));
+    //     }
 
-        return { items: mangas };
-    }
+    //     return { items: mangas };
+    // }
 
     parseCanvasRecommendedTitles(
         $: CheerioAPI,
@@ -257,14 +257,27 @@ export abstract class WebtoonParser extends WebtoonSettings {
     parseMangaFromElement(elem: CheerioElement): SearchResultItem {
         const mangaId =
             elem.attr("href")?.replace(this.BASE_URL + "/", "") ?? "";
-        const subtitle =
-            this.languages.length > 1 ? this.languageTitleFromId(mangaId) : "";
+        const isCanvas = mangaId.startsWith(
+            this.languageFromId(mangaId) + "/canvas",
+        );
+        const subtitle = isCanvas
+            ? "Canvas" +
+              (this.languages.length > 1
+                  ? " - " + this.languageTitleFromId(mangaId)
+                  : "")
+            : this.languages.length > 1
+              ? this.languageTitleFromId(mangaId)
+              : "";
+        const contentRating =
+            elem.children().attr("data-title-unsuitable-for-children") == "true"
+                ? ContentRating.MATURE
+                : ContentRating.EVERYONE;
         return {
             mangaId: mangaId,
-            title: elem.find("p.subj").text(),
+            title: elem.find("strong.title").text(),
             imageUrl: elem.find("img").attr("src") ?? "",
             subtitle: subtitle,
-            contentRating: ContentRating.EVERYONE,
+            contentRating: contentRating,
         };
     }
 
@@ -288,52 +301,59 @@ export abstract class WebtoonParser extends WebtoonSettings {
     parseSearchResults($: CheerioAPI): PagedResults<SearchResultItem> {
         return {
             items: [
-                ...$("#content > div.card_wrap.search li a.card_item")
+                ...$("#content > div.webtoon_list_wrap ul li a._card_item")
                     .toArray()
                     .map((elem) => this.parseMangaFromElement($(elem))),
-                ...(this.canvasWanted
-                    ? $("#content > div.card_wrap.search li a.challenge_item")
-                          .toArray()
-                          .map((elem) => this.parseCanvasFromElement($(elem)))
-                    : []),
+                // ...(this.canvasWanted
+                //     ? $("#content > div.webtoon_list_wrap ul li a.challenge_item")
+                //           .toArray()
+                //           .map((elem) => this.parseCanvasFromElement($(elem)))
+                //     : []),
             ],
         };
     }
 
     parseGenres($: CheerioAPI): Tag[] {
-        return $("#content ul._genre li")
+        return $("#content > div#genre_wrap > div.snb_inner > ul li")
             .toArray()
             .map((elem) => this.parseTagFromElement($(elem)));
     }
 
     parseCanvasGenres($: CheerioAPI): Tag[] {
-        return $("#content ul.challenge li")
-            .toArray()
-            .filter(
-                (elem) =>
-                    $(elem).attr("data-genre") &&
-                    $(elem).attr("data-genre") !== "ALL",
-            )
-            .map((elem) => this.parseCanvasTagFromElement($(elem)));
+        return (
+            $("#content > div#genre_wrap > div.snb_inner > ul li")
+                .toArray()
+                // .filter(
+                //     (elem) =>
+                //         $(elem).find("a").text().trim() !== "ALL",
+                // )
+                .map((elem) => this.parseCanvasTagFromElement($(elem)))
+        );
     }
 
     parseTagFromElement(elem: CheerioElement): Tag {
         return {
-            id: elem.attr("data-genre") ?? "",
+            id: elem.find("a").attr("data-genre") ?? "",
             value: elem.find("a").text().trim(),
         };
     }
 
     parseCanvasTagFromElement(elem: CheerioElement): Tag {
         return {
-            id: "CANVAS%%" + (elem.attr("data-genre") ?? ""),
+            id:
+                "CANVAS%%" +
+                elem
+                    .find("a")
+                    .text()
+                    .trim()
+                    .replaceAll(/\s+|\//gm, "_"),
             value: "Canvas - " + elem.find("a").text().trim(),
         };
     }
 
     parseTagResults($: CheerioAPI): PagedResults<SearchResultItem> {
         return {
-            items: $("#content > div.card_wrap ul.card_lst li a")
+            items: $("#content > div.webtoon_list_wrap ul li a")
                 .toArray()
                 .map((elem) => this.parseMangaFromElement($(elem))),
         };

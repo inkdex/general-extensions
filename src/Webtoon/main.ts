@@ -11,9 +11,14 @@ import {
     SearchQuery,
     SearchResultItem,
     SearchResultsProviding,
+    SortingOption,
     SourceManga,
 } from "@paperback/types";
-import { getLanguagesTitle, haveTrending, Language } from "./WebtoonI18NHelper";
+import {
+    getDateDayFormat,
+    getLanguagesTitle,
+    Language,
+} from "./WebtoonI18NHelper";
 import { WebtoonInfra } from "./WebtoonInfra";
 import { Tag, WebtoonsSearchingMetadata } from "./WebtoonParser";
 
@@ -61,11 +66,12 @@ export class WebtoonExtention
 
     getPopularTitles(
         language: Language,
+        metadata: WebtoonsSearchingMetadata | undefined,
     ): Promise<PagedResults<SearchResultItem>> {
         return this.ExecPagedResultsRequest(
-            { url: `${this.BASE_URL}/${language}/popular` },
-            { page: 0, maxPages: 1 },
-            ($) => this.parsePopularTitles($),
+            { url: `${this.BASE_URL}/${language}/ranking/popular` },
+            { page: metadata?.page ?? 0, maxPages: 1 },
+            ($) => this.parseTodayTitles($, true),
         );
     }
 
@@ -74,20 +80,22 @@ export class WebtoonExtention
         metadata: WebtoonsSearchingMetadata | undefined,
     ): Promise<PagedResults<SearchResultItem>> {
         return this.ExecPagedResultsRequest(
-            { url: `${this.BASE_URL}/${language}/originals` },
-            { page: metadata?.page ?? 0, maxPages: 2 },
-            ($) => this.parseTodayTitles($, metadata?.page ? true : false),
+            {
+                url: `${this.BASE_URL}/${language}/originals/${getDateDayFormat()}`,
+            },
+            { page: metadata?.page ?? 0, maxPages: 1 },
+            ($) => this.parseTodayTitles($, true),
         );
     }
 
-    getOngoingTitles(
+    getTrendingTitles(
         language: Language,
         metadata: WebtoonsSearchingMetadata | undefined,
     ): Promise<PagedResults<SearchResultItem>> {
         return this.ExecPagedResultsRequest(
-            { url: `${this.BASE_URL}/${language}/originals` },
-            { page: metadata?.page ?? 0, maxPages: 2 },
-            ($) => this.parseOngoingTitles($, metadata?.page ? true : false),
+            { url: `${this.BASE_URL}/${language}/ranking/trending` },
+            { page: metadata?.page ?? 0, maxPages: 1 },
+            ($) => this.parseTodayTitles($, true),
         );
     }
 
@@ -96,9 +104,9 @@ export class WebtoonExtention
         metadata: WebtoonsSearchingMetadata | undefined,
     ): Promise<PagedResults<SearchResultItem>> {
         return this.ExecPagedResultsRequest(
-            { url: `${this.BASE_URL}/${language}/originals` },
-            { page: metadata?.page ?? 0, maxPages: 2 },
-            ($) => this.parseCompletedTitles($, metadata?.page ? true : false),
+            { url: `${this.BASE_URL}/${language}/originals/complete` },
+            { page: metadata?.page ?? 0, maxPages: 1 },
+            ($) => this.parseTodayTitles($, true),
         );
     }
 
@@ -115,11 +123,18 @@ export class WebtoonExtention
         language: Language,
         metadata: WebtoonsSearchingMetadata | undefined,
         genre?: string,
+        sortOrder?: SortingOption,
     ): Promise<PagedResults<SearchResultItem>> {
         return this.ExecPagedResultsRequest(
             {
                 url: `${this.BASE_URL}/${language}/canvas/list`,
-                params: { genreTab: genre ?? "ALL", sortOrder: "READ_COUNT" },
+                params: {
+                    genreTab: genre ?? "ALL",
+                    sortOrder:
+                        sortOrder?.id == "MANA"
+                            ? "READ_COUNT"
+                            : (sortOrder?.id ?? "READ_COUNT"),
+                },
             },
             { page: metadata?.page ?? 0 },
             ($) => this.parseCanvasPopularTitles($),
@@ -129,11 +144,12 @@ export class WebtoonExtention
     getTitlesByGenre(
         language: Language,
         genre: string,
+        sortOrder: SortingOption | undefined,
     ): Promise<PagedResults<SearchResultItem>> {
         return this.ExecRequest(
             {
                 url: `${this.BASE_URL}/${language}/genres/${genre}`,
-                params: { sortOrder: "READ_COUNT" },
+                params: { sortOrder: sortOrder?.id ?? "" },
             },
             ($) => this.parseTagResults($),
         );
@@ -149,7 +165,7 @@ export class WebtoonExtention
                 url: `${this.BASE_URL}/${language}/search`,
                 params: {
                     keyword: keyword,
-                    ...(this.canvasWanted ? {} : { searchType: "WEBTOON" }),
+                    // ...(this.canvasWanted ? {} : { searchType: "WEBTOON" }),
                 },
             },
             { page: metadata?.page ?? 0 },
@@ -160,6 +176,7 @@ export class WebtoonExtention
     getSearchResults(
         query: SearchQuery,
         metadata: WebtoonsSearchingMetadata | undefined,
+        sortingOption: SortingOption | undefined,
     ): Promise<PagedResults<SearchResultItem>> {
         const genre = (query.filters[0]?.value as string) ?? "ALL";
 
@@ -172,8 +189,9 @@ export class WebtoonExtention
                               language,
                               metadata,
                               genre.split("%%")[1],
+                              sortingOption,
                           )
-                        : this.getTitlesByGenre(language, genre)
+                        : this.getTitlesByGenre(language, genre, sortingOption)
                     : query.title
                       ? this.getTitlesByKeyword(language, query.title, metadata)
                       : Promise.resolve({ items: [] }),
@@ -191,8 +209,15 @@ export class WebtoonExtention
     async getSearchFilters(): Promise<SearchFilter[]> {
         const genres = await this.getSearchGenres();
         return [
+            // {
+            //     id: "0",
+            //     title: "Languages",
+            //     type: "dropdown",
+            //     options: this.languages.map((lang) => ({id: lang as string, value: getLanguagesTitle(lang)})) as Tag[],
+            //     value: "ALL",
+            // },
             {
-                id: "0",
+                id: "1",
                 title: "Genres",
                 type: "dropdown",
                 options: genres,
@@ -210,14 +235,14 @@ export class WebtoonExtention
         const language = languagestr as Language;
 
         switch (sectionId) {
-            case "popular":
-                result = await this.getPopularTitles(language);
+            case "trending":
+                result = await this.getTrendingTitles(language, metadata);
                 break;
             case "today":
                 result = await this.getTodayTitles(language, metadata);
                 break;
-            case "ongoing":
-                result = await this.getOngoingTitles(language, metadata);
+            case "popular":
+                result = await this.getPopularTitles(language, metadata);
                 break;
             case "completed":
                 result = await this.getCompletedTitles(language, metadata);
@@ -254,23 +279,20 @@ export class WebtoonExtention
                 ? `${getLanguagesTitle(language)} - `
                 : "";
         return [
-            ...(haveTrending(language)
-                ? [
-                      {
-                          id: `${idBegin}popular`,
-                          title: `${titleBegin}New & Trending`,
-                          type: DiscoverSectionType.simpleCarousel,
-                      },
-                  ]
-                : []),
+            {
+                id: `${idBegin}trending`,
+                title: `${titleBegin}New & Trending`,
+                type: DiscoverSectionType.prominentCarousel,
+            },
+
             {
                 id: `${idBegin}today`,
                 title: `${titleBegin}Today release`,
                 type: DiscoverSectionType.simpleCarousel,
             },
             {
-                id: `${idBegin}ongoing`,
-                title: `${titleBegin}Ongoing`,
+                id: `${idBegin}popular`,
+                title: `${titleBegin}Popular`,
                 type: DiscoverSectionType.simpleCarousel,
             },
             {
@@ -309,6 +331,14 @@ export class WebtoonExtention
                       ($) => this.parseCanvasGenres($),
                   )
                 : []),
+        ];
+    }
+
+    async getSortingOptions(): Promise<SortingOption[]> {
+        return [
+            { id: "MANA", label: "Popularity" },
+            { id: "LIKEIT", label: "Likes" },
+            { id: "UPDATE", label: "Date" },
         ];
     }
 }

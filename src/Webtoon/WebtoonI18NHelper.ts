@@ -50,13 +50,13 @@ export const formatDate = (date: string, language: Language) => {
             );
         case Language.SPANISH:
             return new Date(
-                moment(date, "DD-MMM-YYYY", Language.SPANISH).toDate(),
+                moment(date, "D MMM YYYY", Language.SPANISH).toDate(),
             );
         case Language.THAI:
             return new Date(moment(date, "D MMM YYYY", Language.THAI).toDate());
         case Language.INDONESIAN:
             return new Date(
-                moment(date, "YYYY MMM D", Language.INDONESIAN).toDate(),
+                moment(date, "D MMM YYYY", Language.INDONESIAN).toDate(),
             );
         case Language.CHINESE:
             return new Date(moment(date, "l", "zh-tw").toDate());
@@ -66,7 +66,7 @@ export const formatDate = (date: string, language: Language) => {
 };
 
 export const getDateDayFormat = () => {
-    return moment().locale("en").format("dddd").toUpperCase();
+    return moment().locale("en").format("dddd").toLowerCase();
 };
 
 export const haveTrending = (language: Language) => {
