@@ -178,22 +178,57 @@ export class WebtoonExtention
         metadata: WebtoonsSearchingMetadata | undefined,
         sortingOption: SortingOption | undefined,
     ): Promise<PagedResults<SearchResultItem>> {
-        const genre = (query.filters[0]?.value as string) ?? "ALL";
+        let genre = "";
+        const includedlanguage: Language[] = [];
+
+        for (const filter of query.filters) {
+            switch (filter.id) {
+                case "languages": {
+                    const language = (filter.value ?? {}) as Record<
+                        string,
+                        "included" | "excluded"
+                    >;
+
+                    for (const lang of Object.entries(language)) {
+                        switch (lang[1]) {
+                            case "included":
+                                includedlanguage.push(lang[0] as Language);
+                                break;
+                            case "excluded":
+                                // Excluded languages are ignored
+                                break;
+                        }
+                    }
+                    break;
+                }
+                case "genres":
+                    genre = (filter.value as string) ?? "ALL";
+                    break;
+                default:
+                    // Ignore other filters
+                    break;
+            }
+        }
 
         const result: Promise<PagedResults<SearchResultItem>>[] = [];
-        this.languages.forEach((language) => {
+
+        if (includedlanguage.length < 1) {
+            this.languages.forEach((lang) => includedlanguage.push(lang));
+        }
+
+        includedlanguage.forEach((lang) => {
             result.push(
                 genre !== "ALL"
                     ? genre.startsWith("CANVAS%%")
                         ? this.getCanvasPopularTitles(
-                              language,
+                              lang,
                               metadata,
                               genre.split("%%")[1],
                               sortingOption,
                           )
-                        : this.getTitlesByGenre(language, genre, sortingOption)
+                        : this.getTitlesByGenre(lang, genre, sortingOption)
                     : query.title
-                      ? this.getTitlesByKeyword(language, query.title, metadata)
+                      ? this.getTitlesByKeyword(lang, query.title, metadata)
                       : Promise.resolve({ items: [] }),
             );
         });
@@ -209,15 +244,21 @@ export class WebtoonExtention
     async getSearchFilters(): Promise<SearchFilter[]> {
         const genres = await this.getSearchGenres();
         return [
-            // {
-            //     id: "0",
-            //     title: "Languages",
-            //     type: "dropdown",
-            //     options: this.languages.map((lang) => ({id: lang as string, value: getLanguagesTitle(lang)})) as Tag[],
-            //     value: "ALL",
-            // },
             {
-                id: "1",
+                id: "languages",
+                title: "Languages",
+                type: "multiselect",
+                options: Object.values(Language).map((lang) => ({
+                    id: lang,
+                    value: getLanguagesTitle(lang) ?? lang,
+                })),
+                value: {},
+                allowEmptySelection: true,
+                allowExclusion: false,
+                maximum: undefined,
+            },
+            {
+                id: "genres",
                 title: "Genres",
                 type: "dropdown",
                 options: genres,
