@@ -102,8 +102,16 @@ export function parseChapters(
 
     return chaptersData.map((chapter) => {
         const chapNum = Number(chapter.chap);
-        const volume = Number(chapter.vol);
+        const volumeValue = Number(chapter.vol);
         const groups = chapter.group_name ?? [];
+
+        // App handles 0 as no volume, and undefined as "Volume TBA"
+        let volume: number | undefined = 0;
+        if (chapter.vol !== null && filter.showVol && !isNaN(volumeValue)) {
+            volume = volumeValue;
+        } else if (chapter.vol === null && filter.showVol) {
+            volume = undefined;
+        }
 
         return {
             chapterId: chapter.hid,
@@ -111,7 +119,7 @@ export function parseChapters(
             title: filter.showTitle && chapter.title ? `${chapter.title}` : "",
             chapNum: !isNaN(chapNum) ? chapNum : 0,
             sortingIndex: sortingIndex--,
-            volume: filter.showVol && !isNaN(volume) ? volume : undefined,
+            volume,
             publishDate: new Date(chapter.created_at),
             version: groups.join(","),
             langCode: getLanguageName(chapter.lang),
