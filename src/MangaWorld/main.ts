@@ -88,6 +88,7 @@ export class MangaWorldExtension implements ContentTemplateImplementation {
 
     // Implements the settings form, check SettingsForm.ts for more info
     async getSettingsForm(): Promise<Form> {
+        await populateFilter(this.baseUrl);
         return new SettingsForm();
     }
 
