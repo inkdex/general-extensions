@@ -13,7 +13,9 @@ import {
     SearchResultsProviding,
     SortingOption,
     SourceManga,
+    URL,
 } from "@paperback/types";
+import { WebtoonChaptersListDto } from "./WebtoonDtos";
 import {
     getDateDayFormat,
     getLanguagesTitle,
@@ -21,9 +23,7 @@ import {
 } from "./WebtoonI18NHelper";
 import { WebtoonInfra } from "./WebtoonInfra";
 import { Tag, WebtoonsSearchingMetadata } from "./WebtoonParser";
-
-export const BASE_URL = "https://www.webtoons.com";
-export const MOBILE_URL = "https://m.webtoons.com";
+import { BASE_URL, MOBILE_URL } from "./WebtoonSettings";
 
 export class WebtoonExtention
     extends WebtoonInfra
@@ -32,33 +32,36 @@ export class WebtoonExtention
         ChapterProviding,
         DiscoverSectionProviding
 {
-    constructor() {
-        super(BASE_URL, MOBILE_URL);
-    }
-
     getMangaDetails(mangaId: string): Promise<SourceManga> {
         return this.ExecRequest(
             {
-                url: `${this.BASE_URL}/${mangaId}`,
+                url: `${BASE_URL}/${mangaId}`,
             },
             ($) => this.parseDetails($, mangaId),
         );
     }
 
     getChapters(sourceManga: SourceManga): Promise<Chapter[]> {
-        return this.ExecRequest(
+        const titleUrl = new URL(`${BASE_URL}/${sourceManga.mangaId}`);
+        const titleId = titleUrl.queryItems!["title_no"].toString();
+        const isCanvas = titleUrl.path.includes("/canvas/");
+        const segment = isCanvas ? "canvas" : "webtoon";
+
+        return this.ExecApiRequest(
             {
-                url: `${this.MOBILE_URL}/${sourceManga.mangaId}`,
-                headers: { referer: this.MOBILE_URL },
+                url: `${MOBILE_URL}/api/v1/${segment}/${titleId}/episodes`,
+                params: { pageSize: 99999 },
+                headers: { referer: MOBILE_URL },
             },
-            ($) => this.parseChaptersList($, sourceManga),
+            (dto: WebtoonChaptersListDto) =>
+                this.parseChaptersList(dto, sourceManga),
         );
     }
 
     getChapterDetails(chapter: Chapter): Promise<ChapterDetails> {
         return this.ExecRequest(
             {
-                url: `${this.BASE_URL}/${chapter.chapterId}`,
+                url: `${BASE_URL}/${chapter.chapterId}`,
             },
             ($) => this.parseChapterDetails($, chapter),
         );
@@ -69,7 +72,7 @@ export class WebtoonExtention
         metadata: WebtoonsSearchingMetadata | undefined,
     ): Promise<PagedResults<SearchResultItem>> {
         return this.ExecPagedResultsRequest(
-            { url: `${this.BASE_URL}/${language}/ranking/popular` },
+            { url: `${BASE_URL}/${language}/ranking/popular` },
             { page: metadata?.page ?? 0, maxPages: 1 },
             ($) => this.parseTodayTitles($, true),
         );
@@ -81,7 +84,7 @@ export class WebtoonExtention
     ): Promise<PagedResults<SearchResultItem>> {
         return this.ExecPagedResultsRequest(
             {
-                url: `${this.BASE_URL}/${language}/originals/${getDateDayFormat()}`,
+                url: `${BASE_URL}/${language}/originals/${getDateDayFormat()}`,
             },
             { page: metadata?.page ?? 0, maxPages: 1 },
             ($) => this.parseTodayTitles($, true),
@@ -93,7 +96,7 @@ export class WebtoonExtention
         metadata: WebtoonsSearchingMetadata | undefined,
     ): Promise<PagedResults<SearchResultItem>> {
         return this.ExecPagedResultsRequest(
-            { url: `${this.BASE_URL}/${language}/ranking/trending` },
+            { url: `${BASE_URL}/${language}/ranking/trending` },
             { page: metadata?.page ?? 0, maxPages: 1 },
             ($) => this.parseTodayTitles($, true),
         );
@@ -104,7 +107,7 @@ export class WebtoonExtention
         metadata: WebtoonsSearchingMetadata | undefined,
     ): Promise<PagedResults<SearchResultItem>> {
         return this.ExecPagedResultsRequest(
-            { url: `${this.BASE_URL}/${language}/originals/complete` },
+            { url: `${BASE_URL}/${language}/originals/complete` },
             { page: metadata?.page ?? 0, maxPages: 1 },
             ($) => this.parseTodayTitles($, true),
         );
@@ -114,7 +117,7 @@ export class WebtoonExtention
         language: Language,
     ): Promise<PagedResults<SearchResultItem>> {
         return this.ExecRequest(
-            { url: `${this.BASE_URL}/${language}/canvas` },
+            { url: `${BASE_URL}/${language}/canvas` },
             ($) => this.parseCanvasRecommendedTitles($),
         );
     }
@@ -127,7 +130,7 @@ export class WebtoonExtention
     ): Promise<PagedResults<SearchResultItem>> {
         return this.ExecPagedResultsRequest(
             {
-                url: `${this.BASE_URL}/${language}/canvas/list`,
+                url: `${BASE_URL}/${language}/canvas/list`,
                 params: {
                     genreTab: genre ?? "ALL",
                     sortOrder:
@@ -148,7 +151,7 @@ export class WebtoonExtention
     ): Promise<PagedResults<SearchResultItem>> {
         return this.ExecRequest(
             {
-                url: `${this.BASE_URL}/${language}/genres/${genre}`,
+                url: `${BASE_URL}/${language}/genres/${genre}`,
                 params: { sortOrder: sortOrder?.id ?? "" },
             },
             ($) => this.parseTagResults($),
@@ -162,7 +165,7 @@ export class WebtoonExtention
     ): Promise<PagedResults<SearchResultItem>> {
         return this.ExecPagedResultsRequest(
             {
-                url: `${this.BASE_URL}/${language}/search`,
+                url: `${BASE_URL}/${language}/search`,
                 params: {
                     keyword: keyword,
                     // ...(this.canvasWanted ? {} : { searchType: "WEBTOON" }),
@@ -362,13 +365,12 @@ export class WebtoonExtention
     async getSearchGenres(): Promise<Tag[]> {
         return [
             { id: "ALL", value: "All" },
-            ...(await this.ExecRequest(
-                { url: `${this.BASE_URL}/en/genres` },
-                ($) => this.parseGenres($),
+            ...(await this.ExecRequest({ url: `${BASE_URL}/en/genres` }, ($) =>
+                this.parseGenres($),
             )),
             ...(this.canvasWanted
                 ? await this.ExecRequest(
-                      { url: `${this.BASE_URL}/en/canvas` },
+                      { url: `${BASE_URL}/en/canvas` },
                       ($) => this.parseCanvasGenres($),
                   )
                 : []),

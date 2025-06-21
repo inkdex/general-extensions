@@ -10,6 +10,8 @@ import { Language, LanguagesOptions } from "./WebtoonI18NHelper";
 
 const CANVAS_WANTED = "canvas_wanted";
 const LANGUAGES = "languages";
+export const BASE_URL = "https://www.webtoons.com";
+export const MOBILE_URL = "https://m.webtoons.com";
 
 function toBoolean(value: unknown): boolean {
     return (value ?? false) === "true";

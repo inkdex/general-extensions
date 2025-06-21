@@ -8,8 +8,9 @@ import {
 } from "@paperback/types";
 import { Cheerio, CheerioAPI } from "cheerio";
 import type { Element } from "domhandler";
-import { formatDate, getLanguagesTitle, Language } from "./WebtoonI18NHelper";
-import { WebtoonSettings } from "./WebtoonSettings";
+import { WebtoonChaptersElemDto, WebtoonChaptersListDto } from "./WebtoonDtos";
+import { getLanguagesTitle, Language } from "./WebtoonI18NHelper";
+import { BASE_URL, WebtoonSettings } from "./WebtoonSettings";
 
 type CheerioElement = Cheerio<Element>;
 
@@ -21,15 +22,6 @@ export type WebtoonsItemMetadata = { link: string };
 export type Tag = { id: string; value: string };
 
 export abstract class WebtoonParser extends WebtoonSettings {
-    BASE_URL: string;
-    MOBILE_URL: string;
-
-    constructor(BASE_URL: string, MOBILE_URL: string) {
-        super();
-        this.BASE_URL = BASE_URL;
-        this.MOBILE_URL = MOBILE_URL;
-    }
-
     parseDetails($: CheerioAPI, mangaId: string): SourceManga {
         const detailElement = $(
             "#wrap > #container > #content > div.cont_box > div.detail_header > div.info",
@@ -78,7 +70,7 @@ export abstract class WebtoonParser extends WebtoonSettings {
                             })),
                     },
                 ],
-                shareUrl: this.BASE_URL + "/" + mangaId,
+                shareUrl: BASE_URL + "/" + mangaId,
             },
         };
     }
@@ -102,34 +94,27 @@ export abstract class WebtoonParser extends WebtoonSettings {
         return $("#content > div.cont_box span.thmb > img").attr("src") ?? "";
     }
 
-    parseChaptersList($: CheerioAPI, sourceManga: SourceManga): Chapter[] {
-        return $("ul#_episodeList > li[id*=episode]")
-            .toArray()
-            .map((elem) => this.parseChapter($(elem), sourceManga));
+    parseChaptersList(
+        dto: WebtoonChaptersListDto,
+        sourceManga: SourceManga,
+    ): Chapter[] {
+        return dto.episodeList.map((elem) =>
+            this.parseChapter(elem, sourceManga),
+        );
     }
 
-    parseChapter(elem: CheerioElement, sourceManga: SourceManga): Chapter {
+    parseChapter(
+        elem: WebtoonChaptersElemDto,
+        sourceManga: SourceManga,
+    ): Chapter {
         return {
-            chapterId:
-                elem
-                    .find("a")
-                    .attr("href")
-                    ?.replace(this.MOBILE_URL + "/", "") ?? "",
+            chapterId: elem.viewerLink.replace("/", ""),
             sourceManga: sourceManga,
             langCode: this.languageFromId(sourceManga.mangaId),
-            title: elem
-                .find("a > div.row > div.info > p.sub_title > span.ellipsis")
-                .text(),
-            chapNum: Number(
-                elem.find("a > div.row > div.num").text()?.substring(1),
-            ),
+            title: elem.episodeTitle,
             volume: 0,
-            publishDate: formatDate(
-                elem
-                    .find("a > div.row > div.info > div.sub_info > span.date")
-                    .text(),
-                this.languageFromId(sourceManga.mangaId),
-            ),
+            chapNum: Number(elem.episodeNo),
+            publishDate: new Date(elem.exposureDateMillis),
         };
     }
 
@@ -232,7 +217,7 @@ export abstract class WebtoonParser extends WebtoonSettings {
             elem
                 .find("a")
                 .attr("href")
-                ?.replace(this.BASE_URL + "/", "") ?? "";
+                ?.replace(BASE_URL + "/", "") ?? "";
         const subtitle =
             "Canvas" +
             (this.languages.length > 1
@@ -255,8 +240,7 @@ export abstract class WebtoonParser extends WebtoonSettings {
     }
 
     parseMangaFromElement(elem: CheerioElement): SearchResultItem {
-        const mangaId =
-            elem.attr("href")?.replace(this.BASE_URL + "/", "") ?? "";
+        const mangaId = elem.attr("href")?.replace(BASE_URL + "/", "") ?? "";
         const isCanvas = mangaId.startsWith(
             this.languageFromId(mangaId) + "/canvas",
         );
@@ -282,8 +266,7 @@ export abstract class WebtoonParser extends WebtoonSettings {
     }
 
     parseCanvasFromElement(elem: CheerioElement): SearchResultItem {
-        const mangaId =
-            elem.attr("href")?.replace(this.BASE_URL + "/", "") ?? "";
+        const mangaId = elem.attr("href")?.replace(BASE_URL + "/", "") ?? "";
         const subtitle =
             "Canvas" +
             (this.languages.length > 1

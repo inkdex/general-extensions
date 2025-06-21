@@ -1,15 +1,3 @@
-import moment from "moment";
-import "moment/locale/fr";
-import "moment/locale/de";
-import "moment/locale/es";
-import "moment/locale/th";
-import "moment/locale/zh-tw";
-import "moment/locale/id";
-
-moment.updateLocale("id", {
-    monthsShort: "Jan_Feb_Mar_Apr_Mei_Jun_Jul_Agu_Sep_Okt_Nov_Des".split("_"),
-});
-
 export enum Language {
     ENGLISH = "en",
     FRENCH = "fr",
@@ -34,39 +22,10 @@ export const getLanguagesTitle = (language: Language) => {
     return LanguagesOptions.find((option) => option.id === language)?.title;
 };
 
-export const formatDate = (date: string, language: Language) => {
-    switch (language) {
-        case Language.ENGLISH:
-            return new Date(
-                moment(date, "MMMM D, YYYY", Language.ENGLISH).toDate(),
-            );
-        case Language.FRENCH:
-            return new Date(
-                moment(date, "D MMM YYYY", Language.FRENCH).toDate(),
-            );
-        case Language.GERMAN:
-            return new Date(
-                moment(date, "DD.MM.YYYY", Language.GERMAN).toDate(),
-            );
-        case Language.SPANISH:
-            return new Date(
-                moment(date, "D MMM YYYY", Language.SPANISH).toDate(),
-            );
-        case Language.THAI:
-            return new Date(moment(date, "D MMM YYYY", Language.THAI).toDate());
-        case Language.INDONESIAN:
-            return new Date(
-                moment(date, "D MMM YYYY", Language.INDONESIAN).toDate(),
-            );
-        case Language.CHINESE:
-            return new Date(moment(date, "l", "zh-tw").toDate());
-        default:
-            return new Date(date);
-    }
-};
-
 export const getDateDayFormat = () => {
-    return moment().locale("en").format("dddd").toLowerCase();
+    return new Intl.DateTimeFormat("en-US", { weekday: "long" })
+        .format()
+        .toLowerCase();
 };
 
 export const haveTrending = (language: Language) => {
