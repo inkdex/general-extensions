@@ -29,10 +29,10 @@
         "fastest-levenshtein": "^1.0.16",
         "husky": "^9.1.7",
         "jpeg-js": "^0.4.4",
-        "prettier": "^3.5.3",
+        "prettier": "^3.6.0",
         "stemmer": "^2.0.1",
         "typescript": "^5.8.3",
-        "typescript-eslint": "^8.34.0",
+        "typescript-eslint": "^8.34.1",
         "upng-js": "^2.1.0"
     }
 }
