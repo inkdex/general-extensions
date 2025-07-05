@@ -3,7 +3,7 @@
 // Comments focus on intent, edge cases, and site-specific quirks for future maintainers.
 
 import { ContentRating } from "@paperback/types";
-import { CONTENT_RATING_GENRES, STATUS_MAPPING } from "./constants";
+import { CONTENT_RATING_GENRES, STATUS_MAPPING } from "./models";
 
 export class ZizHelpers {
     /**

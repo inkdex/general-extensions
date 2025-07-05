@@ -24,6 +24,11 @@ import {
     SourceManga,
 } from "@paperback/types";
 import * as cheerio from "cheerio";
+import {
+    DEFAULT_SORT_OPTIONS,
+    FALLBACK_GENRES,
+    FALLBACK_SORT_OPTIONS,
+} from "./models";
 import { ZizParser } from "./parser";
 import {
     DEFAULT_CONTENT_RATING,
@@ -259,23 +264,7 @@ class ZizExtension
         });
         // If no dynamic genres found, use the actual genres from the website
         if (genreOptions.length === 0) {
-            const actualGenres = [
-                "Action",
-                "Comedy",
-                "Drama",
-                "Fantasy",
-                "Game",
-                "Harém",
-                "Invocation",
-                "Magic",
-                "Martial Arts",
-                "Murim",
-                "Pet",
-                "Shounen",
-                "Supernatural",
-                "System",
-            ];
-            actualGenres.forEach((genre) => {
+            FALLBACK_GENRES.forEach((genre) => {
                 const id = genre.toLowerCase().replace(/\s+/g, "-");
                 genreOptions.push({ id, value: genre });
                 this.genreIdLabelMap[genre.toLowerCase()] = id;
@@ -462,27 +451,13 @@ class ZizExtension
             });
             // If no dynamic options found, use the actual sorting options from the website
             if (sortingOptions.length === 0) {
-                const actualSortOptions = [
-                    { id: "latest", label: "Most Recent" },
-                    { id: "popular", label: "Most Popular" },
-                    { id: "rating", label: "Best Rating" },
-                    { id: "name_asc", label: "Name (A-Z)" },
-                    { id: "name_desc", label: "Name (Z-A)" },
-                ];
-                sortingOptions.push(...actualSortOptions);
+                sortingOptions.push(...FALLBACK_SORT_OPTIONS);
             }
             this.sortingOptionsCache = sortingOptions;
             return sortingOptions;
         } catch {
             // Return the actual sorting options from the website on error
-            return [
-                { id: "", label: "Default" },
-                { id: "latest", label: "Most Recent" },
-                { id: "popular", label: "Most Popular" },
-                { id: "rating", label: "Best Rating" },
-                { id: "name_asc", label: "Name (A-Z)" },
-                { id: "name_desc", label: "Name (Z-A)" },
-            ];
+            return [...DEFAULT_SORT_OPTIONS];
         }
     }
 

@@ -14,8 +14,8 @@ import {
     TagSection,
 } from "@paperback/types";
 import { CheerioAPI } from "cheerio";
-import { API_ENDPOINTS, SELECTORS } from "./constants";
 import { ZizHelpers } from "./helpers";
+import { API_ENDPOINTS, SELECTORS } from "./models";
 import { DOMAIN } from "./pbconfig";
 
 export class ZizParser {
