@@ -12,6 +12,8 @@ import { decodeHTML } from "entities";
 import { TagSectionId, TagSectionTitle } from "./WeebCentralEnums";
 import { formatTagId, getRating, getShareUrl } from "./WeebCentralHelper";
 
+const defaultLangCode = "🇬🇧";
+const officialTranslationSvgStroke = "#d8b4fe";
 export const parseMangaDetails = async (
     $: CheerioAPI,
     mangaId: string,
@@ -105,7 +107,13 @@ export const parseChapters = (
             .first()
             .text()
             .trim();
-
+        let langCode = defaultLangCode;
+        const hasOfficialTranslation =
+            $("svg", chapterObj).attr("stroke") ===
+            officialTranslationSvgStroke;
+        if (hasOfficialTranslation) {
+            langCode = `${defaultLangCode} (Official)`;
+        }
         let chapNum = 0;
         let chapType = "";
         const matches = title.match(floatRegex);
@@ -125,7 +133,7 @@ export const parseChapters = (
             chapNum,
             publishDate,
             sortingIndex,
-            langCode: "🇬🇧",
+            langCode,
             volume: 0,
             sourceManga,
         });
