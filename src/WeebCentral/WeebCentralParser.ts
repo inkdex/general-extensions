@@ -107,13 +107,6 @@ export const parseChapters = (
             .first()
             .text()
             .trim();
-        let langCode = defaultLangCode;
-        const hasOfficialTranslation =
-            $("svg", chapterObj).attr("stroke") ===
-            officialTranslationSvgStroke;
-        if (hasOfficialTranslation) {
-            langCode = `${defaultLangCode} (Official)`;
-        }
         let chapNum = 0;
         let chapType = "";
         const matches = title.match(floatRegex);
@@ -127,13 +120,21 @@ export const parseChapters = (
         if (!(chapType in types)) {
             types[chapType] = currTypeId--;
         }
+        const hasOfficialTranslation =
+            $("svg", chapterObj).attr("stroke") ===
+            officialTranslationSvgStroke;
+        let version = undefined;
+        if (hasOfficialTranslation) {
+            version = "Official";
+        }
         chapters.push({
             chapterId,
             title,
             chapNum,
             publishDate,
             sortingIndex,
-            langCode,
+            langCode: defaultLangCode,
+            version,
             volume: 0,
             sourceManga,
         });
