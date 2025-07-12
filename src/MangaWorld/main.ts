@@ -452,8 +452,7 @@ export class MangaWorldExtension implements ContentTemplateImplementation {
                 "keyword",
                 query.title.toString() ?? "",
             );
-        if (page.toString().length > 0)
-            urlBuilder.addQueryParameter("page", page.toString());
+        urlBuilder.addQueryParameter("page", page.toString());
         if (sorting?.id) urlBuilder.addQueryParameter("sort", sorting?.id);
         if (generi.length > 0) urlBuilder.addQueryParameter("genre", generi);
         if (tipologia.length > 0)

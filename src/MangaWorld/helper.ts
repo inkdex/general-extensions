@@ -9,7 +9,10 @@ type OptionItem = {
     value: string;
     id: string;
 };
-
+type CacheItem = {
+    expires: number;
+    data: ArrayBuffer;
+};
 /**
  * Populate Search Filter
  * @param baseUrl
@@ -61,7 +64,7 @@ export async function populateFilter(baseUrl: string) {
     }
 }
 
-const cacheMap = new Map<string, { expires: number; data: ArrayBuffer }>();
+const cacheMap = new Map<string, CacheItem>();
 const requestMap = new Map<string, Promise<ArrayBuffer>>();
 
 async function fetchPage(url: string): Promise<ArrayBuffer> {
@@ -94,8 +97,8 @@ export async function getPageCache(
     const fetchPromise = fetchPage(url)
         .then((data) => {
             cacheMap.set(name, {
-                expires: Math.floor(Date.now() / 1000) + cacheTime, // cache for 1 minute
-                data,
+                expires: Math.floor(Date.now() / 1000) + cacheTime,
+                data: data,
             });
             console.log(`[CACHE] New Cached "${name}"`);
             requestMap.delete(name); // cleanup

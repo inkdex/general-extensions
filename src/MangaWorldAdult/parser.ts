@@ -418,14 +418,14 @@ export class Parser {
             //console.log("Parsed: Manga " + title);
             //console.log("Parsed: Ch " + chapterId);
             const regexDinamica = new RegExp(
-                `"createdAtTWithYear":\\s*"([^"]+)"\\s*,\\s*"isNew":\\s*(true|false)\\s*,\\s*"id":\\s*"${chapterId}"`,
+                `"createdAt":\\s*"([^"]+)"\\s*,\\s*"updatedAt":\\s*"[^"]*"\\s*,\\s*"slugFolder":\\s*"[^"]*"\\s*,\\s*"__v":\\s*\\d+\\s*,\\s*"createdAtT":\\s*"[^"]*"\\s*,\\s*"createdAtTWithYear":\\s*"[^"]*"\\s*,\\s*"isNew":\\s*(true|false)\\s*,\\s*"id":\\s*"${chapterId}"`,
                 "m",
             );
             const match = $.html().match(regexDinamica);
             let data = new Date();
             if (match) {
                 //console.log("Data trovata:" + match[1]);
-                data = this.getDate(match[1]);
+                data = new Date(match[1]);
             }
             if (!blacklistedType(mangaType)) {
                 latest.push({
