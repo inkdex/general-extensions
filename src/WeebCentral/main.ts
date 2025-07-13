@@ -8,6 +8,7 @@ import {
     DiscoverSectionProviding,
     DiscoverSectionType,
     Extension,
+    Form,
     MangaProviding,
     PagedResults,
     Request,
@@ -15,6 +16,7 @@ import {
     SearchQuery,
     SearchResultItem,
     SearchResultsProviding,
+    SettingsFormProviding,
     SourceManga,
     Tag,
     TagSection,
@@ -26,6 +28,7 @@ import { WeebCentralMetadata } from "./interfaces/WeebCentralInterfaces";
 import pbconfig from "./pbconfig";
 import { WC_DOMAIN } from "./WeebCentralConfig";
 import { TagSectionId } from "./WeebCentralEnums";
+import { WeebCentralForm } from "./WeebCentralForm";
 import {
     getFilterTagsBySection,
     getShareUrl,
@@ -51,7 +54,8 @@ export class WeebCentralExtension
         SearchResultsProviding,
         MangaProviding,
         ChapterProviding,
-        DiscoverSectionProviding
+        DiscoverSectionProviding,
+        SettingsFormProviding
 {
     globalRateLimiter = new BasicRateLimiter("ratelimiter", {
         numberOfRequests: 10,
@@ -238,6 +242,7 @@ export class WeebCentralExtension
             return tags;
         }
         try {
+            console.log("fetching tags from web request");
             const request = {
                 url: new URLBuilder(WC_DOMAIN).addPath("search").build(),
                 method: "GET",
@@ -369,6 +374,10 @@ export class WeebCentralExtension
             options: tag.tags.map((x) => ({ id: x.id, value: x.title })),
             value: "Ascending",
         };
+    }
+
+    async getSettingsForm(): Promise<Form> {
+        return new WeebCentralForm();
     }
 }
 

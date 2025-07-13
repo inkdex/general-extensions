@@ -11,6 +11,7 @@ export default {
         SourceIntents.MANGA_CHAPTERS,
         SourceIntents.DISCOVER_SECIONS,
         SourceIntents.MANGA_SEARCH,
+        SourceIntents.SETTINGS_UI,
     ],
     badges: [],
     developers: [
