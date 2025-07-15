@@ -10,12 +10,22 @@ import {
     TagSection,
 } from "@paperback/types";
 import { URLBuilder } from "../utils/url-builder/array-query-variant";
+import type {
+    ChapterData,
+    ChapterFilter,
+    ChapterImages,
+    ChapterList,
+    Comic,
+    Item,
+    MangaDetails,
+    SearchData,
+} from "./models";
 import { COMIC_TYPE_FILTER } from "./utils/filters";
 import { getLanguageName } from "./utils/language";
 
 export function parseCover(
     thumbnailUrl?: string,
-    mdCovers: ComicK.Comic["md_covers"] = [],
+    mdCovers: Comic["md_covers"] = [],
 ): string {
     const b2key = mdCovers[0]?.b2key;
     if (!b2key) return thumbnailUrl ?? "";
@@ -28,7 +38,7 @@ export function parseCover(
 }
 
 export const parseMangaDetails = (
-    data: ComicK.MangaDetails,
+    data: MangaDetails,
     mangaId: string,
     baseUrl: string,
 ): SourceManga => {
@@ -76,8 +86,8 @@ export const parseMangaDetails = (
         secondaryTitles: titles,
         contentRating: parseContentRating(comic.content_rating),
         status: parseComicStatus(comic.status),
-        artist: artists.map((artists: ComicK.Item) => artists.name).join(","),
-        author: authors.map((author: ComicK.Item) => author.name).join(","),
+        artist: artists.map((artists: Item) => artists.name).join(","),
+        author: authors.map((author: Item) => author.name).join(","),
         rating,
         tagGroups: tagSections,
         shareUrl: new URLBuilder(baseUrl)
@@ -93,9 +103,9 @@ export const parseMangaDetails = (
 };
 
 export function parseChapters(
-    data: ComicK.ChapterList,
+    data: ChapterList,
     sourceManga: SourceManga,
-    filter: ComicK.ChapterFilter,
+    filter: ChapterFilter,
 ): Chapter[] {
     const chaptersData = filterChapters(data.chapters, filter);
     let sortingIndex = chaptersData.length;
@@ -153,7 +163,7 @@ export function parseChapterSinceDate(
 }
 
 export const parseChapterDetails = (
-    data: ComicK.ChapterImages,
+    data: ChapterImages,
     chapter: Chapter,
 ): ChapterDetails => ({
     id: chapter.chapterId,
@@ -164,7 +174,7 @@ export const parseChapterDetails = (
 });
 
 export function parseTags(
-    data: ComicK.Item[],
+    data: Item[],
     sectionId: string,
     sectionTitle: string,
 ): TagSection[] {
@@ -184,7 +194,7 @@ export function parseTags(
     ];
 }
 
-export function parseSearch(data: ComicK.SearchData[]): SearchResultItem[] {
+export function parseSearch(data: SearchData[]): SearchResultItem[] {
     return data
         .filter((comic) => comic.hid)
         .map((comic) => ({
@@ -201,7 +211,7 @@ export function parseSearch(data: ComicK.SearchData[]): SearchResultItem[] {
 }
 
 export function parseDiscoverSection(
-    data: ComicK.SearchData[],
+    data: SearchData[],
     type: DiscoverSectionType,
 ): DiscoverSectionItem[] {
     return data
@@ -263,9 +273,9 @@ function parseComicStatus(status: number): string {
 }
 
 function filterChapters(
-    chapters: ComicK.ChapterData[],
-    filter: ComicK.ChapterFilter,
-): ComicK.ChapterData[] {
+    chapters: ChapterData[],
+    filter: ChapterFilter,
+): ChapterData[] {
     let filteredChapters = chapters;
 
     if (filter.hideUnreleasedChapters) {
@@ -282,10 +292,10 @@ function filterChapters(
     return filteredChapters;
 }
 
-function filterByScore(chapters: ComicK.ChapterData[]): ComicK.ChapterData[] {
+function filterByScore(chapters: ChapterData[]): ChapterData[] {
     const chapterMap = new Map<
         number,
-        { score: number; chapter: ComicK.ChapterData }
+        { score: number; chapter: ChapterData }
     >();
 
     chapters.forEach((chapter) => {
