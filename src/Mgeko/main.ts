@@ -37,7 +37,7 @@ import {
     parseViewMore,
 } from "./MgekoParser";
 
-const MGEKO_DOMAIN = "https://www.mgeko.cc";
+const MGEKO_DOMAIN = "https://www.cc";
 
 type MgekoImplementation = Extension &
     SearchResultsProviding &
@@ -45,6 +45,11 @@ type MgekoImplementation = Extension &
     ChapterProviding &
     DiscoverSectionProviding &
     CloudflareBypassRequestProviding;
+
+type Metadata = {
+    page?: number;
+    completed?: boolean;
+};
 
 class MgekoInterceptor extends PaperbackInterceptor {
     async interceptRequest(request: Request): Promise<Request> {
@@ -112,7 +117,7 @@ export class MgekoExtension implements MgekoImplementation {
 
     async getDiscoverSectionItems(
         section: DiscoverSection,
-        metadata: Mgeko.Metadata | undefined,
+        metadata: Metadata | undefined,
     ): Promise<PagedResults<DiscoverSectionItem>> {
         switch (section.id) {
             case "most_viewed":
@@ -204,7 +209,7 @@ export class MgekoExtension implements MgekoImplementation {
 
     async getSearchResults(
         query: SearchQuery,
-        metadata: Mgeko.Metadata | undefined,
+        metadata: Metadata | undefined,
     ): Promise<PagedResults<SearchResultItem>> {
         const page: number = metadata?.page ?? 1;
         let request: Request;
@@ -299,7 +304,7 @@ export class MgekoExtension implements MgekoImplementation {
 
     private async getFilteredSectionItems(
         filter: string,
-        metadata: Mgeko.Metadata | undefined,
+        metadata: Metadata | undefined,
     ): Promise<PagedResults<DiscoverSectionItem>> {
         if (metadata?.completed) return EndOfPageResults;
 
