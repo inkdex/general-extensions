@@ -37,7 +37,7 @@ import {
     parseViewMore,
 } from "./parsers";
 
-const MGEKO_DOMAIN = "https://www.cc";
+const MGEKO_DOMAIN = "https://www.mgeko.cc";
 
 type MgekoImplementation = Extension &
     SearchResultsProviding &
