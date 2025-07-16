@@ -7,6 +7,7 @@ import {
     Chapter,
     ChapterDetails,
     ChapterProviding,
+    CloudflareError,
     ContentRating,
     DiscoverSection,
     DiscoverSectionItem,
@@ -16,15 +17,14 @@ import {
     Form,
     MangaProviding,
     PagedResults,
+    Request,
+    Response,
     SearchFilter,
     SearchQuery,
     SearchResultItem,
     SearchResultsProviding,
     SettingsFormProviding,
     SourceManga,
-    Response,
-    Request,
-    CloudflareError,
 } from "@paperback/types";
 import * as cheerio from "cheerio";
 import {
@@ -67,7 +67,8 @@ const CONSTANTS = {
 async function safeRequest(
     requestOptions: Request,
 ): Promise<[Response, ArrayBuffer]> {
-    const [response, buffer] = await Application.scheduleRequest(requestOptions);
+    const [response, buffer] =
+        await Application.scheduleRequest(requestOptions);
     if (response.status === 403 || response.status === 307) {
         throw new CloudflareError(
             requestOptions,
