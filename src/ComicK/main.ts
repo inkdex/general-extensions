@@ -58,8 +58,8 @@ import {
     SORT_FILTER,
 } from "./utils/filters";
 
-const COMICK_DOMAIN = "https://io";
-const COMICK_API = "https://api.fun";
+const COMICK_DOMAIN = "https://comick.io";
+const COMICK_API = "https://api.comick.fun";
 const LIMIT = 60;
 
 type ComicKImplementation = Extension &
