@@ -5,6 +5,11 @@ export type Item = {
     slug: string;
 };
 
+export type Tag = {
+    title: string;
+    slug: string;
+}
+
 export type Comic = {
     title: string;
     status: number;
@@ -15,6 +20,7 @@ export type Comic = {
     md_titles: { title: string }[];
     cover_url?: string;
     md_comic_md_genres: { md_genres: Item }[];
+    mu_comics: { mu_comic_categories: { mu_categories: Tag }[] };
     bayesian_rating: string;
     md_covers: { vol: string; w: number; h: number; b2key: string }[];
 };

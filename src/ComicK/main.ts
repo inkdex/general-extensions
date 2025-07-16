@@ -1,3 +1,4 @@
+
 import {
     BasicRateLimiter,
     Chapter,
@@ -30,6 +31,7 @@ import {
     getHideUnreleasedChapters,
     getLanguages,
     getShowTitle,
+    getShowTags,
     getShowVolumeNumber,
 } from "./forms";
 import type {
@@ -182,7 +184,7 @@ export class ComicKExtension implements ComicKImplementation {
         };
         const parsedData = await this.fetchApi<MangaDetails>(request);
 
-        return parseMangaDetails(parsedData, mangaId, COMICK_DOMAIN);
+        return parseMangaDetails(parsedData, mangaId, COMICK_DOMAIN, getShowTags());
     }
 
     async getChapters(
@@ -346,6 +348,48 @@ export class ComicKExtension implements ComicKImplementation {
             });
         }
 
+        filters.push({
+            type: "input",
+            id: 'minium-chapters',
+            title: 'Minimum Chapters',
+            placeholder: 'Example: "10"',
+            value: "",
+        });
+
+        filters.push({
+            type: "input",
+            id: 'from-year',
+            title: 'From Year',
+            placeholder: 'Example: "2018"',
+            value: "",
+        });
+
+
+        filters.push({
+            type: "input",
+            id: 'to-year',
+            title: 'To Year',
+            placeholder: 'Example: "2023"',
+            value: "",
+        });
+
+
+        filters.push({
+            type: "input",
+            id: 'included-tags',
+            title: 'Included Tags',
+            placeholder: 'Example: "Level System, RPG"',
+            value: "",
+        });
+
+        filters.push({
+            type: "input",
+            id: 'excluded-tags',
+            title: 'Excluded Tags',
+            placeholder: 'Example: "Greedy Protagonist"',
+            value: "",
+        });
+
         return filters;
     }
 
@@ -410,6 +454,52 @@ export class ComicKExtension implements ComicKImplementation {
         const comicType = getFilterValue("comic-type");
         if (comicType && typeof comicType === "object") {
             builder.addQuery("country", Object.keys(comicType));
+        }
+
+        const minimumChapters = getFilterValue('minium-chapters');
+        if (minimumChapters && typeof minimumChapters === "string") {
+            builder.addQuery("minimum", minimumChapters);
+        }
+
+        const fromYear = getFilterValue('from-year');
+        if (fromYear && typeof fromYear === "string") {
+            builder.addQuery("from", fromYear);
+        }
+
+        const toYear = getFilterValue('to-year');
+        if (toYear && typeof toYear === "string") {
+            builder.addQuery("to", toYear);
+        }
+
+        const includedTags = getFilterValue('included-tags');
+        if (includedTags && typeof includedTags === "string") {
+
+            const included = [];
+
+            for (const tag of includedTags.split(",")) {
+                const trimmedTag = tag.trim().toLowerCase();
+                if (trimmedTag.length > 0) {
+                    // replace space with dash for API compatibility
+                    included.push(trimmedTag.replace(/ /g, "-"));
+                }
+            }
+
+            builder.addQuery("tags", included);
+        }
+
+        const excludedTags = getFilterValue('excluded-tags');
+        if (excludedTags && typeof excludedTags === "string") {
+            const excluded = [];
+
+            for (const tag of excludedTags.split(",")) {
+                const trimmedTag = tag.trim().toLowerCase();
+                if (trimmedTag.length > 0) {
+                    // replace space with dash for API compatibility
+                    excluded.push(trimmedTag.replace(/ /g, "-"));
+                }
+            }
+
+            builder.addQuery("excluded-tags", excluded);
         }
 
         builder.addQuery("q", query.title.replace(/ /g, "%20"));

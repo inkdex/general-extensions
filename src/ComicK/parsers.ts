@@ -17,6 +17,7 @@ import type {
     ChapterList,
     Comic,
     Item,
+    Tag,
     MangaDetails,
     SearchData,
 } from "./models";
@@ -41,6 +42,7 @@ export const parseMangaDetails = (
     data: MangaDetails,
     mangaId: string,
     baseUrl: string,
+    showTags: boolean,
 ): SourceManga => {
     const { comic, authors, artists } = data;
 
@@ -70,11 +72,23 @@ export const parseMangaDetails = (
     // Add genre tag section
     tagSections.push(
         ...parseTags(
-            comic.md_comic_md_genres.map((item) => item.md_genres),
+                comic.md_comic_md_genres.map((item) => item.md_genres),
             "genres",
             "Genres",
         ),
     );
+
+    if (showTags) {
+        tagSections.push(
+            ...parseMuTags(
+                comic.mu_comics.mu_comic_categories.map((item) => item.mu_categories),
+                "tags",
+                "Tags",
+            ),
+        );
+    }
+
+
 
     const bayesianRating = parseFloat(comic.bayesian_rating);
     const rating = isNaN(bayesianRating) ? undefined : bayesianRating / 10;
@@ -193,6 +207,28 @@ export function parseTags(
         },
     ];
 }
+
+export function parseMuTags(
+    data: Tag[],
+    sectionId: string,
+    sectionTitle: string,
+): TagSection[] {
+    const tags = data
+        .filter((tag) => tag.slug && tag.title)
+        .map((tag) => ({
+            id: tag.slug,
+            title: tag.title,
+        }));
+
+    return [
+        {
+            id: sectionId,
+            title: sectionTitle,
+            tags,
+        },
+    ];
+}
+
 
 export function parseSearch(data: SearchData[]): SearchResultItem[] {
     return data

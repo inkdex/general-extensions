@@ -33,6 +33,10 @@ export function getHideUnreleasedChapters(): boolean {
     return getState("hide_unreleased_chapters", true);
 }
 
+export function getShowTags(): boolean {
+    return getState("show_tags", false);
+}
+
 export function getCloudflareRateLimitBackoff(): boolean {
     return getState("cloudflare_rate_limit_backoff", false);
 }
@@ -44,6 +48,12 @@ export class ComicKSettingsForm extends Form {
                 NavigationRow("languageFprm", {
                     title: "Language Settings",
                     form: new LanguageForm(),
+                }),
+            ]),
+            Section("mangaForm", [
+                NavigationRow("mangaForm", {
+                    title: "Manga Settings",
+                    form: new MangaForm(),
                 }),
             ]),
             Section("chapterForm", [
@@ -145,6 +155,35 @@ class ChapterForm extends Form {
 
     async onShowTitle(value: boolean) {
         Application.setState(value, "show_title");
+    }
+}
+
+class MangaForm extends Form {
+    override getSections(): FormSectionElement[] {
+        const showTags = getShowTags();
+
+        return [
+            Section(
+                {
+                    id: "includeTags",
+                    footer: "Show tags in manga details after genres.",
+                },
+                [
+                    ToggleRow("show_tags", {
+                        title: "Show Tags",
+                        value: showTags,
+                        onValueChange: Application.Selector(
+                            this as MangaForm,
+                            "onShowTags",
+                        ),
+                    }),
+                ],
+            )
+        ];
+    }
+
+    async onShowTags(value: boolean) {
+        Application.setState(value, "show_tags");
     }
 }
 
