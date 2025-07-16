@@ -7,6 +7,7 @@ Paperback extensions for websites with unique, non-generic themes.
 - [Asura Scans](https://asuracomic.net)
 - [Bato.To](https://bato.to)
 - [ComicK](https://comick.io)
+- [MangaDemon](https://demonicscans.org)
 - [MangaDex](https://mangadex.org)
 - [MangaFire](https://mangafire.to)
 - [MangaFox](https://fanfox.net)
@@ -16,6 +17,7 @@ Paperback extensions for websites with unique, non-generic themes.
 - [Webtoon](https://webtoons.com)
 - [Weeb Central](https://weebcentral.com)
 - [Mangapill](https://mangapill.com)
+- [Zzizz](https://zzizz.xyz)
 
 ## Installation
 

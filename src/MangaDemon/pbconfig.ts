@@ -1,0 +1,23 @@
+// Paperback extension configuration for MangaDemon
+import { ContentRating, SourceInfo, SourceIntents } from "@paperback/types";
+
+export default {
+    name: "MangaDemon",
+    description: "Extension that pulls content from demonicscans.org.",
+    version: "1.0.2",
+    icon: "icon.png",
+    language: "🇺🇸",
+    contentRating: ContentRating.MATURE,
+    badges: [],
+    capabilities:
+        SourceIntents.MANGA_CHAPTERS |
+        SourceIntents.DISCOVER_SECIONS |
+        SourceIntents.SETTINGS_UI |
+        SourceIntents.MANGA_SEARCH,
+    developers: [
+        {
+            name: "samipmainali",
+            github: "https://github.com/samipmainali",
+        },
+    ],
+} satisfies SourceInfo;
