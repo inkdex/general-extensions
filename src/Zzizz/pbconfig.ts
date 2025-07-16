@@ -4,7 +4,7 @@ import { ContentRating, SourceInfo, SourceIntents } from "@paperback/types";
 export default {
     name: "Zzizz",
     description: "Extension that pulls content from zzizz.xyz.",
-    version: "1.0.0",
+    version: "1.0.0-alpha.1",
     icon: "icon.png",
     language: "🇺🇸",
     contentRating: ContentRating.MATURE,

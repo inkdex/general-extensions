@@ -4,7 +4,7 @@ import { ContentRating, SourceInfo, SourceIntents } from "@paperback/types";
 export default {
     name: "MangaDemon",
     description: "Extension that pulls content from demonicscans.org.",
-    version: "1.0.2",
+    version: "1.0.0-alpha.1",
     icon: "icon.png",
     language: "🇺🇸",
     contentRating: ContentRating.MATURE,
