@@ -31,7 +31,7 @@ import {
     getLanguages,
     getShowTitle,
     getShowVolumeNumber,
-} from "./ComicKSettings";
+} from "./forms";
 import type {
     ChapterFilter,
     ChapterImages,
