@@ -15,7 +15,7 @@ import {
 } from "@paperback/types";
 import { CheerioAPI } from "cheerio";
 import { ZizHelpers } from "./helpers";
-import { API_ENDPOINTS, SELECTORS, DOMAIN } from "./models";
+import { API_ENDPOINTS, DOMAIN, SELECTORS } from "./models";
 
 export class ZizParser {
     /**

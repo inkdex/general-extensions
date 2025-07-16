@@ -25,12 +25,12 @@ import {
 } from "@paperback/types";
 import * as cheerio from "cheerio";
 import {
+    DEFAULT_CONTENT_RATING,
     DEFAULT_SORT_OPTIONS,
+    DOMAIN,
     FALLBACK_GENRES,
     FALLBACK_SORT_OPTIONS,
-    DOMAIN,
     LANGUAGE,
-    DEFAULT_CONTENT_RATING,
     SEARCH_MANGA_SELECTOR,
     USE_POST_IDS,
 } from "./models";

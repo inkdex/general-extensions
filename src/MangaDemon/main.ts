@@ -28,6 +28,7 @@ import {
 } from "@paperback/types";
 import * as cheerio from "cheerio";
 import {
+    DOMAIN,
     LATEST_NOVEL_SECTION_ID,
     LATEST_NOVEL_SECTION_TITLE,
     LATEST_TRANSLATION_SECTION_ID,
@@ -39,7 +40,6 @@ import {
     NEW_TITLES_SECTION_ID,
     NEW_TITLES_SECTION_TITLE,
     SearchResultItem,
-    DOMAIN,
 } from "./models";
 import { MangaDemonParser } from "./parsers";
 
