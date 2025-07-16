@@ -7,7 +7,7 @@ export default {
     version: "1.0.0-alpha.1",
     icon: "icon.png",
     language: "🇺🇸",
-    contentRating: ContentRating.MATURE,
+    contentRating: ContentRating.EVERYONE,
     badges: [],
     capabilities:
         SourceIntents.MANGA_CHAPTERS |

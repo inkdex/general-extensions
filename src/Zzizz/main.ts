@@ -22,6 +22,9 @@ import {
     SearchResultsProviding,
     SettingsFormProviding,
     SourceManga,
+    Response,
+    Request,
+    CloudflareError,
 } from "@paperback/types";
 import * as cheerio from "cheerio";
 import {
@@ -59,6 +62,20 @@ const CONSTANTS = {
         PAGINATION_NUMBERS: ".pagination .page-link",
     },
 } as const;
+
+// Helper function to handle Cloudflare and redirect protection detection
+async function safeRequest(
+    requestOptions: Request,
+): Promise<[Response, ArrayBuffer]> {
+    const [response, buffer] = await Application.scheduleRequest(requestOptions);
+    if (response.status === 403 || response.status === 307) {
+        throw new CloudflareError(
+            requestOptions,
+            "Cloudflare protection detected (403 Forbidden)",
+        );
+    }
+    return [response, buffer];
+}
 
 class ZizExtension
     implements
@@ -126,7 +143,7 @@ class ZizExtension
             cleanId = cleanId.replace("/manga/", "");
         }
         const url = `${this.domain}/manga/${cleanId}/`;
-        const [, buffer] = await Application.scheduleRequest({
+        const [, buffer] = await safeRequest({
             url,
             method: "GET",
         });
@@ -140,7 +157,7 @@ class ZizExtension
      */
     async getChapters(sourceManga: SourceManga): Promise<Chapter[]> {
         const url = `${this.domain}/manga/${sourceManga.mangaId}/`;
-        const [, buffer] = await Application.scheduleRequest({
+        const [, buffer] = await safeRequest({
             url,
             method: "GET",
         });
@@ -155,7 +172,7 @@ class ZizExtension
     async getChapterDetails(chapter: Chapter): Promise<ChapterDetails> {
         // Always fetch fresh data
         const url = `${this.domain}${chapter.chapterId}`;
-        const [, buffer] = await Application.scheduleRequest({
+        const [, buffer] = await safeRequest({
             url,
             method: "GET",
         });
@@ -230,7 +247,7 @@ class ZizExtension
                 url = this.domain;
         }
 
-        const [, buffer] = await Application.scheduleRequest({
+        const [, buffer] = await safeRequest({
             url,
             method: "GET",
         });
@@ -269,7 +286,7 @@ class ZizExtension
         }
         // Fetch fresh data from the /mangas page
         const url = `${this.domain}/mangas/`;
-        const [, buffer] = await Application.scheduleRequest({
+        const [, buffer] = await safeRequest({
             url,
             method: "GET",
         });
@@ -403,7 +420,7 @@ class ZizExtension
         const page = metadata?.page ?? 1;
         const params = this.extractSearchParams(query, sortingMethod);
         const url = this.buildSearchUrl(params, page);
-        const [, buffer] = await Application.scheduleRequest({
+        const [, buffer] = await safeRequest({
             url,
             method: "GET",
         });
@@ -460,7 +477,7 @@ class ZizExtension
         }
         try {
             const url = `${this.domain}/mangas/`;
-            const [, buffer] = await Application.scheduleRequest({
+            const [, buffer] = await safeRequest({
                 url,
                 method: "GET",
             });

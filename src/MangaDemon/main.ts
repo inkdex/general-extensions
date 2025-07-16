@@ -49,7 +49,7 @@ async function safeRequest(
 ): Promise<[Response, ArrayBuffer]> {
     const [response, buffer] =
         await Application.scheduleRequest(requestOptions);
-    if (response.status === 403) {
+    if (response.status === 403 || response.status === 307) {
         throw new CloudflareError(
             requestOptions,
             "Cloudflare protection detected (403 Forbidden)",
