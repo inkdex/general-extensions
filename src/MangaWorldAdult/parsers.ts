@@ -16,10 +16,10 @@ import {
     excludedTags,
     excludedTypes,
     Metadata,
-} from "./helper";
-import { Requests } from "./Requests";
+} from "./helpers";
+import { Requests } from "./requests";
 
-export class Parser {
+export class Parsers {
     private requests = new Requests();
     /**
      * Get Manga Detail

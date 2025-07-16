@@ -1,6 +1,6 @@
 import { SearchQuery, SortingOption } from "@paperback/types";
 import * as cheerio from "cheerio";
-import { baseUrl, getGenreFilter, getPageCache, URLBuilder } from "./helper";
+import { baseUrl, getGenreFilter, getPageCache, URLBuilder } from "./helpers";
 
 export class Requests {
     constructSearchRequestURL(

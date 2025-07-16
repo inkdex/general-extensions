@@ -1,5 +1,5 @@
 import * as cheerio from "cheerio";
-import { Requests } from "./Requests";
+import { Requests } from "./requests";
 
 export type Metadata = {
     page?: number;

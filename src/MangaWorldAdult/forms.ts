@@ -5,7 +5,7 @@ import {
     Section,
     SelectRow,
 } from "@paperback/types";
-import { getGenreFilter, getMangaTypeFilter } from "./helper";
+import { getGenreFilter, getMangaTypeFilter } from "./helpers";
 
 export class Forms extends Form {
     override getSections(): FormSectionElement[] {

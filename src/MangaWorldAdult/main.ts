@@ -34,10 +34,10 @@ import {
     getYearFilter,
     Metadata,
     populateFilter,
-} from "./helper";
-import { MainInterceptor } from "./Interceptor";
-import { Parser } from "./parser";
-import { Requests } from "./Requests";
+} from "./helpers";
+import { MainInterceptor } from "./interceptors";
+import { Parsers } from "./parsers";
+import { Requests } from "./requests";
 
 // Should match the capabilities which you defined in pbconfig.ts
 type ContentTemplateImplementation = SettingsFormProviding &
@@ -56,7 +56,7 @@ export class MangaAdultExtension implements ContentTemplateImplementation {
         ignoreImages: true,
     });
     RETRIES = 10;
-    private parser = new Parser();
+    private parser = new Parsers();
     private requests = new Requests();
     // Implementation of the main interceptor
     mainInterceptor = new MainInterceptor("main");
