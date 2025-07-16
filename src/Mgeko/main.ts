@@ -35,7 +35,7 @@ import {
     parseMangaDetails,
     parseSearch,
     parseViewMore,
-} from "./MgekoParser";
+} from "./parsers";
 
 const MGEKO_DOMAIN = "https://www.cc";
 
