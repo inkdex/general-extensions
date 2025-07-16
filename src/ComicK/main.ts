@@ -24,15 +24,6 @@ import {
 } from "@paperback/types";
 import { URLBuilder } from "../utils/url-builder/array-query-variant";
 import {
-    parseChapterDetails,
-    parseChapters,
-    parseChapterSinceDate,
-    parseDiscoverSection,
-    parseMangaDetails,
-    parseSearch,
-    parseTags,
-} from "./ComicKParser";
-import {
     ComicKSettingsForm,
     getChapterScoreFiltering,
     getCloudflareRateLimitBackoff,
@@ -50,6 +41,15 @@ import type {
     Metadata,
     SearchData,
 } from "./models";
+import {
+    parseChapterDetails,
+    parseChapters,
+    parseChapterSinceDate,
+    parseDiscoverSection,
+    parseMangaDetails,
+    parseSearch,
+    parseTags,
+} from "./parsers";
 import {
     COMIC_TYPE_FILTER,
     CREATED_AT_FILTER,
