@@ -10,34 +10,18 @@ import {
     TagSection,
 } from "@paperback/types";
 import * as cheerio from "cheerio";
-import { getPageCache } from "../MangaWorldAdult/helper";
 import {
     blacklistedTags,
     blacklistedType,
     excludedTags,
     excludedTypes,
+    getRating,
     Metadata,
 } from "./helper";
+import { Requests } from "./Requests";
 
 export class Parser {
-    /**
-     * Get manga Rating
-     * @param {string[]} tags - tags
-     * @return {ContentRating} - ContentRating
-     */
-    getRating(tags: string[]): ContentRating {
-        let rating = ContentRating.EVERYONE;
-        for (const tag of tags) {
-            if (tag.toUpperCase() === "ADULTI") {
-                rating = ContentRating.ADULT;
-                break;
-            } else if (tag.toUpperCase() === "MATURO") {
-                rating = ContentRating.MATURE;
-                break;
-            }
-        }
-        return rating;
-    }
+    private requests = new Requests();
 
     /**
      * Get Manga Detail
@@ -104,7 +88,7 @@ export class Parser {
         for (const tag of data.genre) {
             arrayTags.push({ title: tag, id: tag.replaceAll(" ", "-") });
         }
-        const rating = this.getRating(arrayTags.map((tag) => tag.title));
+        const rating = getRating(arrayTags.map((tag) => tag.title));
         const tagSections: TagSection[] = [
             { id: "genres", title: "genres", tags: arrayTags },
         ];
@@ -133,6 +117,7 @@ export class Parser {
      * @return {Chapter[]} - Chapters
      */
     parseChapters($: cheerio.CheerioAPI, sourceManga: SourceManga): Chapter[] {
+        console.log(sourceManga);
         const chapters: Chapter[] = [];
         const arrChapters = $(".chapter").toArray().reverse();
         for (const item of arrChapters) {
@@ -272,7 +257,7 @@ export class Parser {
                     title: item.title,
                     subtitle: item.authors,
                     mangaId: item.id,
-                    contentRating: this.getRating(item.tags),
+                    contentRating: getRating(item.tags),
                 });
             }
         }
@@ -350,37 +335,37 @@ export class Parser {
     }
 
     /**
+     * Parsing most read
+     * @param {Metadata} metadata - metadata
+     * @return {{ items: DiscoverSectionItem[], metadata: Metadata }}
+     */
+    async parseMostReadSection(
+        metadata: Metadata,
+    ): Promise<{ items: DiscoverSectionItem[]; metadata: Metadata }> {
+        let page = metadata?.page ?? 1;
+        const $ = await this.requests.parsePopularSectionRequests(page);
+        page++;
+        const latest = await this.parseSection($, page);
+        return { items: latest, metadata: { page: page } };
+    }
+
+    /**
      * Parsing last added
      * @param {Metadata} metadata - metadata
-     * @param {string} url - Url
      * @return {{ items: DiscoverSectionItem[], metadata: Metadata }}
      */
     async parseLastMangaAddedSection(
         metadata: Metadata,
-        url: string,
     ): Promise<{ items: DiscoverSectionItem[]; metadata: Metadata }> {
-        const latest: DiscoverSectionItem[] = [];
         let page = metadata?.page ?? 1;
-        let $ = cheerio.load(``);
-        if (page > 1) {
-            const data = (
-                await Application.scheduleRequest({
-                    url: `${url}/archive?sort=newest&page=${page}`,
-                    method: "GET",
-                })
-            )[1];
-            $ = cheerio.load(Application.arrayBufferToUTF8String(data));
-        } else {
-            $ = cheerio.load(
-                Application.arrayBufferToUTF8String(
-                    await getPageCache(
-                        "LastMangaAddedSection",
-                        `${url}/archive?sort=newest&page=${page}`,
-                    ),
-                ),
-            );
-        }
+        const $ = await this.requests.parseLastMangaAddedSectionRequests(page);
         page++;
+        const latest = await this.parseSection($, page);
+        return { items: latest, metadata: { page: page } };
+    }
+
+    async parseSection($: cheerio.CheerioAPI, page: number) {
+        const latest: DiscoverSectionItem[] = [];
         const parse = this.parsePage($);
         for (const item of parse) {
             if (!blacklistedTags(item.tags) && !blacklistedType(item.type)) {
@@ -388,21 +373,20 @@ export class Parser {
                     metadata: { page: page },
                     subtitle: item.authors,
                     type: "simpleCarouselItem",
-                    contentRating: this.getRating(item.tags),
+                    contentRating: getRating(item.tags),
                     imageUrl: item.image,
                     mangaId: item.id,
                     title: item.title,
                 });
             }
         }
-        return { items: latest, metadata: { page: page } };
+        return latest;
     }
 
     /**
      * Parse new chapters
      * @param {cheerio.CheerioAPI} $ - page
      * @param {Metadata} metadata - manga metadata
-     * @param {string} url - url
      * @return {{
      * 		items: DiscoverSectionItem[],
      * 		metadata: Metadata | undefined
@@ -411,20 +395,13 @@ export class Parser {
     async parseLastAddedSection(
         $: cheerio.CheerioAPI,
         metadata: Metadata,
-        url: string,
     ): Promise<{
         items: DiscoverSectionItem[];
         metadata: Metadata | undefined;
     }> {
         let page = metadata?.page ?? 1;
         if (page > 1) {
-            const data = (
-                await Application.scheduleRequest({
-                    url: `${url}?page=${page}`,
-                    method: "GET",
-                })
-            )[1];
-            $ = cheerio.load(Application.arrayBufferToUTF8String(data));
+            $ = await this.requests.parseLastAddedSectionRequests(page);
         }
         page++;
         const arrLatest = $(

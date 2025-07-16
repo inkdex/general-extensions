@@ -1,4 +1,5 @@
 import * as cheerio from "cheerio";
+import { Requests } from "./Requests";
 
 export type Metadata = {
     page?: number;
@@ -13,11 +14,15 @@ type CacheItem = {
     expires: number;
     data: ArrayBuffer;
 };
+export const baseUrl = "https://www.mangaworldadult.net";
+const cacheMap = new Map<string, CacheItem>();
+const requestMap = new Map<string, Promise<ArrayBuffer>>();
+const requests = new Requests();
 /**
  * Populate Search Filter
  * @param baseUrl
  */
-export async function populateFilter(baseUrl: string) {
+export async function populateFilter() {
     const lastFilterFetch = Number(
         Application.getState("last-filter-fetch-date") ?? 0,
     );
@@ -44,13 +49,7 @@ export async function populateFilter(baseUrl: string) {
         );
     } else {
         console.log("Scraping Filters");
-        const data = (
-            await Application.scheduleRequest({
-                url: `${baseUrl}/archive`,
-                method: "GET",
-            })
-        )[1];
-        const $ = cheerio.load(Application.arrayBufferToUTF8String(data));
+        const $ = await requests.parseFilters();
         setGenreFilter(extractOptions($, ".genres"));
         setMangaTypeFilter(extractOptions($, ".type"));
         setStatusFilter(extractOptions($, ".status"));
@@ -62,17 +61,6 @@ export async function populateFilter(baseUrl: string) {
             "last-filter-fetch-date",
         );
     }
-}
-
-const cacheMap = new Map<string, CacheItem>();
-const requestMap = new Map<string, Promise<ArrayBuffer>>();
-
-async function fetchPage(url: string): Promise<ArrayBuffer> {
-    const [, responseData] = await Application.scheduleRequest({
-        url,
-        method: "GET",
-    });
-    return responseData;
 }
 
 export async function getPageCache(
@@ -94,7 +82,8 @@ export async function getPageCache(
 
     console.log(`[CACHE] Fetching New Page "${name}"`);
 
-    const fetchPromise = fetchPage(url)
+    const fetchPromise = requests
+        .fetchPage(url)
         .then((data) => {
             cacheMap.set(name, {
                 expires: Math.floor(Date.now() / 1000) + cacheTime,

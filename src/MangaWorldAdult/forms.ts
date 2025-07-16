@@ -7,7 +7,7 @@ import {
 } from "@paperback/types";
 import { getGenreFilter, getMangaTypeFilter } from "./helper";
 
-export class SettingsForm extends Form {
+export class Forms extends Form {
     override getSections(): FormSectionElement[] {
         return [
             Section("playground", [

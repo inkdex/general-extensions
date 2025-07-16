@@ -12,9 +12,6 @@ import {
     Form,
     MangaProviding,
     PagedResults,
-    PaperbackInterceptor,
-    Request,
-    Response,
     SearchFilter,
     SearchQuery,
     SearchResultItem,
@@ -24,7 +21,9 @@ import {
     SourceManga,
 } from "@paperback/types";
 import * as cheerio from "cheerio";
+import { Forms } from "./forms";
 import {
+    baseUrl,
     blacklistedTags,
     blacklistedType,
     getGenreFilter,
@@ -35,12 +34,11 @@ import {
     getYearFilter,
     Metadata,
     populateFilter,
-    URLBuilder,
 } from "./helper";
+import { MainInterceptor } from "./Interceptor";
 import { Parser } from "./parser";
-import { SettingsForm } from "./SettingsForm";
+import { Requests } from "./Requests";
 
-const MW_DOMAIN = "https://www.mangaworldadult.net";
 // Should match the capabilities which you defined in pbconfig.ts
 type ContentTemplateImplementation = SettingsFormProviding &
     Extension &
@@ -48,23 +46,6 @@ type ContentTemplateImplementation = SettingsFormProviding &
     SearchResultsProviding &
     MangaProviding &
     ChapterProviding;
-// Intercepts all the requests and responses and allows you to make changes to them
-class MainInterceptor extends PaperbackInterceptor {
-    override async interceptRequest(request: Request): Promise<Request> {
-        return request;
-    }
-
-    override async interceptResponse(
-        request: Request,
-        response: Response,
-        data: ArrayBuffer,
-    ): Promise<ArrayBuffer> {
-        void request;
-        void response;
-
-        return data;
-    }
-}
 
 // Main extension class
 export class MangaAdultExtension implements ContentTemplateImplementation {
@@ -74,9 +55,9 @@ export class MangaAdultExtension implements ContentTemplateImplementation {
         bufferInterval: 10,
         ignoreImages: true,
     });
-    baseUrl = MW_DOMAIN;
     RETRIES = 10;
     private parser = new Parser();
+    private requests = new Requests();
     // Implementation of the main interceptor
     mainInterceptor = new MainInterceptor("main");
 
@@ -88,12 +69,12 @@ export class MangaAdultExtension implements ContentTemplateImplementation {
 
     // Implements the settings form, check SettingsForm.ts for more info
     async getSettingsForm(): Promise<Form> {
-        await populateFilter(this.baseUrl);
-        return new SettingsForm();
+        await populateFilter();
+        return new Forms();
     }
 
     async getSearchFilters(): Promise<SearchFilter[]> {
-        await populateFilter(this.baseUrl);
+        await populateFilter();
         const filters: SearchFilter[] = [];
         const def_value = ((Application.getState("def_type") as string[]) ??
             [])[0];
@@ -118,7 +99,7 @@ export class MangaAdultExtension implements ContentTemplateImplementation {
             options: getMangaTypeFilter(),
             id: "types",
             allowExclusion: true,
-            title: "Tipo",
+            title: "Tipologia",
             value: getExcludedTypeObject,
             allowEmptySelection: true,
             maximum: 3,
@@ -128,7 +109,7 @@ export class MangaAdultExtension implements ContentTemplateImplementation {
             options: getGenreFilter(),
             id: "genres",
             allowExclusion: true,
-            title: "Generi",
+            title: "Genere",
             value: getExcludedValueObject,
             allowEmptySelection: true,
             maximum: 5,
@@ -159,18 +140,12 @@ export class MangaAdultExtension implements ContentTemplateImplementation {
         const manga: SearchResultItem[] = [];
         let page = Math.max(metadata?.page ?? 1, 1);
         for (let cycle = 0; cycle < 5 && manga.length < 16; cycle++, page++) {
-            const { url, excluded } = this.constructSearchRequestURL(
+            const { url, excluded } = this.requests.constructSearchRequestURL(
                 page,
                 query,
                 sorting,
             );
-            const data = (
-                await Application.scheduleRequest({
-                    url: url,
-                    method: "GET",
-                })
-            )[1];
-            const $ = cheerio.load(Application.arrayBufferToUTF8String(data));
+            const $ = await this.requests.getSearchResultsRequests(url);
             const pagText = $(".search-quantity").text().trim().split(" ")[0];
             const total = pagText === "Nessun" ? 0 : Number(pagText);
             if (Number.isNaN(total) || total <= 0) break; // No results or invalid number
@@ -187,12 +162,12 @@ export class MangaAdultExtension implements ContentTemplateImplementation {
     // Populates the title details
     async getMangaDetails(mangaId: string): Promise<SourceManga> {
         console.log("[MANGA] Get Details of MangaID " + mangaId);
-        const data = getPageCache(mangaId, `${this.baseUrl}/manga/${mangaId}`);
+        const data = getPageCache(mangaId, `${baseUrl}/manga/${mangaId}`);
         const $ = cheerio.load(Application.arrayBufferToUTF8String(await data));
         return this.parser.parseMangaDetails(
             $,
             mangaId,
-            `${this.baseUrl}/manga/${mangaId}`,
+            `${baseUrl}/manga/${mangaId}`,
         );
     }
 
@@ -201,7 +176,7 @@ export class MangaAdultExtension implements ContentTemplateImplementation {
         console.log("[MANGA] Get Chapters of MangaID " + sourceManga.mangaId);
         const data = getPageCache(
             sourceManga.mangaId,
-            `${this.baseUrl}/manga/${sourceManga.mangaId}`,
+            `${baseUrl}/manga/${sourceManga.mangaId}`,
         );
         const $ = cheerio.load(Application.arrayBufferToUTF8String(await data));
         return this.parser.parseChapters($, sourceManga);
@@ -211,7 +186,7 @@ export class MangaAdultExtension implements ContentTemplateImplementation {
     async getChapterDetails(chapter: Chapter): Promise<ChapterDetails> {
         const data = getPageCache(
             `${chapter.sourceManga.mangaId}-${chapter.chapterId}`,
-            `${this.baseUrl}/manga/${chapter.sourceManga.mangaId}/read/${chapter.chapterId}/?style=list`,
+            `${baseUrl}/manga/${chapter.sourceManga.mangaId}/read/${chapter.chapterId}/?style=list`,
         );
         const $ = cheerio.load(Application.arrayBufferToUTF8String(await data));
         return this.parser.parseChapterDetails(
@@ -228,11 +203,18 @@ export class MangaAdultExtension implements ContentTemplateImplementation {
                 title: "Capitoli In Tendenza",
                 type: DiscoverSectionType.featured,
             },
+
             {
                 id: "mese_section",
                 title: "Manga del Mese",
                 subtitle: "Manga più letti del mese",
                 type: DiscoverSectionType.prominentCarousel,
+            },
+            {
+                id: "most_read_section",
+                title: "Più Letti",
+                subtitle: "I più popolari di sempre",
+                type: DiscoverSectionType.simpleCarousel,
             },
             {
                 id: "updated_section",
@@ -243,19 +225,19 @@ export class MangaAdultExtension implements ContentTemplateImplementation {
             {
                 id: "new_manga_section",
                 title: "Nuove Aggiunte",
-                subtitle: "Nuovi Manga",
+                subtitle: "Le nuove Aggiunte",
                 type: DiscoverSectionType.simpleCarousel,
             },
             {
                 id: "type_section",
-                title: "Tipo",
-                subtitle: "Manga più letti di un tipo",
+                title: "Tipologia",
+                subtitle: "Più letti di una tipologia",
                 type: DiscoverSectionType.genres,
             },
             {
                 id: "genre_section",
-                title: "Generi",
-                subtitle: "Manga più letti di un genere",
+                title: "Genere",
+                subtitle: "Più letti di un genere",
                 type: DiscoverSectionType.genres,
             },
         ];
@@ -267,7 +249,7 @@ export class MangaAdultExtension implements ContentTemplateImplementation {
     ): Promise<PagedResults<DiscoverSectionItem>> {
         const $ = cheerio.load(
             Application.arrayBufferToUTF8String(
-                await getPageCache("home", this.baseUrl, 300),
+                await getPageCache("home", baseUrl, 300),
             ),
         );
         switch (section.id) {
@@ -279,23 +261,20 @@ export class MangaAdultExtension implements ContentTemplateImplementation {
                 console.log("[HOME] Loading mese_section loaded");
                 return this.parser.parseMonthTrending($, metadata);
             }
+            case "most_read_section": {
+                console.log("[HOME] Loading most_read_section loaded");
+                return this.parser.parseMostReadSection(metadata);
+            }
             case "updated_section": {
                 console.log("[HOME] Loading updated_section loaded");
-                return this.parser.parseLastAddedSection(
-                    $,
-                    metadata,
-                    this.baseUrl,
-                );
+                return this.parser.parseLastAddedSection($, metadata);
             }
             case "new_manga_section": {
                 console.log("[HOME] Loading new_manga_section loaded");
-                return this.parser.parseLastMangaAddedSection(
-                    metadata,
-                    this.baseUrl,
-                );
+                return this.parser.parseLastMangaAddedSection(metadata);
             }
             case "genre_section": {
-                await populateFilter(this.baseUrl);
+                await populateFilter();
                 const allGenres: DiscoverSectionItem[] = [];
                 getGenreFilter()
                     .filter((option) => !blacklistedTags([option.id]))
@@ -336,7 +315,7 @@ export class MangaAdultExtension implements ContentTemplateImplementation {
                 };
             }
             case "type_section": {
-                await populateFilter(this.baseUrl);
+                await populateFilter();
                 const mangaType: DiscoverSectionItem[] = [];
                 getMangaTypeFilter()
                     .filter((option) => !blacklistedType(option.value))
@@ -386,81 +365,6 @@ export class MangaAdultExtension implements ContentTemplateImplementation {
             id: item.id,
             label: item.value,
         }));
-    }
-
-    constructSearchRequestURL(
-        page: number,
-        query: SearchQuery = { title: "", filters: [] },
-        sorting: SortingOption | undefined,
-    ): {
-        url: string;
-        excluded: { generi: string[]; tipi: string[] };
-    } {
-        const generi: string[] = [];
-        const generi_esclusi: string[] = [];
-        const tipi_esclusi: string[] = [];
-        const tipologia: string[] = [];
-        const stato: string[] = [];
-        const anno: string[] = [];
-        const getFilterValue = (id: string) =>
-            query.filters.find((filter) => filter.id == id)?.value;
-        const genres: string | Record<string, "included" | "excluded"> =
-            getFilterValue("genres") ?? "";
-        const types: string | Record<string, "included" | "excluded"> =
-            getFilterValue("types") ?? "";
-        const status: string | Record<string, "included" | "excluded"> =
-            getFilterValue("status") ?? "";
-        const year: string | Record<string, "included" | "excluded"> =
-            getFilterValue("year") ?? "";
-        if (genres && typeof genres === "object") {
-            for (const tag of Object.entries(genres)) {
-                if (tag[1] == "included") generi.push(tag[0]);
-                if (tag[1] == "excluded")
-                    generi_esclusi.push(
-                        getGenreFilter().find((item) => item.id === tag[0])
-                            ?.value ?? "",
-                    );
-            }
-        }
-
-        if (types && typeof types === "object") {
-            for (const tag of Object.entries(types)) {
-                if (tag[1] == "included") tipologia.push(tag[0]);
-                if (tag[1] == "excluded") tipi_esclusi.push(tag[0]);
-            }
-        }
-
-        if (status && typeof status === "object") {
-            for (const tag of Object.entries(status)) {
-                if (tag[0].length > 0) stato.push(tag[0]);
-            }
-        } else if (status.length > 0) stato.push(status);
-
-        if (year && typeof year === "object") {
-            for (const tag of Object.entries(year)) {
-                if (tag[0].length > 0) anno.push(tag[0]);
-            }
-        } else if (year.length > 0) anno.push(year);
-
-        const urlBuilder = new URLBuilder(this.baseUrl).addPathComponent(
-            "archive",
-        );
-        if (query.title.toString().length > 0)
-            urlBuilder.addQueryParameter(
-                "keyword",
-                query.title.toString() ?? "",
-            );
-        urlBuilder.addQueryParameter("page", page.toString());
-        if (sorting?.id) urlBuilder.addQueryParameter("sort", sorting?.id);
-        if (generi.length > 0) urlBuilder.addQueryParameter("genre", generi);
-        if (tipologia.length > 0)
-            urlBuilder.addQueryParameter("type", tipologia);
-        if (stato.length > 0) urlBuilder.addQueryParameter("status", stato[0]);
-        if (anno.length > 0) urlBuilder.addQueryParameter("year", anno[0]);
-        return {
-            url: urlBuilder.buildUrl(),
-            excluded: { generi: generi_esclusi, tipi: tipi_esclusi },
-        };
     }
 }
 

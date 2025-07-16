@@ -15,11 +15,12 @@ import {
     blacklistedType,
     excludedTags,
     excludedTypes,
-    getPageCache,
     Metadata,
 } from "./helper";
+import { Requests } from "./Requests";
 
 export class Parser {
+    private requests = new Requests();
     /**
      * Get Manga Detail
      * @param {cheerio.CheerioAPI} $ - Request
@@ -330,26 +331,37 @@ export class Parser {
     }
 
     /**
+     * Parsing most read
+     * @param {Metadata} metadata - metadata
+     * @return {{ items: DiscoverSectionItem[], metadata: Metadata }}
+     */
+    async parseMostReadSection(
+        metadata: Metadata,
+    ): Promise<{ items: DiscoverSectionItem[]; metadata: Metadata }> {
+        let page = metadata?.page ?? 1;
+        const $ = await this.requests.parsePopularSectionRequests(page);
+        page++;
+        const latest = await this.parseSection($, page);
+        return { items: latest, metadata: { page: page } };
+    }
+
+    /**
      * Parsing last added
      * @param {Metadata} metadata - metadata
-     * @param {string} url - Url
      * @return {{ items: DiscoverSectionItem[], metadata: Metadata }}
      */
     async parseLastMangaAddedSection(
         metadata: Metadata,
-        url: string,
     ): Promise<{ items: DiscoverSectionItem[]; metadata: Metadata }> {
-        const latest: DiscoverSectionItem[] = [];
         let page = metadata?.page ?? 1;
-        const $ = cheerio.load(
-            Application.arrayBufferToUTF8String(
-                await getPageCache(
-                    "LastMangaAddedSection",
-                    `${url}/archive?sort=newest&page=${page}`,
-                ),
-            ),
-        );
+        const $ = await this.requests.parseLastMangaAddedSectionRequests(page);
         page++;
+        const latest = await this.parseSection($, page);
+        return { items: latest, metadata: { page: page } };
+    }
+
+    async parseSection($: cheerio.CheerioAPI, page: number) {
+        const latest: DiscoverSectionItem[] = [];
         const parse = this.parsePage($);
         for (const item of parse) {
             if (!blacklistedTags(item.tags) && !blacklistedType(item.type)) {
@@ -364,14 +376,13 @@ export class Parser {
                 });
             }
         }
-        return { items: latest, metadata: { page: page } };
+        return latest;
     }
 
     /**
      * Parse new chapters
      * @param {cheerio.CheerioAPI} $ - page
      * @param {Metadata} metadata - manga metadata
-     * @param {string} url - url
      * @return {{
      * 		items: DiscoverSectionItem[],
      * 		metadata: Metadata | undefined
@@ -380,20 +391,13 @@ export class Parser {
     async parseLastAddedSection(
         $: cheerio.CheerioAPI,
         metadata: Metadata,
-        url: string,
     ): Promise<{
         items: DiscoverSectionItem[];
         metadata: Metadata | undefined;
     }> {
         let page = metadata?.page ?? 1;
         if (page > 1) {
-            const data = (
-                await Application.scheduleRequest({
-                    url: `${url}?page=${page}`,
-                    method: "GET",
-                })
-            )[1];
-            $ = cheerio.load(Application.arrayBufferToUTF8String(data));
+            $ = await this.requests.parseLastAddedSectionRequests(page);
         }
         page++;
         const arrLatest = $(
