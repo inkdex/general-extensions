@@ -122,9 +122,11 @@ export function parseChapters(
     filter: ChapterFilter,
 ): Chapter[] {
     const chaptersData = filterChapters(data.chapters, filter);
+    const chapters: Chapter[] = [];
     let sortingIndex = chaptersData.length;
+    let defaultVolume: 0 | undefined = 0;
 
-    return chaptersData.map((chapter) => {
+    for (const chapter of chaptersData) {
         const chapNum = Number(chapter.chap);
         const volumeValue = Number(chapter.vol);
         const groups = chapter.group_name ?? [];
@@ -133,11 +135,12 @@ export function parseChapters(
         let volume: number | undefined = 0;
         if (chapter.vol !== null && filter.showVol && !isNaN(volumeValue)) {
             volume = volumeValue;
+            defaultVolume = undefined;
         } else if (chapter.vol === null && filter.showVol) {
-            volume = undefined;
+            volume = defaultVolume;
         }
 
-        return {
+        chapters.push({
             chapterId: chapter.hid,
             sourceManga,
             title: filter.showTitle && chapter.title ? `${chapter.title}` : "",
@@ -147,8 +150,20 @@ export function parseChapters(
             publishDate: new Date(chapter.created_at),
             version: groups.join(","),
             langCode: getLanguageName(chapter.lang),
-        };
-    });
+        });
+    }
+
+    if (defaultVolume == undefined) {
+        for (let i = 0; i++; i < chapters.length) {
+            if (chapters[i].volume != 0) {
+                break;
+            }
+
+            chapters[i].volume = undefined;
+        }
+    }
+
+    return chapters;
 }
 
 export function parseChapterSinceDate(
