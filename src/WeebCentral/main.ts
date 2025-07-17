@@ -22,7 +22,7 @@ import {
 } from "@paperback/types";
 import * as cheerio from "cheerio";
 import { getState } from "../utils/state";
-import { WeebCentralForm } from "./forms";
+import { SettingsForm } from "./forms";
 import {
     getFilterTagsBySection,
     getShareUrl,
@@ -338,7 +338,7 @@ export class WeebCentralExtension
     }
 
     async getSettingsForm(): Promise<Form> {
-        return new WeebCentralForm();
+        return new SettingsForm();
     }
 }
 

@@ -6,21 +6,21 @@ import {
     Section,
 } from "@paperback/types";
 
-export class WeebCentralForm extends Form {
+export class SettingsForm extends Form {
     override getSections(): FormSectionElement[] {
         return [
             Section("second", [
                 ButtonRow("clearTags", {
                     title: "Clear Cached Search Tags",
                     onSelect: Application.Selector(
-                        this as WeebCentralForm,
+                        this as SettingsForm,
                         "clearTags",
                     ),
                 }),
                 ButtonRow("resetState", {
                     title: "Reset All State",
                     onSelect: Application.Selector(
-                        this as WeebCentralForm,
+                        this as SettingsForm,
                         "resetState",
                     ),
                 }),
