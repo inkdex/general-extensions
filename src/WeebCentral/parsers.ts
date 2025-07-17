@@ -9,10 +9,9 @@ import {
 } from "@paperback/types";
 import { CheerioAPI } from "cheerio";
 import { decodeHTML } from "entities";
-import { TagSectionId, TagSectionTitle } from "./WeebCentralEnums";
-import { formatTagId, getRating, getShareUrl } from "./WeebCentralHelper";
+import { formatTagId, getRating, getShareUrl } from "./helpers";
+import { DEFAULT_LANGUAGE_CODE, TagSectionId, TagSectionTitle } from "./models";
 
-const defaultLangCode = "🇬🇧";
 const officialTranslationSvgStroke = "#d8b4fe";
 export const parseMangaDetails = async (
     $: CheerioAPI,
@@ -133,7 +132,7 @@ export const parseChapters = (
             chapNum,
             publishDate,
             sortingIndex,
-            langCode: defaultLangCode,
+            langCode: DEFAULT_LANGUAGE_CODE,
             version,
             volume: 0,
             sourceManga,

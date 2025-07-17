@@ -11,7 +11,6 @@ import {
     Form,
     MangaProviding,
     PagedResults,
-    Request,
     SearchFilter,
     SearchQuery,
     SearchResultItem,
@@ -23,19 +22,16 @@ import {
 } from "@paperback/types";
 import * as cheerio from "cheerio";
 import { getState } from "../utils/state";
-import { URLBuilder } from "../utils/url-builder/array-query-variant";
-import { WeebCentralMetadata } from "./interfaces/WeebCentralInterfaces";
-import pbconfig from "./pbconfig";
-import { WC_DOMAIN } from "./WeebCentralConfig";
-import { TagSectionId } from "./WeebCentralEnums";
-import { WeebCentralForm } from "./WeebCentralForm";
+import { WeebCentralForm } from "./forms";
 import {
     getFilterTagsBySection,
     getShareUrl,
     getTagFromTagStore,
     isInvalidTags,
-} from "./WeebCentralHelper";
-import { WeebCentralInterceptor } from "./WeebCentralInterceptor";
+    newQuery,
+} from "./helpers";
+import { WeebCentralInterceptor } from "./interceptors";
+import { Metadata, TagSectionId } from "./models";
 import {
     isLastPage,
     parseChapterDetails,
@@ -46,7 +42,15 @@ import {
     parseRecommendedSection,
     parseSearch,
     parseTags,
-} from "./WeebCentralParser";
+} from "./parsers";
+import pbconfig from "./pbconfig";
+import {
+    fetchChapterDetailsPage,
+    fetchChaptersPage,
+    fetchHomepage,
+    fetchMangaDetailsPage,
+    fetchSearchPage,
+} from "./requests";
 
 export class WeebCentralExtension
     implements
@@ -97,18 +101,14 @@ export class WeebCentralExtension
 
     async getDiscoverSectionItems(
         section: DiscoverSection,
-        metadata: WeebCentralMetadata | undefined,
+        metadata: Metadata | undefined,
     ): Promise<PagedResults<DiscoverSectionItem>> {
         let items: DiscoverSectionItem[] = [];
-        const urlBuilder = new URLBuilder(WC_DOMAIN);
         const page: number = metadata?.page ?? 1;
 
         switch (section.id) {
             case "recommended": {
-                const [_, buffer] = await Application.scheduleRequest({
-                    url: urlBuilder.build(),
-                    method: "GET",
-                });
+                const [_, buffer] = await fetchHomepage();
                 const $ = cheerio.load(
                     Application.arrayBufferToUTF8String(buffer),
                 );
@@ -116,10 +116,7 @@ export class WeebCentralExtension
                 break;
             }
             case "recent": {
-                const [_, buffer] = await Application.scheduleRequest({
-                    url: urlBuilder.build(),
-                    method: "GET",
-                });
+                const [_, buffer] = await fetchHomepage();
                 const $ = cheerio.load(
                     Application.arrayBufferToUTF8String(buffer),
                 );
@@ -128,10 +125,7 @@ export class WeebCentralExtension
                 break;
             }
             case "hot": {
-                const [_, buffer] = await Application.scheduleRequest({
-                    url: urlBuilder.build(),
-                    method: "GET",
-                });
+                const [_, buffer] = await fetchHomepage();
                 const $ = cheerio.load(
                     Application.arrayBufferToUTF8String(buffer),
                 );
@@ -164,45 +158,20 @@ export class WeebCentralExtension
     }
 
     async getMangaDetails(mangaId: string): Promise<SourceManga> {
-        const request = {
-            url: new URLBuilder(WC_DOMAIN)
-                .addPath("series")
-                .addPath(mangaId)
-                .build(),
-            method: "GET",
-        };
-
-        const [_, buffer] = await Application.scheduleRequest(request);
+        const [_, buffer] = await fetchMangaDetailsPage(mangaId);
 
         const $ = cheerio.load(Application.arrayBufferToUTF8String(buffer));
         return await parseMangaDetails($, mangaId);
     }
 
     async getChapters(sourceManga: SourceManga): Promise<Chapter[]> {
-        const request = {
-            url: new URLBuilder(WC_DOMAIN)
-                .addPath("series")
-                .addPath(sourceManga.mangaId)
-                .addPath("full-chapter-list")
-                .build(),
-            method: "GET",
-        };
-        const [_, buffer] = await Application.scheduleRequest(request);
+        const [_, buffer] = await fetchChaptersPage(sourceManga.mangaId);
         const $ = cheerio.load(Application.arrayBufferToUTF8String(buffer));
         return parseChapters($, sourceManga);
     }
 
     async getChapterDetails(chapter: Chapter): Promise<ChapterDetails> {
-        const url = new URLBuilder(WC_DOMAIN)
-            .addPath("chapters")
-            .addPath(chapter.chapterId)
-            .addPath("images")
-            .addQuery("reading_style", "long_strip")
-            .build();
-
-        const request: Request = { url, method: "GET" };
-
-        const [_, buffer] = await Application.scheduleRequest(request);
+        const [_, buffer] = await fetchChapterDetailsPage(chapter.chapterId);
         const $ = cheerio.load(Application.arrayBufferToUTF8String(buffer));
         return parseChapterDetails(
             $,
@@ -243,12 +212,7 @@ export class WeebCentralExtension
         }
         try {
             console.log("fetching tags from web request");
-            const request = {
-                url: new URLBuilder(WC_DOMAIN).addPath("search").build(),
-                method: "GET",
-            };
-
-            const [_, buffer] = await Application.scheduleRequest(request);
+            const [_, buffer] = await fetchSearchPage([], []);
             const $ = cheerio.load(Application.arrayBufferToUTF8String(buffer));
             tags = await parseTags($);
             Application.setState(tags, "tags");
@@ -261,60 +225,57 @@ export class WeebCentralExtension
         const tags = await this.getSearchTags();
         const filters: SearchFilter[] = [];
 
-        filters.push(this.getGenresFilter(tags));
-        filters.push(this.getSeriesStatusFilter(tags));
-        filters.push(this.getSeriesTypeFilter(tags));
-        filters.push(this.getOrderFilter(tags));
+        filters.push(
+            this.getGenresFilter(tags),
+            this.getSeriesStatusFilter(tags),
+            this.getSeriesTypeFilter(tags),
+            this.getOrderFilter(tags),
+        );
 
         return filters;
     }
 
     async getSearchResults(
         query: SearchQuery,
-        metadata: WeebCentralMetadata | undefined,
+        metadata: Metadata | undefined,
     ): Promise<PagedResults<SearchResultItem>> {
         const LIMIT = 32;
         const offset = metadata?.offset ?? 0;
-        let newUrlBuilder: URLBuilder = new URLBuilder(WC_DOMAIN)
-            .addPath("search")
-            .addPath("data")
-            .addQuery("sort", "Best Match")
-            .addQuery("display_mode", "Full Display")
-            .addQuery("limit", LIMIT.toString())
-            .addQuery("offset", offset.toString());
-
+        const paths = ["data"];
+        const queries = [
+            newQuery("sort", "Best Match"),
+            newQuery("display_mode", "Full Display"),
+            newQuery("limit", LIMIT.toString()),
+            newQuery("offset", offset.toString()),
+        ];
         if (query.title) {
-            newUrlBuilder = newUrlBuilder.addQuery("text", query.title);
+            queries.push(newQuery("text", query.title));
         }
 
-        newUrlBuilder = newUrlBuilder
-            .addQuery(
+        queries.push(
+            newQuery(
                 TagSectionId.Genres,
                 getFilterTagsBySection(TagSectionId.Genres, query.filters),
-            )
-            .addQuery(
+            ),
+            newQuery(
                 TagSectionId.SeriesStatus,
                 getFilterTagsBySection(
                     TagSectionId.SeriesStatus,
                     query.filters,
                 ),
-            )
-            .addQuery(
+            ),
+            newQuery(
                 TagSectionId.SeriesType,
                 getFilterTagsBySection(TagSectionId.SeriesType, query.filters),
-            )
-            .addQuery(
+            ),
+            newQuery(
                 TagSectionId.Order,
                 getFilterTagsBySection(TagSectionId.Order, query.filters),
-            );
-
-        const response = await Application.scheduleRequest({
-            url: newUrlBuilder.build(),
-            method: "GET",
-        });
-        const $ = cheerio.load(
-            Application.arrayBufferToUTF8String(response[1]),
+            ),
         );
+
+        const [_, buffer] = await fetchSearchPage(paths, queries);
+        const $ = cheerio.load(Application.arrayBufferToUTF8String(buffer));
 
         const items = await parseSearch($);
         metadata = isLastPage($)

@@ -1,5 +1,5 @@
 import { PaperbackInterceptor, Request, Response } from "@paperback/types";
-import { WC_DOMAIN } from "./WeebCentralConfig";
+import { WC_DOMAIN } from "./models";
 
 export class WeebCentralInterceptor extends PaperbackInterceptor {
     override async interceptRequest(request: Request): Promise<Request> {

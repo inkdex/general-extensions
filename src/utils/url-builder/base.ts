@@ -1,4 +1,4 @@
-type QueryValue = string | number | boolean | string[] | object;
+export type QueryValue = string | number | boolean | string[] | object;
 
 class URLBuilder {
     private baseUrl: string;
