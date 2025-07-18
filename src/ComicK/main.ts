@@ -20,6 +20,7 @@ import {
     SearchResultItem,
     SearchResultsProviding,
     SettingsFormProviding,
+    SortingOption,
     SourceManga,
 } from "@paperback/types";
 import { URLBuilder } from "../utils/url-builder/array-query-variant";
@@ -287,14 +288,6 @@ export class ComicKExtension implements ComicKImplementation {
         const filters: SearchFilter[] = [];
 
         filters.push({
-            id: "sort",
-            type: "dropdown",
-            options: SORT_FILTER,
-            value: "",
-            title: "Sort",
-        });
-
-        filters.push({
             type: "multiselect",
             options: DEMOGRAPHIC_FILTER,
             id: "demographic",
@@ -395,9 +388,19 @@ export class ComicKExtension implements ComicKImplementation {
         return filters;
     }
 
+    async getSortingOptions(): Promise<SortingOption[]> {
+        const sortingOptions: SortingOption[] = SORT_FILTER.map((option) => ({
+            id: option.id,
+            label: option.value,
+        }));
+
+        return sortingOptions;
+    }
+
     async getSearchResults(
         query: SearchQuery,
         metadata: Metadata,
+        sortingOption?: SortingOption,
     ): Promise<PagedResults<SearchResultItem>> {
         if (metadata?.completed) return EndOfPageResults;
 
@@ -433,7 +436,7 @@ export class ComicKExtension implements ComicKImplementation {
             builder.addQuery("genres", includes);
         }
 
-        const sort = getFilterValue("sort");
+        const sort = sortingOption?.id;
         if (sort && typeof sort === "string") {
             builder.addQuery("sort", sort);
         }
