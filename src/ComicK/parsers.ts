@@ -122,10 +122,11 @@ export function parseChapters(
     filter: ChapterFilter,
 ): Chapter[] {
     const chaptersData = filterChapters(data.chapters, filter);
+    const hasVolumeData = chaptersData.some((chapter) => chapter.vol !== null);
     let sortingIndex = chaptersData.length;
 
     return chaptersData.map((chapter) => {
-        const chapNum = Number(chapter.chap);
+        const chapNum = parseFloat(chapter.chap);
         const volumeValue = Number(chapter.vol);
         const groups = chapter.group_name ?? [];
 
@@ -133,7 +134,7 @@ export function parseChapters(
         let volume: number | undefined = 0;
         if (chapter.vol !== null && filter.showVol && !isNaN(volumeValue)) {
             volume = volumeValue;
-        } else if (chapter.vol === null && filter.showVol) {
+        } else if (chapter.vol === null && filter.showVol && hasVolumeData) {
             volume = undefined;
         }
 
