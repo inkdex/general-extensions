@@ -1,5 +1,5 @@
 import { PaperbackInterceptor, Request, Response } from "@paperback/types";
-import { MANGA_PILL_DOMAIN } from "./MangapillConfig";
+import { MANGA_PILL_DOMAIN } from "./models";
 
 export class MangapillInterceptor extends PaperbackInterceptor {
     override async interceptRequest(request: Request): Promise<Request> {

@@ -3,7 +3,7 @@ import { ContentRating, SourceInfo, SourceIntents } from "@paperback/types";
 export default {
     name: "Mangapill",
     description: "Extension that pulls content from mangapill.com.",
-    version: "1.0.0-alpha.1",
+    version: "1.0.0-alpha.2",
     icon: "icon.png",
     language: "en",
     contentRating: ContentRating.EVERYONE,
@@ -15,9 +15,8 @@ export default {
     badges: [],
     developers: [
         {
-            name: "Inkdex",
-            website: "https://inkdex.github.io",
-            github: "https://github.com/inkdex",
+            name: "GabrielCWT",
+            github: "https://github.com/GabrielCWT",
         },
     ],
 } satisfies SourceInfo;

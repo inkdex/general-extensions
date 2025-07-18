@@ -10,7 +10,6 @@ import {
     Extension,
     MangaProviding,
     PagedResults,
-    Request,
     SearchFilter,
     SearchQuery,
     SearchResultItem,
@@ -21,9 +20,9 @@ import {
 } from "@paperback/types";
 import * as cheerio from "cheerio";
 import { URLBuilder } from "../utils/url-builder/array-query-variant";
-import { MANGA_PILL_DOMAIN } from "./MangapillConfig";
-import { getFilterTagsBySection, getShareUrl } from "./MangapillHelper";
-import { MangapillInterceptor } from "./MangapillInterceptor";
+import { getFilterTagsBySection, getShareUrl } from "./helpers";
+import { MangapillInterceptor } from "./interceptors";
+import { MANGA_PILL_DOMAIN } from "./models";
 import {
     parseChapterDetails,
     parseChapters,
@@ -32,7 +31,13 @@ import {
     parseSearch,
     parseTags,
     parseTrendingSection,
-} from "./MangapillParser";
+} from "./parsers";
+import {
+    fetchChapterDetailsPage,
+    fetchHomepage,
+    fetchMangaDetailsPage,
+    fetchSearchPage,
+} from "./requests";
 
 export class MangapillExtension
     implements
@@ -79,14 +84,10 @@ export class MangapillExtension
         metadata: undefined,
     ): Promise<PagedResults<DiscoverSectionItem>> {
         let items: DiscoverSectionItem[] = [];
-        const urlBuilder = new URLBuilder(MANGA_PILL_DOMAIN);
 
         switch (section.id) {
             case "trending": {
-                const [_, buffer] = await Application.scheduleRequest({
-                    url: urlBuilder.build(),
-                    method: "GET",
-                });
+                const [_, buffer] = await fetchHomepage();
                 const $ = cheerio.load(
                     Application.arrayBufferToUTF8String(buffer),
                 );
@@ -94,10 +95,7 @@ export class MangapillExtension
                 break;
             }
             case "recent": {
-                const [_, buffer] = await Application.scheduleRequest({
-                    url: urlBuilder.build(),
-                    method: "GET",
-                });
+                const [_, buffer] = await fetchHomepage();
                 const $ = cheerio.load(
                     Application.arrayBufferToUTF8String(buffer),
                 );
@@ -130,42 +128,19 @@ export class MangapillExtension
     }
 
     async getMangaDetails(mangaId: string): Promise<SourceManga> {
-        const request = {
-            url: new URLBuilder(MANGA_PILL_DOMAIN)
-                .addPath("manga")
-                .addPath(mangaId)
-                .build(),
-            method: "GET",
-        };
-
-        const [_, buffer] = await Application.scheduleRequest(request);
-
+        const [_, buffer] = await fetchMangaDetailsPage(mangaId);
         const $ = cheerio.load(Application.arrayBufferToUTF8String(buffer));
         return await parseMangaDetails($, mangaId);
     }
 
     async getChapters(sourceManga: SourceManga): Promise<Chapter[]> {
-        const request = {
-            url: new URLBuilder(MANGA_PILL_DOMAIN)
-                .addPath("manga")
-                .addPath(sourceManga.mangaId)
-                .build(),
-            method: "GET",
-        };
-        const [_, buffer] = await Application.scheduleRequest(request);
+        const [_, buffer] = await fetchMangaDetailsPage(sourceManga.mangaId);
         const $ = cheerio.load(Application.arrayBufferToUTF8String(buffer));
         return parseChapters($, sourceManga);
     }
 
     async getChapterDetails(chapter: Chapter): Promise<ChapterDetails> {
-        const url = new URLBuilder(MANGA_PILL_DOMAIN)
-            .addPath("chapters")
-            .addPath(chapter.chapterId)
-            .build();
-
-        const request: Request = { url, method: "GET" };
-
-        const [_, buffer] = await Application.scheduleRequest(request);
+        const [_, buffer] = await fetchChapterDetailsPage(chapter.chapterId);
         const $ = cheerio.load(Application.arrayBufferToUTF8String(buffer));
         return parseChapterDetails(
             $,
@@ -209,23 +184,15 @@ export class MangapillExtension
         query: SearchQuery,
         metadata: undefined,
     ): Promise<PagedResults<SearchResultItem>> {
-        let newUrlBuilder: URLBuilder = new URLBuilder(
-            MANGA_PILL_DOMAIN,
-        ).addPath("search");
-
+        const queries = [];
         if (query.title) {
-            newUrlBuilder = newUrlBuilder.addQuery("q", query.title);
+            queries.push({ key: "q", value: query.title });
         }
-        console.log(JSON.stringify(query.filters));
-        newUrlBuilder = newUrlBuilder.addQuery(
-            "genre",
-            getFilterTagsBySection("genre", query.filters),
-        );
-        console.log(newUrlBuilder.build());
-        const response = await Application.scheduleRequest({
-            url: newUrlBuilder.build(),
-            method: "GET",
+        queries.push({
+            key: "genre",
+            value: getFilterTagsBySection("genre", query.filters),
         });
+        const response = await fetchSearchPage([], queries);
         const $ = cheerio.load(
             Application.arrayBufferToUTF8String(response[1]),
         );
