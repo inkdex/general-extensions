@@ -3,7 +3,7 @@ import { ContentRating, SourceInfo, SourceIntents } from "@paperback/types";
 export default {
     name: "Weeb Central",
     description: "Extension that pulls content from weebcentral.com.",
-    version: "1.0.0-alpha.5",
+    version: "1.0.0-alpha.6",
     icon: "icon.png",
     language: "en",
     contentRating: ContentRating.EVERYONE,
