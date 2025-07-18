@@ -78,7 +78,7 @@ export const parseMangaDetails = (
         ),
     );
 
-    if (showTags) {
+    if (showTags && comic.mu_comics) {
         tagSections.push(
             ...parseMuTags(
                 comic.mu_comics.mu_comic_categories.map(

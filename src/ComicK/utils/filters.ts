@@ -1,4 +1,5 @@
 const SORT_FILTER = [
+    { id: "", value: "Default Sort" },
     { id: "follow", value: "Most popular" },
     { id: "user_follow_count", value: "Most follows" },
     { id: "view", value: "Most views" },
