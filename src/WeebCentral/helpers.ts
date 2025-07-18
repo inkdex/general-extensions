@@ -1,5 +1,4 @@
 import { ContentRating, SearchQuery, Tag, TagSection } from "@paperback/types";
-import { QueryValue } from "../utils/url-builder/base";
 import { TagSectionId, WC_DOMAIN } from "./models";
 import { Query } from "./requests";
 
@@ -47,7 +46,7 @@ export function getRating(rating: string): ContentRating {
     return rating === "Yes" ? ContentRating.ADULT : ContentRating.EVERYONE;
 }
 
-export function newQuery(key: string, value: QueryValue): Query {
+export function newQuery(key: string, value: string | string[]): Query {
     return {
         key,
         value,
