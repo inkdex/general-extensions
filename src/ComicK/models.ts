@@ -33,7 +33,7 @@ export type MangaDetails = {
 
 export type ChapterData = {
     id: number;
-    chap: Nullable<string>;
+    chap: string;
     title: Nullable<string>;
     vol: Nullable<string>;
     slug: Nullable<string>;
