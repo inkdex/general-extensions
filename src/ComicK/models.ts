@@ -8,7 +8,7 @@ export type Item = {
 export type Tag = {
     title: string;
     slug: string;
-}
+};
 
 export type Comic = {
     title: string;

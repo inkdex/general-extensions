@@ -17,9 +17,9 @@ import type {
     ChapterList,
     Comic,
     Item,
-    Tag,
     MangaDetails,
     SearchData,
+    Tag,
 } from "./models";
 import { COMIC_TYPE_FILTER } from "./utils/filters";
 import { getLanguageName } from "./utils/language";
@@ -72,7 +72,7 @@ export const parseMangaDetails = (
     // Add genre tag section
     tagSections.push(
         ...parseTags(
-                comic.md_comic_md_genres.map((item) => item.md_genres),
+            comic.md_comic_md_genres.map((item) => item.md_genres),
             "genres",
             "Genres",
         ),
@@ -81,14 +81,14 @@ export const parseMangaDetails = (
     if (showTags) {
         tagSections.push(
             ...parseMuTags(
-                comic.mu_comics.mu_comic_categories.map((item) => item.mu_categories),
+                comic.mu_comics.mu_comic_categories.map(
+                    (item) => item.mu_categories,
+                ),
                 "tags",
                 "Tags",
             ),
         );
     }
-
-
 
     const bayesianRating = parseFloat(comic.bayesian_rating);
     const rating = isNaN(bayesianRating) ? undefined : bayesianRating / 10;
@@ -228,7 +228,6 @@ export function parseMuTags(
         },
     ];
 }
-
 
 export function parseSearch(data: SearchData[]): SearchResultItem[] {
     return data

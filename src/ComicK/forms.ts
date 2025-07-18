@@ -178,7 +178,7 @@ class MangaForm extends Form {
                         ),
                     }),
                 ],
-            )
+            ),
         ];
     }
 
