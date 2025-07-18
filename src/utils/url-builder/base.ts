@@ -10,9 +10,7 @@ class URLBuilder {
     }
 
     protected formatArrayQuery(key: string, value: string[]): string[] {
-        return value.length > 0
-            ? value.map((v) => `${key}[]=${encodeURIComponent(v)}`)
-            : [];
+        return value.length > 0 ? value.map((v) => `${key}[]=${v}`) : [];
     }
 
     protected formatObjectQuery(key: string, value: object): string[] {
@@ -39,9 +37,7 @@ class URLBuilder {
                 }
 
                 // Default handling
-                return value === ""
-                    ? []
-                    : [`${key}=${encodeURIComponent(value)}`];
+                return value === "" ? [] : [`${key}=${value}`];
             })
             .join("&");
     }
