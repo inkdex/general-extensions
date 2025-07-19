@@ -10,7 +10,12 @@ import {
 import { CheerioAPI } from "cheerio";
 import { decodeHTML } from "entities";
 import { formatTagId, getRating, getShareUrl } from "./helpers";
-import { DEFAULT_LANGUAGE_CODE, TagSectionId, TagSectionTitle } from "./models";
+import {
+    ChapterWithMetadata,
+    DEFAULT_LANGUAGE_CODE,
+    TagSectionId,
+    TagSectionTitle,
+} from "./models";
 
 const officialTranslationSvgStroke = "#d8b4fe";
 export const parseMangaDetails = async (
@@ -88,10 +93,10 @@ export const parseChapters = (
     sourceManga: SourceManga,
 ): Chapter[] => {
     const floatRegex = /(\d+\.\d+|\d+)/g;
-    const chapters: Chapter[] = [];
+    const chapters: ChapterWithMetadata[] = [];
     const arrChapters = $("a.flex.items-center").toArray();
-    const types: Record<string, number> = {};
-    let currTypeId = 0;
+    const chapterTypeToIdMap: Record<string, number> = {};
+    let currChapterTypeId = 0;
     let sortingIndex = 0;
     for (const chapterObj of arrChapters) {
         const chapterId: string =
@@ -106,18 +111,19 @@ export const parseChapters = (
             .first()
             .text()
             .trim();
+
         let chapNum = 0;
-        let chapType = "";
+        let chapterType = "";
         const matches = title.match(floatRegex);
         if (matches && matches[matches.length - 1]) {
             chapNum = parseFloat(matches[matches.length - 1] ?? "0");
-            chapType = title
+            chapterType = title
                 .slice(0, -matches[matches.length - 1].length)
                 .trim();
         }
         sortingIndex--;
-        if (!(chapType in types)) {
-            types[chapType] = currTypeId--;
+        if (!(chapterType in chapterTypeToIdMap)) {
+            chapterTypeToIdMap[chapterType] = currChapterTypeId--;
         }
         const hasOfficialTranslation =
             $("svg", chapterObj).attr("stroke") ===
@@ -136,6 +142,7 @@ export const parseChapters = (
             version,
             volume: 0,
             sourceManga,
+            chapterType,
         });
     }
     if (chapters.length == 0) {
@@ -143,21 +150,19 @@ export const parseChapters = (
             `Couldn't find any chapters for mangaId: ${sourceManga.mangaId}`,
         );
     }
-    const totalTypes = Object.keys(types).length;
-    return chapters.map((chapter) => {
-        if (chapter.title == undefined) {
-            throw new Error(`Chapter title is undefined`);
+
+    const totalTypes = Object.keys(chapterTypeToIdMap).length;
+
+    // Handle volume if there are multiple types
+    // i.e. Berserk has Prologue 1 etc. and then Chapter 1
+    if (totalTypes > 1) {
+        for (const chapter of chapters) {
+            chapter.volume =
+                totalTypes + chapterTypeToIdMap[chapter.chapterType];
         }
-        const matches = chapter.title.match(floatRegex);
-        if (matches) {
-            const chapType = chapter.title
-                .slice(0, -matches[matches.length - 1].length)
-                .trim();
-            chapter.volume = totalTypes + types[chapType];
-        }
-        chapter.sortingIndex! += chapters.length;
-        return chapter;
-    });
+    }
+
+    return chapters;
 };
 
 export const parseChapterDetails = async (
