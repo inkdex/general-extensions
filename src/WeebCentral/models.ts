@@ -1,3 +1,5 @@
+import { Chapter } from "@paperback/types";
+
 // Constants
 
 export const WC_DOMAIN = "https://weebcentral.com";
@@ -24,4 +26,8 @@ export enum TagSectionTitle {
 export interface Metadata {
     page?: number; // For homepage sections
     offset?: number; // For search results
+}
+
+export interface ChapterWithMetadata extends Chapter {
+    chapterType: string;
 }
