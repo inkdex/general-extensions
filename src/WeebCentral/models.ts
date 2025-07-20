@@ -1,6 +1,6 @@
-// Constants
-
 import { Chapter } from "@paperback/types";
+
+// Constants
 
 export const WC_DOMAIN = "https://weebcentral.com";
 export const DEFAULT_LANGUAGE_CODE = "🇬🇧";
