@@ -179,11 +179,7 @@ export class MangaWorldExtension implements ContentTemplateImplementation {
             sourceManga.mangaId,
             `${baseUrl}/manga/${sourceManga.mangaId}`,
         );
-        console.log("[MANGA] cheerio.start end MangaID " + sourceManga.mangaId);
-
         const $ = cheerio.load(Application.arrayBufferToUTF8String(await data));
-        console.log("[MANGA] cheerio.load end MangaID " + sourceManga.mangaId);
-
         return this.parser.parseChapters($, sourceManga);
     }
 
@@ -254,28 +250,28 @@ export class MangaWorldExtension implements ContentTemplateImplementation {
     ): Promise<PagedResults<DiscoverSectionItem>> {
         const $ = cheerio.load(
             Application.arrayBufferToUTF8String(
-                await getPageCache("home", baseUrl, 300),
+                await getPageCache("home", baseUrl),
             ),
         );
         switch (section.id) {
             case "popular_section": {
-                console.log("[HOME] Loading popular_section loaded");
+                console.log("[HOME] Loading popular_section");
                 return this.parser.parseTrendingChapters($, metadata);
             }
             case "mese_section": {
-                console.log("[HOME] Loading mese_section loaded");
+                console.log("[HOME] Loading mese_section");
                 return this.parser.parseMonthTrending($, metadata);
             }
             case "most_read_section": {
-                console.log("[HOME] Loading most_read_section loaded");
+                console.log("[HOME] Loading most_read_section");
                 return this.parser.parseMostReadSection(metadata);
             }
             case "updated_section": {
-                console.log("[HOME] Loading updated_section loaded");
+                console.log("[HOME] Loading updated_section");
                 return this.parser.parseLastAddedSection($, metadata);
             }
             case "new_manga_section": {
-                console.log("[HOME] Loading new_manga_section loaded");
+                console.log("[HOME] Loading new_manga_section");
                 return this.parser.parseLastMangaAddedSection(metadata);
             }
             case "genre_section": {
@@ -313,7 +309,7 @@ export class MangaWorldExtension implements ContentTemplateImplementation {
                             contentRating: getRating([filter.value]),
                         });
                     });
-                console.log("[HOME] Loading genre_section loaded");
+                console.log("[HOME] Loading genre_section");
                 return {
                     items: allGenres,
                     metadata: metadata,
@@ -354,7 +350,7 @@ export class MangaWorldExtension implements ContentTemplateImplementation {
                             contentRating: ContentRating.EVERYONE,
                         });
                     });
-                console.log("[HOME] Loading type_section loaded");
+                console.log("[HOME] Loading type_section");
                 return {
                     items: mangaType,
                     metadata: metadata,

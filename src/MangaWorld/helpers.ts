@@ -67,8 +67,8 @@ export async function populateFilter() {
 export async function getPageCache(
     name: string,
     url: string,
-    cacheTime: number = 60,
 ): Promise<ArrayBuffer> {
+    const cacheTime = 10; //cache seconds
     const cached = cacheMap.get(name);
     if (cached && cached.expires > Math.floor(Date.now() / 1000)) {
         console.log(`[CACHE] Use Cached Page "${name}"`);
@@ -261,18 +261,17 @@ export function getYearFilter() {
  * @param {string[]} tags - tags
  * @return {ContentRating} - ContentRating
  */
+const tagRatingMap: Record<string, ContentRating> = {
+    ADULTI: ContentRating.ADULT,
+    MATURO: ContentRating.MATURE,
+};
+
 export function getRating(tags: string[]): ContentRating {
-    let rating = ContentRating.EVERYONE;
     for (const tag of tags) {
-        if (tag.toUpperCase() === "ADULTI") {
-            rating = ContentRating.ADULT;
-            break;
-        } else if (tag.toUpperCase() === "MATURO") {
-            rating = ContentRating.MATURE;
-            break;
-        }
+        const matchedRating = tagRatingMap[tag.toUpperCase()];
+        if (matchedRating) return matchedRating;
     }
-    return rating;
+    return ContentRating.EVERYONE;
 }
 
 export class URLBuilder {

@@ -66,8 +66,8 @@ export async function populateFilter() {
 export async function getPageCache(
     name: string,
     url: string,
-    cacheTime: number = 60,
 ): Promise<ArrayBuffer> {
+    const cacheTime = 10; //cache seconds
     const cached = cacheMap.get(name);
     if (cached && cached.expires > Math.floor(Date.now() / 1000)) {
         console.log(`[CACHE] Use Cached Page "${name}"`);

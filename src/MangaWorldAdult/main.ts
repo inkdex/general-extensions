@@ -249,28 +249,28 @@ export class MangaAdultExtension implements ContentTemplateImplementation {
     ): Promise<PagedResults<DiscoverSectionItem>> {
         const $ = cheerio.load(
             Application.arrayBufferToUTF8String(
-                await getPageCache("home", baseUrl, 300),
+                await getPageCache("home", baseUrl),
             ),
         );
         switch (section.id) {
             case "popular_section": {
-                console.log("[HOME] Loading popular_section loaded");
+                console.log("[HOME] Loading popular_section");
                 return this.parser.parseTrendingChapters($, metadata);
             }
             case "mese_section": {
-                console.log("[HOME] Loading mese_section loaded");
+                console.log("[HOME] Loading mese_section");
                 return this.parser.parseMonthTrending($, metadata);
             }
             case "most_read_section": {
-                console.log("[HOME] Loading most_read_section loaded");
+                console.log("[HOME] Loading most_read_section");
                 return this.parser.parseMostReadSection(metadata);
             }
             case "updated_section": {
-                console.log("[HOME] Loading updated_section loaded");
+                console.log("[HOME] Loading updated_section");
                 return this.parser.parseLastAddedSection($, metadata);
             }
             case "new_manga_section": {
-                console.log("[HOME] Loading new_manga_section loaded");
+                console.log("[HOME] Loading new_manga_section");
                 return this.parser.parseLastMangaAddedSection(metadata);
             }
             case "genre_section": {
@@ -308,7 +308,7 @@ export class MangaAdultExtension implements ContentTemplateImplementation {
                             contentRating: ContentRating.ADULT,
                         });
                     });
-                console.log("[HOME] Loading genre_section loaded");
+                console.log("[HOME] Loading genre_section");
                 return {
                     items: allGenres,
                     metadata: metadata,
@@ -349,7 +349,7 @@ export class MangaAdultExtension implements ContentTemplateImplementation {
                             contentRating: ContentRating.ADULT,
                         });
                     });
-                console.log("[HOME] Loading type_section loaded");
+                console.log("[HOME] Loading type_section");
                 return {
                     items: mangaType,
                     metadata: metadata,
