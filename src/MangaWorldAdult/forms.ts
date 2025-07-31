@@ -1,23 +1,15 @@
 import {
     Form,
     FormSectionElement,
-    InputRow,
     NavigationRow,
     Section,
     SelectRow,
 } from "@paperback/types";
-import { baseUrl, getGenreFilter, getMangaTypeFilter, setUrl } from "./helpers";
+import { getGenreFilter, getMangaTypeFilter } from "./helpers";
 
 export class Forms extends Form {
     override getSections(): FormSectionElement[] {
         return [
-            Section("playground", [
-                NavigationRow("playground", {
-                    title: "Generali",
-                    subtitle: "Impostazioni Generali",
-                    form: new GeneralSettings(),
-                }),
-            ]),
             Section("playground", [
                 NavigationRow("playground", {
                     title: "Contenuti",
@@ -45,41 +37,6 @@ class State<T> {
     public async updateValue(value: T): Promise<void> {
         this._value = value;
         this.form.reloadForm();
-    }
-}
-
-class GeneralSettings extends Form {
-    //domain
-    getDomain(): string {
-        const regexp = new RegExp("mangaworldadult.(.*)", "m");
-        const match = baseUrl.match(regexp);
-        if (match) {
-            return match[1];
-        } else return "net";
-    }
-    async handleDomainChange(value: string): Promise<void> {
-        console.log("handleDomainChange " + value);
-        setUrl(`https://www.mangaworldadult.${value}`);
-    }
-    override getSections(): FormSectionElement[] {
-        return [
-            Section(
-                {
-                    id: "default_domain",
-                    footer: "Modifica il dominio del sito",
-                },
-                [
-                    InputRow("website_domain", {
-                        title: "Modifica il dominio del sito",
-                        value: this.getDomain(),
-                        onValueChange: Application.Selector(
-                            this as GeneralSettings,
-                            "handleDomainChange",
-                        ),
-                    }),
-                ],
-            ),
-        ];
     }
 }
 

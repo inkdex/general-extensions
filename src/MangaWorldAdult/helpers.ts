@@ -14,11 +14,8 @@ type CacheItem = {
     expires: number;
     data: ArrayBuffer;
 };
-export function setUrl(value: string) {
-    console.log("setUrl " + value);
-    baseUrl = value;
-}
-export let baseUrl = `https://www.mangaworldadult.net`;
+
+export const baseUrl = `https://www.mangaworldadult.net`;
 const cacheMap = new Map<string, CacheItem>();
 const requestMap = new Map<string, Promise<ArrayBuffer>>();
 const requests = new Requests();
