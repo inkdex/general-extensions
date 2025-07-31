@@ -30,7 +30,6 @@ import {
     getCloudflareRateLimitBackoff,
     getHideUnreleasedChapters,
     getLanguages,
-    getShowTags,
     getShowTitle,
     getShowVolumeNumber,
 } from "./forms";
@@ -184,12 +183,7 @@ export class ComicKExtension implements ComicKImplementation {
         };
         const parsedData = await this.fetchApi<MangaDetails>(request);
 
-        return parseMangaDetails(
-            parsedData,
-            mangaId,
-            COMICK_DOMAIN,
-            getShowTags(),
-        );
+        return parseMangaDetails(parsedData, mangaId, COMICK_DOMAIN);
     }
 
     async getChapters(
@@ -483,7 +477,6 @@ export class ComicKExtension implements ComicKImplementation {
             for (const tag of includedTags.split(",")) {
                 const trimmedTag = tag.trim().toLowerCase();
                 if (trimmedTag.length > 0) {
-                    // replace space with dash for API compatibility
                     included.push(trimmedTag.replace(/ /g, "-"));
                 }
             }
@@ -498,7 +491,6 @@ export class ComicKExtension implements ComicKImplementation {
             for (const tag of excludedTags.split(",")) {
                 const trimmedTag = tag.trim().toLowerCase();
                 if (trimmedTag.length > 0) {
-                    // replace space with dash for API compatibility
                     excluded.push(trimmedTag.replace(/ /g, "-"));
                 }
             }
@@ -629,14 +621,14 @@ export class ComicKExtension implements ComicKImplementation {
             if (attempt < maxAttempts) {
                 const delay = 2 ** attempt * (1 + Math.random() / 2);
                 console.log(
-                    `Failed to fetch data from ${request.url} (Cloudflare rate limit, attempt ${attempt}, retrying in ${delay}s)`,
+                    `Failed to fetch data from ${request.url} (Cloudflare Rate Limit: Attempt ${attempt}, retrying in ${delay}s)`,
                 );
                 await Application.sleep(delay);
                 return this.fetchApi(request, attempt + 1, maxAttempts);
             }
 
             throw new Error(
-                `Failed to fetch data from ${request.url} (Cloudflare rate limit)`,
+                `Failed to fetch data from ${request.url} (Cloudflare Rate Limit)`,
             );
         }
 
@@ -644,7 +636,7 @@ export class ComicKExtension implements ComicKImplementation {
             return JSON.parse(Application.arrayBufferToUTF8String(data)) as T;
         } catch {
             throw new Error(
-                `Failed to fetch data from ${request.url} (invalid response)`,
+                `Failed to fetch data from ${request.url} (Invalid response)`,
             );
         }
     }
