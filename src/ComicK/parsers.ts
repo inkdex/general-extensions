@@ -10,6 +10,7 @@ import {
     TagSection,
 } from "@paperback/types";
 import { URLBuilder } from "../utils/url-builder/array-query-variant";
+import { getShowTags } from "./forms";
 import type {
     ChapterData,
     ChapterFilter,
@@ -42,7 +43,6 @@ export const parseMangaDetails = (
     data: MangaDetails,
     mangaId: string,
     baseUrl: string,
-    showTags: boolean,
 ): SourceManga => {
     const { comic, authors, artists } = data;
 
@@ -78,9 +78,11 @@ export const parseMangaDetails = (
         ),
     );
 
+    const showTags = getShowTags();
+
     if (showTags && comic.mu_comics) {
         tagSections.push(
-            ...parseMuTags(
+            ...parseMUTags(
                 comic.mu_comics.mu_comic_categories.map(
                     (item) => item.mu_categories,
                 ),
@@ -209,7 +211,7 @@ export function parseTags(
     ];
 }
 
-export function parseMuTags(
+export function parseMUTags(
     data: Tag[],
     sectionId: string,
     sectionTitle: string,
