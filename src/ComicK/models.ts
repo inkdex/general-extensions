@@ -1,5 +1,3 @@
-type Nullable<T> = T | null;
-
 export type Item = {
     name: string;
     slug: string;
@@ -34,16 +32,16 @@ export type MangaDetails = {
 export type ChapterData = {
     id: number;
     chap: string;
-    title: Nullable<string>;
-    vol: Nullable<string>;
-    slug: Nullable<string>;
+    title: string | null;
+    vol: string | null;
+    slug: string | null;
     lang: string;
     created_at: Date;
     updated_at: Date;
     publish_at: Date;
     up_count: number;
     down_count: number;
-    group_name: Nullable<string[]>;
+    group_name: string[] | null;
     hid: string;
     md_groups: {
         slug: string;
