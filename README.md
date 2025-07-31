@@ -12,7 +12,7 @@ Paperback extensions for websites with unique, non-generic themes.
 - [MangaFox](https://fanfox.net)
 - [MangaKatana](https://mangakatana.com)
 - [Manga Plus](https://mangaplus.shueisha.co.jp)
-- [MangaWorld](https://www.mangaworld.nz)
+- [MangaWorld](https://www.mangaworld.cx)
 - [MangaWorldAdult](https://www.mangaworldadult.net)
 - [Mgeko](https://mgeko.cc)
 - [Webtoon](https://webtoons.com)
