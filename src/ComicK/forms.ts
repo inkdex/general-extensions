@@ -43,32 +43,116 @@ export function getCloudflareRateLimitBackoff(): boolean {
 
 export class ComicKSettingsForm extends Form {
     override getSections(): FormSectionElement[] {
+        const language = getLanguages();
+        const languageHomeFilter = getLanguageHomeFilter();
+        const showTags = getShowTags();
+
         return [
-            Section("languageForm", [
-                NavigationRow("languageFprm", {
-                    title: "Language Settings",
-                    form: new LanguageForm(),
-                }),
-            ]),
-            Section("mangaForm", [
-                NavigationRow("mangaForm", {
-                    title: "Manga Settings",
-                    form: new MangaForm(),
-                }),
-            ]),
-            Section("chapterForm", [
-                NavigationRow("chapterForm", {
-                    title: "Chapter Settings",
-                    form: new ChapterForm(),
-                }),
-            ]),
-            Section("debugForm", [
-                NavigationRow("debugForm", {
-                    title: "Debug Settings",
-                    form: new DebugForm(),
-                }),
-            ]),
+            Section(
+                {
+                    id: "languageContent",
+                    footer: "Filter Home and Search page titles by language.",
+                },
+                [
+                    SelectRow("languages", {
+                        title: "Languages",
+                        options: getLanguageOptions(),
+                        value: language,
+                        minItemCount: 1,
+                        maxItemCount: 45,
+                        onValueChange: Application.Selector(
+                            this as ComicKSettingsForm,
+                            "onSetLanguage",
+                        ),
+                    }),
+                    ToggleRow("language_home_filter", {
+                        title: "Filter Homepage Language",
+                        value: languageHomeFilter,
+                        onValueChange: Application.Selector(
+                            this as ComicKSettingsForm,
+                            "onLanguageHomeFilter",
+                        ),
+                    }),
+                ],
+            ),
+            Section(
+                {
+                    id: "includeTags",
+                    footer: "Show tags in manga details after genres.",
+                },
+                [
+                    ToggleRow("show_tags", {
+                        title: "Show Tags",
+                        value: showTags,
+                        onValueChange: Application.Selector(
+                            this as ComicKSettingsForm,
+                            "onShowTags",
+                        ),
+                    }),
+                ],
+            ),
+            Section(
+                {
+                    id: "chapterForm",
+                    footer: "Manage chapter specific settings.",
+                },
+                [
+                    NavigationRow("chapterForm", {
+                        title: "Chapter Settings",
+                        form: new ChapterForm(),
+                    }),
+                ],
+            ),
+            Section(
+                {
+                    id: "rateLimit",
+                    footer: "Automatically retries requests when Cloudflare rate limits occur.",
+                },
+                [
+                    ToggleRow("cloudflare_rate_limit_backoff_switch", {
+                        title: "Retry on Cloudflare Rate Limit",
+                        value: getCloudflareRateLimitBackoff(),
+                        onValueChange: Application.Selector(
+                            this as ComicKSettingsForm,
+                            "onCloudflareRateLimitBackoff",
+                        ),
+                    }),
+                ],
+            ),
         ];
+    }
+
+    async onSetLanguage(value: string[]) {
+        // Get current languages
+        const currentLanguages = getLanguages();
+
+        // If "all" is being added, set only "all"
+        const added = value.filter((v) => !currentLanguages.includes(v));
+        if (added.includes("all")) {
+            Application.setState(["all"], "languages");
+            return;
+        }
+
+        // If "all" is currently selected and other languages are being added,
+        // remove "all" from the selection
+        let finalValue = value;
+        if (currentLanguages.includes("all") && value.length > 1) {
+            finalValue = value.filter((lang) => lang !== "all");
+        }
+
+        Application.setState(finalValue, "languages");
+    }
+
+    async onLanguageHomeFilter(value: boolean) {
+        Application.setState(value, "language_home_filter");
+    }
+
+    async onShowTags(value: boolean) {
+        Application.setState(value, "show_tags");
+    }
+
+    async onCloudflareRateLimitBackoff(value: boolean) {
+        Application.setState(value, "cloudflare_rate_limit_backoff");
     }
 }
 
@@ -155,117 +239,5 @@ class ChapterForm extends Form {
 
     async onShowTitle(value: boolean) {
         Application.setState(value, "show_title");
-    }
-}
-
-class MangaForm extends Form {
-    override getSections(): FormSectionElement[] {
-        const showTags = getShowTags();
-
-        return [
-            Section(
-                {
-                    id: "includeTags",
-                    footer: "Show tags in manga details after genres.",
-                },
-                [
-                    ToggleRow("show_tags", {
-                        title: "Show Tags",
-                        value: showTags,
-                        onValueChange: Application.Selector(
-                            this as MangaForm,
-                            "onShowTags",
-                        ),
-                    }),
-                ],
-            ),
-        ];
-    }
-
-    async onShowTags(value: boolean) {
-        Application.setState(value, "show_tags");
-    }
-}
-
-class LanguageForm extends Form {
-    override getSections(): FormSectionElement[] {
-        const language = getLanguages();
-        const languageHomeFilter = getLanguageHomeFilter();
-
-        return [
-            Section(
-                {
-                    id: "languageContent",
-                    footer: "When enabled, it will filter New & Hot based on which languages that were chosen.",
-                },
-                [
-                    SelectRow("languages", {
-                        title: "Languages",
-                        options: getLanguageOptions(),
-                        value: language,
-                        minItemCount: 1,
-                        maxItemCount: 45,
-                        onValueChange: Application.Selector(
-                            this as LanguageForm,
-                            "onSetLanguage",
-                        ),
-                    }),
-                    ToggleRow("language_home_filter", {
-                        title: "Filter Homepage Language",
-                        value: languageHomeFilter,
-                        onValueChange: Application.Selector(
-                            this as LanguageForm,
-                            "onLanguageHomeFilter",
-                        ),
-                    }),
-                ],
-            ),
-        ];
-    }
-
-    async onSetLanguage(value: string[]) {
-        // Get current languages
-        const currentLanguages = getLanguages();
-
-        // If "all" is being added, set only "all"
-        const added = value.filter((v) => !currentLanguages.includes(v));
-        if (added.includes("all")) {
-            Application.setState(["all"], "languages");
-            return;
-        }
-
-        // If "all" is currently selected and other languages are being added,
-        // remove "all" from the selection
-        let finalValue = value;
-        if (currentLanguages.includes("all") && value.length > 1) {
-            finalValue = value.filter((lang) => lang !== "all");
-        }
-
-        Application.setState(finalValue, "languages");
-    }
-
-    async onLanguageHomeFilter(value: boolean) {
-        Application.setState(value, "language_home_filter");
-    }
-}
-
-class DebugForm extends Form {
-    override getSections(): FormSectionElement[] {
-        return [
-            Section({ id: "debug" }, [
-                ToggleRow("cloudflare_rate_limit_backoff_switch", {
-                    title: "Enable dynamic Cloudflare rate limit handling",
-                    value: getCloudflareRateLimitBackoff(),
-                    onValueChange: Application.Selector(
-                        this as DebugForm,
-                        "onCloudflareRateLimitBackoff",
-                    ),
-                }),
-            ]),
-        ];
-    }
-
-    async onCloudflareRateLimitBackoff(value: boolean) {
-        Application.setState(value, "cloudflare_rate_limit_backoff");
     }
 }
