@@ -133,10 +133,7 @@ export class WebtoonExtention
                 url: `${BASE_URL}/${language}/canvas/list`,
                 params: {
                     genreTab: genre ?? "ALL",
-                    sortOrder:
-                        sortOrder?.id == "MANA"
-                            ? "READ_COUNT"
-                            : (sortOrder?.id ?? "READ_COUNT"),
+                    sortOrder: sortOrder?.id ?? "MANA",
                 },
             },
             { page: metadata?.page ?? 0 },
