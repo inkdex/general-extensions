@@ -79,9 +79,11 @@ class WebtoonSettingForm extends Form {
 
     async setCanvasWanted(value: boolean): Promise<void> {
         this.settings.canvasWanted = value;
+        Application.invalidateDiscoverSections();
     }
 
     async setLanguages(value: string[]): Promise<void> {
         this.settings.languages = value;
+        Application.invalidateDiscoverSections();
     }
 }
