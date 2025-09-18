@@ -115,8 +115,8 @@ export const parseChapters = (
         const chapNumRegex = /(\d+)(?:[-.]\d+)?/.exec(title);
 
         let chapNum = 0;
-        if (chapNumRegex?.[1]) {
-            let chapRegex = chapNumRegex[1];
+        if (chapNumRegex?.[0]) {
+            let chapRegex = chapNumRegex[0];
             if (chapRegex.includes("-"))
                 chapRegex = chapRegex.replace("-", ".");
             chapNum = Number(chapRegex);
