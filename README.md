@@ -5,12 +5,14 @@ Paperback extensions for websites with unique, non-generic themes.
 ## Available Extensions
 
 - [Asura Scans](https://asuracomic.net)
+- [Atsumaru](https://atsu.moe)
 - [Bato.To](https://bato.to)
 - [MangaDemon](https://demonicscans.org)
 - [MangaDex](https://mangadex.org)
 - [MangaFire](https://mangafire.to)
 - [MangaFox](https://fanfox.net)
 - [MangaKatana](https://mangakatana.com)
+- [Mangapark](https://mangapark.io/)
 - [Manga Plus](https://mangaplus.shueisha.co.jp)
 - [Mgeko](https://mgeko.cc)
 - [Webtoon](https://webtoons.com)
