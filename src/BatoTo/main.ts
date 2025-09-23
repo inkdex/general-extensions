@@ -256,7 +256,6 @@ export class BatoToExtension implements BatoToImplementation {
 
         if (loadMoreButton.length > 0) {
             nextOffset = page + 1;
-            console.log(`Next page: ${nextOffset}`);
         }
 
         return {
@@ -474,8 +473,6 @@ export class BatoToExtension implements BatoToImplementation {
         const $ = await this.fetchCheerio(request);
         const searchResults: SearchResultItem[] = [];
 
-        console.log(`The URL is: ${searchUrl}`);
-
         // Parse the search results
         $(".grid.grid-cols-1.gap-5.border-t.border-t-base-200.pt-5 > div").each(
             (_, element) => {
@@ -663,10 +660,6 @@ export class BatoToExtension implements BatoToImplementation {
             contentRating = ContentRating.MATURE;
         }
 
-        console.log(
-            `mangaID: ${mangaId}, primaryTitle: ${title}, altNames: ${altNames.join(", ")}, thumbnailUrl: ${validImage}, synopsis: ${description}, contentRating: ${ContentRating.MATURE}, status: ${status}, tagGroups: ${JSON.stringify(tagSections)}, authors: ${authors.join(", ")}, artists: ${artists.join(", ")}, artworkUrls: ${validImage}`,
-        );
-
         return {
             mangaId: mangaId,
             mangaInfo: {
@@ -696,8 +689,6 @@ export class BatoToExtension implements BatoToImplementation {
             method: "GET",
         };
 
-        console.log(`\n\nThe url of getChapters is : ${request.url}\n\n`);
-
         const $ = await this.fetchCheerio(request);
         const chapters: Chapter[] = [];
 
@@ -722,10 +713,6 @@ export class BatoToExtension implements BatoToImplementation {
             const rawDate = row.find("time").attr("time") || "";
             const publishDate = new Date(rawDate);
 
-            console.log(
-                `\n\nThe chapter id is : ${chapterId}, the chapter number is : ${chapterNumber}, the chapter subtitle is : ${chapterSubtitle}, the publish date is : ${publishDate.toDateString()}\n\n`,
-            );
-
             chapters.push({
                 chapterId: chapterId,
                 title: chapterSubtitle,
@@ -743,12 +730,6 @@ export class BatoToExtension implements BatoToImplementation {
 
     // Populates a chapter with images
     async getChapterDetails(chapter: Chapter): Promise<ChapterDetails> {
-        console.log(
-            "The chapter id is : " +
-                chapter.chapterId +
-                " and the manga id is : " +
-                chapter.sourceManga.mangaId,
-        );
         const request = {
             url: new URLBuilder(DOMAIN_NAME)
                 .addPath("title")
@@ -757,10 +738,6 @@ export class BatoToExtension implements BatoToImplementation {
                 .build(),
             method: "GET",
         };
-
-        console.log(
-            `\n\nThe url of getChapterDetails is : ${request.url}  \n\n`,
-        );
 
         try {
             const $ = await this.fetchCheerio(request);
@@ -774,8 +751,6 @@ export class BatoToExtension implements BatoToImplementation {
             const props = JSON.parse(
                 imageIsland.attr("props") || "{}",
             ) as ImageProps;
-
-            console.log(`The props : ${JSON.stringify(props)}`);
 
             // Extract image URLs from the JSON props
             if (props.imageFiles && props.imageFiles.length > 1) {
