@@ -83,34 +83,40 @@ export class MangaFireSettingsForm extends Form {
 
     override getSections(): FormSectionElement[] {
         return [
-            Section("mainSettings", [
-                SelectRow("languages", {
-                    title: "Languages",
-                    subtitle: (() => {
-                        const selectedLangCodes = this.languagesState.value;
-                        const selectedLangNames = selectedLangCodes
-                            .map(
-                                (langCode) =>
-                                    `${MFLanguages.getFlagCode(langCode)} ${MFLanguages.getName(
-                                        langCode,
-                                    )}`,
-                            )
-                            .sort();
-                        return selectedLangNames.join(", ");
-                    })(),
-                    value: this.languagesState.value,
-                    options: MFLanguages.getCodeList().map((code) => ({
-                        id: code,
-                        title: `${MFLanguages.getFlagCode(code)} ${MFLanguages.getName(code)}`,
-                    })),
-                    minItemCount: 1,
-                    maxItemCount: MFLanguages.getCodeList().length,
-                    onValueChange: Application.Selector(
-                        this as MangaFireSettingsForm,
-                        "updateValue",
-                    ),
-                }),
-            ]),
+            Section(
+                {
+                    id: "languageContent",
+                    footer: "Filter chapters by language. At least one language must be selected.",
+                },
+                [
+                    SelectRow("languages", {
+                        title: "Languages",
+                        subtitle: (() => {
+                            const selectedLangCodes = this.languagesState.value;
+                            const selectedLangNames = selectedLangCodes
+                                .map(
+                                    (langCode) =>
+                                        `${MFLanguages.getFlagCode(langCode)} ${MFLanguages.getName(
+                                            langCode,
+                                        )}`,
+                                )
+                                .sort();
+                            return selectedLangNames.join(", ");
+                        })(),
+                        value: this.languagesState.value,
+                        options: MFLanguages.getCodeList().map((code) => ({
+                            id: code,
+                            title: `${MFLanguages.getFlagCode(code)} ${MFLanguages.getName(code)}`,
+                        })),
+                        minItemCount: 1,
+                        maxItemCount: MFLanguages.getCodeList().length,
+                        onValueChange: Application.Selector(
+                            this as MangaFireSettingsForm,
+                            "updateValue",
+                        ),
+                    }),
+                ],
+            ),
         ];
     }
 }
