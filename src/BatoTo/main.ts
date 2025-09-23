@@ -25,10 +25,10 @@ import {
     TagSection,
 } from "@paperback/types";
 import * as cheerio from "cheerio";
-import { CheerioAPI } from "cheerio";
 import { URLBuilder } from "../utils/url-builder/base";
 import { genreOptions } from "./genreOptions";
 import { genres } from "./genres";
+import { Metadata } from "./models";
 import { BatoToSettingsForm, getLanguages } from "./SettingsForm";
 
 const DOMAIN_NAME = "https://bato.to";
@@ -128,7 +128,7 @@ export class BatoToExtension implements BatoToImplementation {
     // Populates both the discover sections
     async getDiscoverSectionItems(
         section: DiscoverSection,
-        metadata: BatoTo.Metadata | undefined,
+        metadata: Metadata | undefined,
     ): Promise<PagedResults<DiscoverSectionItem>> {
         switch (section.id) {
             case "popular-updates":
@@ -735,6 +735,7 @@ export class BatoToExtension implements BatoToImplementation {
                 chapNum: chapterNumber,
                 publishDate: publishDate,
                 langCode: languages.toString(),
+                volume: 0,
             });
         });
 
@@ -811,7 +812,7 @@ export class BatoToExtension implements BatoToImplementation {
         }
     }
 
-    async fetchCheerio(request: Request): Promise<CheerioAPI> {
+    async fetchCheerio(request: Request): Promise<cheerio.CheerioAPI> {
         const [response, data] = await Application.scheduleRequest(request);
         this.checkCloudflareStatus(response.status);
         return cheerio.load(Application.arrayBufferToUTF8String(data));
