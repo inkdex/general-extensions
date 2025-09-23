@@ -26,10 +26,10 @@ import {
 import * as cheerio from "cheerio";
 import { CheerioAPI } from "cheerio";
 import * as htmlparser2 from "htmlparser2";
-// import { postToDiscordWebhook } from "../utils/discord_debugging";
 import { URLBuilder } from "../utils/url-builder/base";
-import { FireInterceptor } from "./MangaFireInterceptor";
-import { getLanguages, MangaFireSettingsForm } from "./MangaFireSettings";
+import { getLanguages, MangaFireSettingsForm } from "./forms";
+import { FireInterceptor } from "./interceptors";
+import type { ImageData, Metadata, PageResponse, Result } from "./models";
 
 const baseUrl = "https://mangafire.to";
 
@@ -94,7 +94,7 @@ export class MangaFireExtension implements MangaFireImplementation {
 
     async getDiscoverSectionItems(
         section: DiscoverSection,
-        metadata: MangaFire.Metadata | undefined,
+        metadata: Metadata | undefined,
     ): Promise<PagedResults<DiscoverSectionItem>> {
         switch (section.id) {
             case "popular_section":
@@ -579,7 +579,7 @@ export class MangaFireExtension implements MangaFireImplementation {
 
                     const r2 = JSON.parse(
                         Application.arrayBufferToUTF8String(buffer),
-                    ) as MangaFire.Result;
+                    ) as Result;
 
                     const html =
                         typeof r2?.result === "string"
@@ -625,7 +625,7 @@ export class MangaFireExtension implements MangaFireImplementation {
 
                     const r1 = JSON.parse(
                         Application.arrayBufferToUTF8String(buffer),
-                    ) as MangaFire.Result;
+                    ) as Result;
 
                     if (
                         r1?.result &&
@@ -682,12 +682,12 @@ export class MangaFireExtension implements MangaFireImplementation {
             const request: Request = { url, method: "GET" };
 
             const [_, buffer] = await Application.scheduleRequest(request);
-            const json: MangaFire.PageResponse = JSON.parse(
+            const json: PageResponse = JSON.parse(
                 Application.arrayBufferToUTF8String(buffer),
-            ) as MangaFire.PageResponse;
+            ) as PageResponse;
 
             const pages: string[] = [];
-            json.result.images.forEach((value: MangaFire.ImageData) => {
+            json.result.images.forEach((value: ImageData) => {
                 pages.push(value[0]);
             });
             return {
