@@ -24,8 +24,6 @@ import {
     TagSection,
 } from "@paperback/types";
 import * as cheerio from "cheerio";
-import { CheerioAPI } from "cheerio";
-import * as htmlparser2 from "htmlparser2";
 import { URLBuilder } from "../utils/url-builder/base";
 import { getLanguages, MangaFireSettingsForm } from "./forms";
 import { FireInterceptor } from "./interceptors";
@@ -1018,12 +1016,15 @@ export class MangaFireExtension implements MangaFireImplementation {
         }
     }
 
-    async fetchCheerio(request: Request): Promise<CheerioAPI> {
+    async fetchCheerio(request: Request): Promise<cheerio.CheerioAPI> {
         const [response, data] = await Application.scheduleRequest(request);
         this.checkCloudflareStatus(response.status);
-        const htmlStr = Application.arrayBufferToUTF8String(data);
-        const dom = htmlparser2.parseDocument(htmlStr);
-        return cheerio.load(dom);
+        return cheerio.load(Application.arrayBufferToUTF8String(data), {
+            xml: {
+                xmlMode: false,
+                // decodeEntities: false,
+            },
+        });
     }
 }
 

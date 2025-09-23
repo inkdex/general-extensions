@@ -603,8 +603,6 @@ export class BatoToExtension implements BatoToImplementation {
             }
         });
 
-        console.log(`\n\nHere are the genres ${genres.join(", ")}\n\n`);
-
         // Extract tags from the Tags section - FIXED
         const tags: string[] = [];
         $(
@@ -796,7 +794,6 @@ export class BatoToExtension implements BatoToImplementation {
                 throw new Error("No valid image URLs found");
             }
 
-            console.log(`Extracted ${pages.length} pages`);
             return {
                 id: chapter.chapterId,
                 mangaId: chapter.sourceManga.mangaId,
@@ -815,7 +812,12 @@ export class BatoToExtension implements BatoToImplementation {
     async fetchCheerio(request: Request): Promise<cheerio.CheerioAPI> {
         const [response, data] = await Application.scheduleRequest(request);
         this.checkCloudflareStatus(response.status);
-        return cheerio.load(Application.arrayBufferToUTF8String(data));
+        return cheerio.load(Application.arrayBufferToUTF8String(data), {
+            xml: {
+                xmlMode: false,
+                // decodeEntities: false,
+            },
+        });
     }
 
     checkCloudflareStatus(status: number): void {
