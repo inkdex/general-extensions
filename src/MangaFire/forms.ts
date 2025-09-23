@@ -1,11 +1,4 @@
-import {
-    Form,
-    FormSectionElement,
-    LabelRow,
-    NavigationRow,
-    Section,
-    SelectRow,
-} from "@paperback/types";
+import { Form, FormSectionElement, Section, SelectRow } from "@paperback/types";
 
 // Language Helper Class
 class MFLanguagesClass {
@@ -66,25 +59,6 @@ export function setLanguages(languages: string[]): void {
 
 // Main Settings Form
 export class MangaFireSettingsForm extends Form {
-    override getSections(): FormSectionElement[] {
-        return [
-            Section("mainSettings", [
-                LabelRow("settingsLabel", {
-                    title: "MangaFire Settings",
-                    subtitle: "Configure your reading experience",
-                }),
-                NavigationRow("contentSettings", {
-                    title: "Content Settings",
-                    subtitle: "Languages and display options",
-                    form: new ContentSettingsForm(),
-                }),
-            ]),
-        ];
-    }
-}
-
-// Content Settings Form
-export class ContentSettingsForm extends Form {
     private languagesState: {
         value: string[];
         updateValue: (newValue: string[]) => Promise<void>;
@@ -109,11 +83,7 @@ export class ContentSettingsForm extends Form {
 
     override getSections(): FormSectionElement[] {
         return [
-            Section("contentSettings", [
-                LabelRow("contentSettingsLabel", {
-                    title: "Content Settings",
-                    subtitle: "Configure your reading experience",
-                }),
+            Section("mainSettings", [
                 SelectRow("languages", {
                     title: "Languages",
                     subtitle: (() => {
@@ -136,7 +106,7 @@ export class ContentSettingsForm extends Form {
                     minItemCount: 1,
                     maxItemCount: MFLanguages.getCodeList().length,
                     onValueChange: Application.Selector(
-                        this as ContentSettingsForm,
+                        this as MangaFireSettingsForm,
                         "updateValue",
                     ),
                 }),
