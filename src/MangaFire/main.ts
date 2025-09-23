@@ -650,7 +650,7 @@ export class MangaFireExtension implements MangaFireImplementation {
                                 publishDate: timestamp
                                     ? new Date(convertToISO8601(timestamp))
                                     : undefined,
-                                volume: undefined,
+                                volume: 0,
                                 langCode: getLanguageFlag(language),
                                 version: getLanguageVersion(language),
                             });
