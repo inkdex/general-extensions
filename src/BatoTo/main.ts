@@ -704,9 +704,14 @@ export class BatoToExtension implements BatoToImplementation {
             const chapterMatch = rawChapterText.match(
                 /Chapter\s+([\d.]+)(?:\s*-\s*(.*))?/i,
             );
+            const episodeMatch = rawChapterText.match(
+                /Episode\s+([\d.]+)(?:\s*-\s*(.*))?/i,
+            );
             const chapterNumber = chapterMatch
                 ? parseFloat(chapterMatch[1])
-                : 0;
+                : episodeMatch
+                  ? parseFloat(episodeMatch[1])
+                  : 0;
             const chapterSubtitle = chapterMatch?.[2]?.trim() || "";
 
             // Extract publish date from time attribute
