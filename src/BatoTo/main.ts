@@ -26,10 +26,10 @@ import {
 } from "@paperback/types";
 import * as cheerio from "cheerio";
 import { URLBuilder } from "../utils/url-builder/base";
+import { BatoToSettingsForm, getLanguages } from "./forms";
 import { genreOptions } from "./genreOptions";
 import { genres } from "./genres";
 import { Metadata } from "./models";
-import { BatoToSettingsForm, getLanguages } from "./SettingsForm";
 
 const DOMAIN_NAME = "https://bato.to";
 
@@ -712,7 +712,14 @@ export class BatoToExtension implements BatoToImplementation {
                 : episodeMatch
                   ? parseFloat(episodeMatch[1])
                   : 0;
-            const chapterSubtitle = chapterMatch?.[2]?.trim() || "";
+            const chapterSubtitle =
+                chapterNumber !== 0
+                    ? chapterMatch
+                        ? chapterMatch[2] || ""
+                        : episodeMatch
+                          ? episodeMatch[2] || ""
+                          : ""
+                    : rawChapterText;
 
             // Extract publish date from time attribute
             const rawDate = row.find("time").attr("time") || "";
