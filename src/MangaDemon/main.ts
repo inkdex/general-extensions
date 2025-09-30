@@ -42,6 +42,21 @@ import {
 } from "./models";
 import { MangaDemonParser } from "./parsers";
 
+class MangaDemonCookieInterceptor extends CookieStorageInterceptor {
+    async interceptRequest(
+        request: import("@paperback/types").Request,
+    ): Promise<import("@paperback/types").Request> {
+        const req = await super.interceptRequest(request);
+        req.headers = {
+            ...(req.headers ?? {}),
+            referer: `${DOMAIN}/`,
+            origin: `${DOMAIN}/`,
+            "user-agent": await Application.getDefaultUserAgent(),
+        };
+        return req;
+    }
+}
+
 class MangaDemonExtension
     implements
         Extension,
@@ -62,7 +77,7 @@ class MangaDemonExtension
     private filterSortCachePromise: Promise<void> | null = null;
 
     // Cloudflare bypass: persistent cookie storage for Cloudflare and login
-    cookieStorageInterceptor = new CookieStorageInterceptor({
+    cookieStorageInterceptor = new MangaDemonCookieInterceptor({
         storage: "stateManager",
     });
 
