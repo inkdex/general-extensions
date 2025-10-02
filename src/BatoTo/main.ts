@@ -706,36 +706,69 @@ export class BatoToExtension implements BatoToImplementation {
         // Select each chapter row using the scrollable panel and chapter divs
         $(".scrollable-panel div.px-2.py-2").each((_, element) => {
             const row = $(element);
-            const chapterLink = row.find("a.link-hover.link-primary");
+            const chapterLink = row.find("a.link-hover.link-primary").first();
             const chapterPath = chapterLink.attr("href") || "";
             const chapterId = chapterPath.split("/").pop() || "";
             const rawChapterText = chapterLink.text().trim();
 
-            // Extract chapter number and subtitle
-            const chapterMatch = rawChapterText.match(
-                /Chapter\s+([\d.]+)(?:\s*-\s*(.*))?/i,
-            );
-            const chapterNumber = chapterMatch
-                ? parseFloat(chapterMatch[1])
-                : 0;
-            const chapterSubtitle = chapterMatch?.[2]?.trim() || "";
+            // safe numeric parser (never NaN)
+            const safeNumber = (s?: string | null): number | undefined => {
+            if (!s) return undefined;
+            const m = String(s).match(/\d+(?:\.\d+)?/);
+            if (!m) return undefined;
+            const n = Number(m[0]);
+            return Number.isFinite(n) ? n : undefined;
+            };
+                    
+            // Parse volume (optional)
+            let volume: number | undefined;
+            const volMatch = rawChapterText.match(/\b(?:Vol(?:ume)?|V)\.?\s*(\d+)/i);
+            volume = safeNumber(volMatch?.[1]);
 
-            // Extract publish date from time attribute
+            // Parse chapter/episode number
+            let chapNum = 0;
+            let subtitle = "";
+
+            // allow Ep. / Ch. / S. (with optional period)
+            const labelNumRe =
+            /(?:\b(ch(?:apter)?|ep(?:isode)?|e|s(?:eason)?)\b\.?)[\s#:]*([\d.]+)/gi;
+
+            let lm: RegExpExecArray | null;
+            const tokens: Array<{ label: string; num: string }> = [];
+            while ((lm = labelNumRe.exec(rawChapterText)) !== null) {
+            tokens.push({ label: lm[1].toLowerCase(), num: lm[2] });
+            }
+
+            // choose the first POSITIVE number that isn’t Season/S
+            const isSeason = (lbl: string) => lbl === "season" || lbl === "s";
+            const positive = tokens.find(t => !isSeason(t.label) && (safeNumber(t.num) ?? 0) > 0);
+            const fallbackTok = tokens.find(t => !isSeason(t.label)) || tokens[0];
+
+            chapNum =
+            (positive && safeNumber(positive.num)) ??
+            (fallbackTok && (safeNumber(fallbackTok.num) ?? 0)) ??
+            0;
+
+            // Subtitle (anything after dash/colon)
+            const subtitleMatch = rawChapterText.match(/[-–—:]\s*(.+)$/);
+            if (subtitleMatch) subtitle = subtitleMatch[1].trim();
+
+            // Publish date
             const rawDate = row.find("time").attr("time") || "";
             const publishDate = new Date(rawDate);
 
-            console.log(
-                `\n\nThe chapter id is : ${chapterId}, the chapter number is : ${chapterNumber}, the chapter subtitle is : ${chapterSubtitle}, the publish date is : ${publishDate.toDateString()}\n\n`,
-            );
-
             chapters.push({
-                chapterId: chapterId,
-                title: chapterSubtitle,
-                sourceManga: sourceManga,
-                chapNum: chapterNumber,
-                publishDate: publishDate,
+                chapterId,
+                sourceManga,
                 langCode: languages.toString(),
+                chapNum,                                   // guaranteed finite
+                ...(volume !== undefined ? { volume } : {}),
+                title: subtitle || `Chapter ${chapNum}`,   // clean title
+                publishDate,
+                additionalInfo: { displayTitle: rawChapterText }, // keep exact site title
+                
             });
+
         });
 
         // Reverse to show newest chapters first
