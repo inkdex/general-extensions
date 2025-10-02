@@ -713,17 +713,18 @@ export class BatoToExtension implements BatoToImplementation {
 
             // safe numeric parser (never NaN)
             const safeNumber = (s?: string | null): number | undefined => {
-            if (!s) return undefined;
-            const m = String(s).match(/\d+(?:\.\d+)?/);
-            if (!m) return undefined;
-            const n = Number(m[0]);
-            return Number.isFinite(n) ? n : undefined;
+                if (!s) return undefined;
+                const m = String(s).match(/\d+(?:\.\d+)?/);
+                if (!m) return undefined;
+                const n = Number(m[0]);
+                return Number.isFinite(n) ? n : undefined;
             };
-                    
-            // Parse volume (optional)
-            const volMatch = rawChapterText.match(/\b(?:Vol(?:ume)?|V)\.?\s*(\d+)/i);
-            const volume: number | undefined = safeNumber(volMatch?.[1]);
 
+            // Parse volume (optional)
+            const volMatch = rawChapterText.match(
+                /\b(?:Vol(?:ume)?|V)\.?\s*(\d+)/i,
+            );
+            const volume: number | undefined = safeNumber(volMatch?.[1]);
 
             // Parse chapter/episode number
             let chapNum = 0;
@@ -731,23 +732,26 @@ export class BatoToExtension implements BatoToImplementation {
 
             // allow Ep. / Ch. / S. (with optional period)
             const labelNumRe =
-            /(?:\b(ch(?:apter)?|ep(?:isode)?|e|s(?:eason)?)\b\.?)[\s#:]*([\d.]+)/gi;
+                /(?:\b(ch(?:apter)?|ep(?:isode)?|e|s(?:eason)?)\b\.?)[\s#:]*([\d.]+)/gi;
 
             let lm: RegExpExecArray | null;
             const tokens: Array<{ label: string; num: string }> = [];
             while ((lm = labelNumRe.exec(rawChapterText)) !== null) {
-            tokens.push({ label: lm[1].toLowerCase(), num: lm[2] });
+                tokens.push({ label: lm[1].toLowerCase(), num: lm[2] });
             }
 
             // choose the first POSITIVE number that isn’t Season/S
             const isSeason = (lbl: string) => lbl === "season" || lbl === "s";
-            const positive = tokens.find(t => !isSeason(t.label) && (safeNumber(t.num) ?? 0) > 0);
-            const fallbackTok = tokens.find(t => !isSeason(t.label)) || tokens[0];
+            const positive = tokens.find(
+                (t) => !isSeason(t.label) && (safeNumber(t.num) ?? 0) > 0,
+            );
+            const fallbackTok =
+                tokens.find((t) => !isSeason(t.label)) || tokens[0];
 
             chapNum =
-            (positive && safeNumber(positive.num)) ??
-            (fallbackTok && (safeNumber(fallbackTok.num) ?? 0)) ??
-            0;
+                (positive && safeNumber(positive.num)) ??
+                (fallbackTok && (safeNumber(fallbackTok.num) ?? 0)) ??
+                0;
 
             // Subtitle (anything after dash/colon)
             const subtitleMatch = rawChapterText.match(/[-–—:]\s*(.+)$/);
@@ -761,14 +765,12 @@ export class BatoToExtension implements BatoToImplementation {
                 chapterId,
                 sourceManga,
                 langCode: languages.toString(),
-                chapNum,                                   // guaranteed finite
+                chapNum, // guaranteed finite
                 ...(volume !== undefined ? { volume } : {}),
-                title: subtitle || `Chapter ${chapNum}`,   // clean title
+                title: subtitle || `Chapter ${chapNum}`, // clean title
                 publishDate,
                 additionalInfo: { displayTitle: rawChapterText }, // keep exact site title
-                
             });
-
         });
 
         // Reverse to show newest chapters first
