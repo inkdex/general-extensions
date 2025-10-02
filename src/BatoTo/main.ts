@@ -721,9 +721,9 @@ export class BatoToExtension implements BatoToImplementation {
             };
                     
             // Parse volume (optional)
-            let volume: number | undefined;
             const volMatch = rawChapterText.match(/\b(?:Vol(?:ume)?|V)\.?\s*(\d+)/i);
-            volume = safeNumber(volMatch?.[1]);
+            const volume: number | undefined = safeNumber(volMatch?.[1]);
+
 
             // Parse chapter/episode number
             let chapNum = 0;
