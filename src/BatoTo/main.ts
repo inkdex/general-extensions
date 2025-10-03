@@ -695,25 +695,37 @@ export class BatoToExtension implements BatoToImplementation {
         // Select each chapter row using the scrollable panel and chapter divs
         $(".scrollable-panel div.px-2.py-2").each((_, element) => {
             const row = $(element);
-            const chapterLink = row.find("a.link-hover.link-primary");
+            const chapterLink = row.find("a.link-hover.link-primary").first();
             const chapterPath = chapterLink.attr("href") || "";
             const chapterId = chapterPath.split("/").pop() || "";
             const rawChapterText = chapterLink.text().trim();
 
             // Extract chapter number and subtitle
             const chapterMatch = rawChapterText.match(
-                /Chapter\s+([\d.]+)(?:\s*-\s*(.*))?/i,
+                /(?:Chapter|Ch\.?)\s*([\d.]+)(?:\s*-\s*(.*))?/i,
             );
             const episodeMatch = rawChapterText.match(
-                /Episode\s+([\d.]+)(?:\s*-\s*(.*))?/i,
+                /(?:Episode|Ep\.?)\s*([\d.]+)(?:\s*-\s*(.*))?/i,
             );
-            const chapterNumber = chapterMatch
+            const volumeMatch = rawChapterText.match(
+                /(?:Volume|Vol\.?)\s*([\d.]+)(?:\s*-\s*(.*))?/i,
+            );
+            const seasonMatch = rawChapterText.match(
+                /(?:Season|S\.?)\s*([\d.]+)(?:\s*-\s*(.*))?/i,
+            );
+            const chapNum = chapterMatch
                 ? parseFloat(chapterMatch[1])
                 : episodeMatch
                   ? parseFloat(episodeMatch[1])
                   : 0;
-            const chapterSubtitle =
-                chapterNumber !== 0
+            const volume = volumeMatch
+                ? parseFloat(volumeMatch[1])
+                : seasonMatch
+                  ? parseFloat(seasonMatch[1])
+                  : 0;
+            // Show full title if no chapter number found
+            const title =
+                chapNum !== 0
                     ? chapterMatch
                         ? chapterMatch[2] || ""
                         : episodeMatch
@@ -726,13 +738,13 @@ export class BatoToExtension implements BatoToImplementation {
             const publishDate = new Date(rawDate);
 
             chapters.push({
-                chapterId: chapterId,
-                title: chapterSubtitle,
-                sourceManga: sourceManga,
-                chapNum: chapterNumber,
-                publishDate: publishDate,
+                chapterId,
+                title,
+                sourceManga,
+                chapNum,
+                publishDate,
                 langCode: languages.toString(),
-                volume: 0,
+                volume,
             });
         });
 
