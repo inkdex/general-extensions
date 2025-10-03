@@ -693,7 +693,7 @@ export class BatoToExtension implements BatoToImplementation {
         const chapters: Chapter[] = [];
 
         // Select each chapter row using the scrollable panel and chapter divs
-        $(".scrollable-panel div.px-2.py-2").each((_, element) => {
+        $(".scrollable-panel div.px-2.py-2").each((idx, element) => {
             const row = $(element);
             const chapterLink = row.find("a.link-hover.link-primary").first();
             const chapterPath = chapterLink.attr("href") || "";
@@ -745,6 +745,7 @@ export class BatoToExtension implements BatoToImplementation {
                 publishDate,
                 langCode: languages.toString(),
                 volume,
+                sortingIndex: idx,
             });
         });
 
