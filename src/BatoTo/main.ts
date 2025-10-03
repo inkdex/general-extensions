@@ -702,36 +702,26 @@ export class BatoToExtension implements BatoToImplementation {
 
             // Extract chapter number and subtitle
             const chapterMatch = rawChapterText.match(
-                /(?:Chapter|Ch\.?)\s*([\d.]+)(?:\s*-\s*(.*))?/i,
+                /(?:Chapter|Ch\.?)\s*([\d.]+)(?:\s*[:\--]\s*(.*))?/i,
             );
             const episodeMatch = rawChapterText.match(
-                /(?:Episode|Ep\.?)\s*([\d.]+)(?:\s*-\s*(.*))?/i,
+                /(?:Episode|Ep\.?)\s*([\d.]+)(?:\s*[:\--]\s*(.*))?/i,
             );
             const volumeMatch = rawChapterText.match(
-                /(?:Volume|Vol\.?)\s*([\d.]+)(?:\s*-\s*(.*))?/i,
-            );
-            const seasonMatch = rawChapterText.match(
-                /(?:Season|S\.?)\s*([\d.]+)(?:\s*-\s*(.*))?/i,
+                /(?:Volume|Vol\.?)\s*([\d.]+)(?:\s*[:\--]\s*(.*))?/i,
             );
             const chapNum = chapterMatch
                 ? parseFloat(chapterMatch[1])
                 : episodeMatch
                   ? parseFloat(episodeMatch[1])
                   : 0;
-            const volume = volumeMatch
-                ? parseFloat(volumeMatch[1])
-                : seasonMatch
-                  ? parseFloat(seasonMatch[1])
-                  : 0;
+            const volume = volumeMatch ? parseFloat(volumeMatch[1]) : 0;
             // Show full title if no chapter number found
-            const title =
-                chapNum !== 0
-                    ? chapterMatch
-                        ? chapterMatch[2] || ""
-                        : episodeMatch
-                          ? episodeMatch[2] || ""
-                          : ""
-                    : rawChapterText;
+            const title = chapterMatch
+                ? (chapterMatch[2] ?? "").trim()
+                : episodeMatch
+                  ? (episodeMatch[2] ?? "").trim()
+                  : rawChapterText.trim();
 
             // Extract publish date from time attribute
             const rawDate = row.find("time").attr("time") || "";
@@ -749,8 +739,7 @@ export class BatoToExtension implements BatoToImplementation {
             });
         });
 
-        // Reverse to show newest chapters first
-        return chapters.reverse();
+        return chapters;
     }
 
     // Populates a chapter with images
