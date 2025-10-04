@@ -16,7 +16,9 @@ export default {
     badges: [],
     developers: [
         {
-            name: "Egwau",
+            name: "Inkdex",
+            website: "https://inkdex.github.io",
+            github: "https://github.com/inkdex",
         },
     ],
 } satisfies SourceInfo;
