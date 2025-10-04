@@ -6,7 +6,7 @@ export default {
     version: "1.0.0-alpha.1",
     icon: "icon.png",
     language: "en",
-    contentRating: ContentRating.MATURE,
+    contentRating: ContentRating.ADULT,
     capabilities: [
         SourceIntents.CLOUDFLARE_BYPASS_REQUIRED,
         SourceIntents.DISCOVER_SECIONS,
