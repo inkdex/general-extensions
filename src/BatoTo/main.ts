@@ -21,6 +21,7 @@ import {
     SearchResultItem,
     SearchResultsProviding,
     SettingsFormProviding,
+    SortingOption,
     SourceManga,
     TagSection,
 } from "@paperback/types";
@@ -366,7 +367,6 @@ export class BatoToExtension implements BatoToImplementation {
             id: "genres",
             type: "multiselect",
             options: genres,
-
             allowExclusion: true,
             value: {},
             title: "Genre Filter",
@@ -377,10 +377,26 @@ export class BatoToExtension implements BatoToImplementation {
         return filters;
     }
 
+    async getSortingOptions(): Promise<SortingOption[]> {
+        return [
+            { id: "field_score", label: "Rating Score" },
+            { id: "field_follow", label: "Most Follows" },
+            { id: "field_review", label: "Most Reviews" },
+            { id: "field_comment", label: "Most Comments" },
+            { id: "field_chapter", label: "Most Chapters" },
+            { id: "field_upload", label: "Latest Upload" },
+            { id: "field_public", label: "Recently Created" },
+            { id: "field_name", label: "Name A-Z" },
+            { id: "views_d030", label: "Views (30 days)" },
+            { id: "views_d000", label: "Views (All time)" },
+        ];
+    }
+
     // Populates search
     async getSearchResults(
         query: SearchQuery,
         metadata?: { page?: number },
+        sortingOption?: SortingOption,
     ): Promise<PagedResults<SearchResultItem>> {
         const page = metadata?.page ?? 1; // Default to page 1 if not provided
         const languages: string[] = getLanguages();
@@ -414,33 +430,31 @@ export class BatoToExtension implements BatoToImplementation {
                     options: { id: string; value: string }[];
                 };
 
-                // Collect all included genres
                 const includedGenres: string[] = [];
+                const excludedGenres: string[] = [];
 
                 if (genreFilter?.options) {
                     Object.entries(genresInclusionMap).forEach(
                         ([id, inclusion]) => {
                             if (inclusion === "included") {
                                 // Find the genre option by id
-                                const genreOption = genreFilter.options.find(
-                                    (opt) => opt.id === id,
-                                );
-                                if (genreOption) {
-                                    // Convert to kebab-case as in the example URL
-                                    const genreValue = genreOption.value
-                                        .toLowerCase()
-                                        .replace(/\s+/g, "-");
-                                    includedGenres.push(genreValue);
-                                }
+                                includedGenres.push(id);
                             }
-                            // Excluded genres not supported in the URL format
+                            if (inclusion === "excluded") {
+                                excludedGenres.push(id);
+                            }
                         },
                     );
                 }
 
                 // Add all included genres as a comma-separated list
                 if (includedGenres.length > 0) {
-                    urlBuilder.addQuery("genres", includedGenres.join(","));
+                    urlBuilder.addQuery(
+                        "genres",
+                        includedGenres.join(",") +
+                            "|" +
+                            excludedGenres.join(","),
+                    );
                 }
             }
             // If genres is already an array of strings
@@ -449,8 +463,11 @@ export class BatoToExtension implements BatoToImplementation {
             }
         }
 
-        // Sort by upload time
-        urlBuilder.addQuery("sort", "field_upload");
+        // Sorting options
+        const sort = sortingOption?.id;
+        if (sort && typeof sort === "string") {
+            urlBuilder.addQuery("sort", sort);
+        }
 
         // Add page number
         urlBuilder.addQuery("page", page.toString());
