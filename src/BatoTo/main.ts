@@ -27,9 +27,8 @@ import {
 import * as cheerio from "cheerio";
 import { URLBuilder } from "../utils/url-builder/base";
 import { BatoToSettingsForm, getLanguages } from "./forms";
-import { genreOptions } from "./genreOptions";
-import { genres } from "./genres";
-import { Metadata } from "./models";
+import { adultGenres, genres, matureGenres } from "./genres";
+import type { Metadata } from "./models";
 
 const DOMAIN_NAME = "https://bato.to";
 
@@ -54,7 +53,6 @@ class MainInterceptor extends PaperbackInterceptor {
                     Accept: "image/avif,image/webp,*/*",
                 }),
             },
-            Cookie: "preferred_language_0=fr;",
         };
 
         return request;
@@ -93,35 +91,27 @@ export class BatoToExtension implements BatoToImplementation {
     }
 
     async getDiscoverSections(): Promise<DiscoverSection[]> {
-        const get_Popular_Updates: DiscoverSection = {
-            id: "popular-updates",
-            title: "Popular Updates",
-            type: DiscoverSectionType.featured,
-        };
-
-        const get_Latest_Releases: DiscoverSection = {
-            id: "latest-releases",
-            title: "Latest Releases",
-            type: DiscoverSectionType.prominentCarousel,
-        };
-
-        const get_Browse_Sections: DiscoverSection = {
-            id: "browse-sections",
-            title: "Browse Sections",
-            type: DiscoverSectionType.simpleCarousel,
-        };
-
-        const get_Genre_Section: DiscoverSection = {
-            id: "get-genre-section",
-            title: "Genres",
-            type: DiscoverSectionType.genres,
-        };
-
         return [
-            get_Popular_Updates,
-            get_Latest_Releases,
-            get_Browse_Sections,
-            get_Genre_Section,
+            {
+                id: "popular-updates",
+                title: "Popular Updates",
+                type: DiscoverSectionType.featured,
+            },
+            {
+                id: "latest-releases",
+                title: "Latest Releases",
+                type: DiscoverSectionType.prominentCarousel,
+            },
+            {
+                id: "browse-sections",
+                title: "Browse Sections",
+                type: DiscoverSectionType.simpleCarousel,
+            },
+            {
+                id: "get-genre-section",
+                title: "Genres",
+                type: DiscoverSectionType.genres,
+            },
         ];
     }
 
@@ -175,14 +165,13 @@ export class BatoToExtension implements BatoToImplementation {
 
             if (safeId && title && image && !collectedIds.includes(safeId)) {
                 collectedIds.push(safeId);
-                items.push(
-                    createDiscoverSectionItem({
-                        id: safeId,
-                        image: image,
-                        title: title,
-                        type: "simpleCarouselItem",
-                    }),
-                );
+                items.push({
+                    type: "simpleCarouselItem",
+                    mangaId: safeId,
+                    imageUrl: image,
+                    title: title,
+                    metadata: undefined,
+                });
             }
         });
 
@@ -238,15 +227,14 @@ export class BatoToExtension implements BatoToImplementation {
 
             if (mangaId && title && image && !collectedIds.includes(mangaId)) {
                 collectedIds.push(mangaId);
-                items.push(
-                    createDiscoverSectionItem({
-                        id: mangaId,
-                        image: image,
-                        title: title,
-                        subtitle: subtitle,
-                        type: "simpleCarouselItem",
-                    }),
-                );
+                items.push({
+                    type: "simpleCarouselItem",
+                    mangaId: mangaId,
+                    imageUrl: image,
+                    title: title,
+                    subtitle: subtitle,
+                    metadata: undefined,
+                });
             }
         });
 
@@ -314,15 +302,14 @@ export class BatoToExtension implements BatoToImplementation {
 
             if (mangaId && title && image && !collectedIds.includes(mangaId)) {
                 collectedIds.push(mangaId);
-                items.push(
-                    createDiscoverSectionItem({
-                        id: mangaId,
-                        image: image,
-                        title: title,
-                        subtitle: subtitle,
-                        type: "simpleCarouselItem",
-                    }),
-                );
+                items.push({
+                    type: "simpleCarouselItem",
+                    mangaId: mangaId,
+                    imageUrl: image,
+                    title: title,
+                    subtitle: subtitle,
+                    metadata: undefined,
+                });
             }
         });
 
@@ -364,7 +351,7 @@ export class BatoToExtension implements BatoToImplementation {
                         { id: "genres", value: { [genre.id]: "included" } },
                     ],
                 },
-                name: genre.name,
+                name: genre.value,
                 metadata: undefined,
             })),
         };
@@ -378,7 +365,7 @@ export class BatoToExtension implements BatoToImplementation {
         filters.push({
             id: "genres",
             type: "multiselect",
-            options: genreOptions,
+            options: genres,
 
             allowExclusion: true,
             value: {},
@@ -589,14 +576,14 @@ export class BatoToExtension implements BatoToImplementation {
         });
 
         // Extract genres - FIXED
-        const genres: string[] = [];
+        const mangaGenres: string[] = [];
         $(
             '.space-y-2 .flex.items-center.flex-wrap span span.font-bold, .space-y-2 .flex.items-center.flex-wrap span span:not([class*="text-base-content"])',
         ).each((_, element) => {
             const genre = $(element).text().trim();
             // Only add the genre if it's not empty and doesn't contain a comma
-            if (genre && !genre.includes(",") && !genres.includes(genre)) {
-                genres.push(genre);
+            if (genre && !genre.includes(",") && !mangaGenres.includes(genre)) {
+                mangaGenres.push(genre);
             }
         });
 
@@ -626,7 +613,7 @@ export class BatoToExtension implements BatoToImplementation {
             tagSections.push({
                 id: "genres",
                 title: "Genres",
-                tags: genres.map((genre) => ({
+                tags: mangaGenres.map((genre) => ({
                     id: sanitizeId(genre), // Sanitize genre ID
                     title: genre,
                 })),
@@ -635,30 +622,19 @@ export class BatoToExtension implements BatoToImplementation {
 
         // Determine content rating based on genres
         let contentRating = ContentRating.EVERYONE;
-        const matureGenres = [
-            "Adult",
-            "Ecchi",
-            "Erotica",
-            "Sexual violence",
-            "Gore",
-            "Bloody",
-            "Violence",
-            "Smut",
-            "Hentai",
-            "Yuri(GL)",
-            "Yaoi(BL)",
-            "Bara(ML)",
-            "Netorare/NTR",
-            "Incest",
-            "SM/BDSM/SUB-DOM",
-        ];
-        const adultGenres = ["Erotica", "Sexual violence", "Hentai", "Smut"];
-
-        if (genres.some((genre) => adultGenres.includes(genre))) {
+        if (mangaGenres.some((genre) => adultGenres.includes(genre))) {
             contentRating = ContentRating.ADULT;
-        } else if (genres.some((genre) => matureGenres.includes(genre))) {
+        } else if (mangaGenres.some((genre) => matureGenres.includes(genre))) {
             contentRating = ContentRating.MATURE;
         }
+
+        // Extract language from manga details
+        const langCode = $(
+            ".space-y-2 .whitespace-nowrap.overflow-hidden > span.mr-1",
+        )
+            .first()
+            .text()
+            .trim();
 
         return {
             mangaId: mangaId,
@@ -670,9 +646,9 @@ export class BatoToExtension implements BatoToImplementation {
                 contentRating: contentRating,
                 status: status as "ONGOING" | "COMPLETED",
                 tagGroups: tagSections,
-                //artworkUrls: [validImage],
                 shareUrl: request.url,
                 author: authors.join(", "),
+                additionalInfo: { langCode: langCode },
                 //artist: artists.join(', ')
             },
         };
@@ -680,7 +656,7 @@ export class BatoToExtension implements BatoToImplementation {
 
     // Populates the chapter list
     async getChapters(sourceManga: SourceManga): Promise<Chapter[]> {
-        const languages: string[] = getLanguages();
+        const langCode = sourceManga.mangaInfo.additionalInfo?.langCode || "";
         const request = {
             url: new URLBuilder(DOMAIN_NAME)
                 .addPath("title")
@@ -727,7 +703,7 @@ export class BatoToExtension implements BatoToImplementation {
                 sourceManga,
                 chapNum,
                 publishDate,
-                langCode: languages.toString(),
+                langCode,
                 volume,
                 sortingIndex: idx,
             });
@@ -808,23 +784,6 @@ export class BatoToExtension implements BatoToImplementation {
             throw new CloudflareError({ url: DOMAIN_NAME, method: "GET" });
         }
     }
-}
-
-function createDiscoverSectionItem(options: {
-    id: string;
-    image: string;
-    title: string;
-    subtitle?: string;
-    type: "simpleCarouselItem";
-}): DiscoverSectionItem {
-    return {
-        type: options.type,
-        mangaId: options.id,
-        imageUrl: options.image,
-        title: options.title,
-        subtitle: options.subtitle,
-        metadata: undefined,
-    };
 }
 
 export const BatoTo = new BatoToExtension();
