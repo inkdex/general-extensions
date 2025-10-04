@@ -115,12 +115,20 @@ export const parseChapters = (
         const svg = $("svg", chapter);
         if (!getShowUpcomingChapters() && svg.toString() !== "") continue;
 
+        const title = $("h3", chapter)
+            .first()
+            .find("span")
+            .filter((_, span) => $(span).text().trim().length > 0)
+            .first()
+            .text()
+            .trim();
+
         const rawDate = $("h3", chapter).last().text().trim() ?? "";
         const date = new Date(rawDate.replace(/\b(\d+)(st|nd|rd|th)\b/g, "$1"));
 
         chapters.push({
             chapterId: id,
-            title: `Chapter ${id}`,
+            title: title,
             langCode: "🇬🇧",
             chapNum: Number(id),
             volume: 0,
