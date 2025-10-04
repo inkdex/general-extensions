@@ -1,11 +1,10 @@
 import { Form, FormSectionElement, Section, SelectRow } from "@paperback/types";
-import { BTTLanguages } from "./helper";
+import { languages } from "./languages";
 
 // Function to get the selected languages from the application state
 export function getLanguages(): string[] {
     return (
-        (Application.getState("languages") as string[] | undefined) ??
-        BTTLanguages.getDefault()
+        (Application.getState("languages") as string[] | undefined) ?? ["en"]
     );
 }
 
@@ -33,9 +32,9 @@ export class BatoToSettingsForm extends Form {
                 value: this.languagesState.value,
                 minItemCount: 1,
                 maxItemCount: 100,
-                options: BTTLanguages.getlangCodeList().map((x: string) => ({
-                    id: x,
-                    title: BTTLanguages.getName(x),
+                options: languages.map((lang) => ({
+                    id: lang.langCode,
+                    title: lang.name,
                 })),
                 onValueChange: this.languagesState.selector,
             }),
