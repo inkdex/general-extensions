@@ -13,11 +13,11 @@ import {
 import { CheerioAPI } from "cheerio";
 import { TIME_MULTIPLIERS } from "./models";
 
-export const parseMangaDetails = (
+export function parseMangaDetails(
     $: CheerioAPI,
     mangaId: string,
     sourceUrl: string,
-): SourceManga => {
+): SourceManga {
     // title
     const primaryTitle = Application.decodeHTMLEntities(
         $("h2.text-2xl.font-bold")
@@ -106,12 +106,12 @@ export const parseMangaDetails = (
                 .toString(),
         } as MangaInfo,
     } as SourceManga;
-};
+}
 
-export const parseChapters = (
+export function parseChapters(
     $: CheerioAPI,
     sourceManga: SourceManga,
-): Chapter[] => {
+): Chapter[] {
     const chapters: Chapter[] = [];
     // chapter list
     const nodeArray = $("#chapters-list a").toArray();
@@ -174,12 +174,12 @@ export const parseChapters = (
     }
 
     return chapters;
-};
+}
 
-export const parseChapterDetails = (
+export function parseChapterDetails(
     $: CheerioAPI,
     chapter: Chapter,
-): ChapterDetails => {
+): ChapterDetails {
     const pages: string[] = [];
     for (const img of $("img", "div#chapter-container").toArray()) {
         let image = $(img).attr("src") ?? "";
@@ -193,9 +193,9 @@ export const parseChapterDetails = (
         mangaId: chapter.sourceManga.mangaId,
         pages: pages,
     };
-};
+}
 
-export const parseViewMore = ($: CheerioAPI): DiscoverSectionItem[] => {
+export function parseViewMore($: CheerioAPI): DiscoverSectionItem[] {
     const manga: DiscoverSectionItem[] = [];
     const collectedIds: string[] = [];
 
@@ -229,9 +229,9 @@ export const parseViewMore = ($: CheerioAPI): DiscoverSectionItem[] => {
     });
 
     return manga;
-};
+}
 
-export const parseGenreTags = ($: CheerioAPI): TagSection[] => {
+export function parseGenreTags($: CheerioAPI): TagSection[] {
     const arrayTags: Tag[] = [];
 
     $("div.flex.items-center.gap-2").each((_, el) => {
@@ -251,12 +251,12 @@ export const parseGenreTags = ($: CheerioAPI): TagSection[] => {
     });
 
     return [{ id: "genres", title: "Genres", tags: arrayTags }];
-};
+}
 
-export const parseSearch = (
+export function parseSearch(
     $: CheerioAPI,
     baseUrl: string,
-): SearchResultItem[] => {
+): SearchResultItem[] {
     const mangas: SearchResultItem[] = [];
 
     $("div#card-real").each((_, obj) => {
@@ -283,9 +283,9 @@ export const parseSearch = (
     });
 
     return mangas;
-};
+}
 
-export const isLastPage = ($: CheerioAPI): boolean => {
+export function isLastPage($: CheerioAPI): boolean {
     let isLast = false;
 
     const pageText = $("nav h3").text().trim();
@@ -300,7 +300,7 @@ export const isLastPage = ($: CheerioAPI): boolean => {
     }
 
     return isLast;
-};
+}
 
 function parseRelativeDate(dateStr: string): Date {
     const now = Date.now();
