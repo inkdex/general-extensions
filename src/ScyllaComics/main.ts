@@ -25,7 +25,7 @@ import {
     URL,
 } from "@paperback/types";
 import * as cheerio from "cheerio";
-import { ScyllaInterceptor } from "./interceptors";
+import { ScyllaComicsInterceptor } from "./interceptors";
 import { Metadata } from "./models";
 import {
     isLastPage,
@@ -37,23 +37,23 @@ import {
     parseViewMore,
 } from "./parsers";
 
-export const SCYLLA_DOMAIN = "https://scyllacomics.xyz";
+export const SCYLLA_COMICS_DOMAIN = "https://scyllacomics.xyz";
 
-type ScyllaImplementation = Extension &
+type ScyllaComicsImplementation = Extension &
     SearchResultsProviding &
     MangaProviding &
     ChapterProviding &
     DiscoverSectionProviding &
     CloudflareBypassRequestProviding;
 
-export class ScyllaExtension implements ScyllaImplementation {
+export class ScyllaComicsExtension implements ScyllaComicsImplementation {
     globalRateLimiter = new BasicRateLimiter("rateLimiter", {
         numberOfRequests: 4,
         bufferInterval: 1,
         ignoreImages: true,
     });
 
-    mainRequestInterceptor = new ScyllaInterceptor("main");
+    mainRequestInterceptor = new ScyllaComicsInterceptor("main");
     cookieStorageInterceptor = new CookieStorageInterceptor({
         storage: "stateManager",
     });
@@ -124,7 +124,9 @@ export class ScyllaExtension implements ScyllaImplementation {
 
     async getGenreTags(): Promise<TagSection[]> {
         const request: Request = {
-            url: new URL(SCYLLA_DOMAIN).addPathComponent("manga").toString(),
+            url: new URL(SCYLLA_COMICS_DOMAIN)
+                .addPathComponent("manga")
+                .toString(),
             method: "GET",
         };
 
@@ -134,19 +136,19 @@ export class ScyllaExtension implements ScyllaImplementation {
 
     async getMangaDetails(mangaId: string): Promise<SourceManga> {
         const request: Request = {
-            url: new URL(SCYLLA_DOMAIN)
+            url: new URL(SCYLLA_COMICS_DOMAIN)
                 .addPathComponent("manga")
                 .addPathComponent(mangaId)
                 .toString(),
             method: "GET",
         };
         const $ = await this.fetchCheerio(request);
-        return parseMangaDetails($, mangaId, SCYLLA_DOMAIN);
+        return parseMangaDetails($, mangaId, SCYLLA_COMICS_DOMAIN);
     }
 
     async getChapters(sourceManga: SourceManga): Promise<Chapter[]> {
         const request: Request = {
-            url: new URL(SCYLLA_DOMAIN)
+            url: new URL(SCYLLA_COMICS_DOMAIN)
                 .addPathComponent("manga")
                 .addPathComponent(sourceManga.mangaId)
                 .toString(),
@@ -159,7 +161,7 @@ export class ScyllaExtension implements ScyllaImplementation {
 
     async getChapterDetails(chapter: Chapter): Promise<ChapterDetails> {
         const request: Request = {
-            url: new URL(SCYLLA_DOMAIN)
+            url: new URL(SCYLLA_COMICS_DOMAIN)
                 .addPathComponent("manga")
                 .addPathComponent(chapter.sourceManga.mangaId)
                 .addPathComponent(chapter.chapterId)
@@ -273,7 +275,7 @@ export class ScyllaExtension implements ScyllaImplementation {
         const page: number = metadata?.page ?? 1;
 
         const request: Request = {
-            url: new URL(SCYLLA_DOMAIN)
+            url: new URL(SCYLLA_COMICS_DOMAIN)
                 .addPathComponent("manga")
                 .setQueryItem("page", String(page))
                 .setQueryItem("filter", filter)
@@ -312,7 +314,10 @@ export class ScyllaExtension implements ScyllaImplementation {
     // may need to check for cf headers if challenges appear in future
     checkCloudflareStatus(status: number): void {
         if (status === 503) {
-            throw new CloudflareError({ url: SCYLLA_DOMAIN, method: "GET" });
+            throw new CloudflareError({
+                url: SCYLLA_COMICS_DOMAIN,
+                method: "GET",
+            });
         }
         if (status === 403) {
             throw new Error(
@@ -333,4 +338,4 @@ export class ScyllaExtension implements ScyllaImplementation {
     }
 }
 
-export const Scylla = new ScyllaExtension();
+export const ScyllaComics = new ScyllaComicsExtension();
