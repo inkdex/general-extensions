@@ -4,11 +4,11 @@ import {
     ContentRating,
     DiscoverSectionItem,
     MangaInfo,
-    URL,
     SearchResultItem,
     SourceManga,
     Tag,
     TagSection,
+    URL,
 } from "@paperback/types";
 import { CheerioAPI } from "cheerio";
 import { TIME_MULTIPLIERS } from "./models";

@@ -15,7 +15,6 @@ import {
     Extension,
     MangaProviding,
     PagedResults,
-    URL,
     Request,
     SearchFilter,
     SearchQuery,
@@ -23,6 +22,7 @@ import {
     SearchResultsProviding,
     SourceManga,
     TagSection,
+    URL,
 } from "@paperback/types";
 import * as cheerio from "cheerio";
 import { ScyllaInterceptor } from "./interceptors";
