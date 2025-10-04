@@ -6,7 +6,7 @@ export default {
     version: "1.0.0-alpha.1",
     icon: "icon.png",
     language: "en",
-    contentRating: ContentRating.ADULT,
+    contentRating: ContentRating.MATURE,
     capabilities: [
         SourceIntents.CLOUDFLARE_BYPASS_REQUIRED,
         SourceIntents.DISCOVER_SECIONS,
@@ -17,8 +17,6 @@ export default {
     developers: [
         {
             name: "Lucifers Circle",
-            website: "https://inkdex.github.io",
-            github: "https://github.com/inkdex",
         },
     ],
 } satisfies SourceInfo;

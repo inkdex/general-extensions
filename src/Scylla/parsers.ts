@@ -11,6 +11,7 @@ import {
     TagSection,
 } from "@paperback/types";
 import { CheerioAPI } from "cheerio";
+import { TIME_MULTIPLIERS } from "./models";
 
 export const parseMangaDetails = (
     $: CheerioAPI,
@@ -123,10 +124,9 @@ export const parseChapters = (
         const parentLink = $(obj).attr("href") ?? "";
         const chapterId = parentLink.replace(/\/$/, "").split("/").pop() ?? "";
         if (!chapterId || chapterId === "#") {
-            console.log(
+            throw new Error(
                 `Could not parse out ID when getting chapters for mangaId: ${sourceManga.mangaId}, parsedId: ${chapterId}`,
             );
-            continue;
         }
 
         // chapter name/title
@@ -321,37 +321,7 @@ function parseRelativeDate(dateStr: string): Date {
     if (match) {
         const num = parseInt(match[1], 10);
         const unit = match[2];
-
-        const multipliers: Record<string, number> = {
-            Y: 31556952000,
-            YR: 31556952000,
-            YEAR: 31556952000,
-            YEARS: 31556952000,
-            MO: 2592000000,
-            MOS: 2592000000,
-            MONTH: 2592000000,
-            MONTHS: 2592000000,
-            W: 604800000,
-            WEEK: 604800000,
-            WEEKS: 604800000,
-            D: 86400000,
-            DAY: 86400000,
-            DAYS: 86400000,
-            H: 3600000,
-            HR: 3600000,
-            HOUR: 3600000,
-            HOURS: 3600000,
-            M: 60000,
-            MIN: 60000,
-            MINUTE: 60000,
-            MINUTES: 60000,
-            S: 1000,
-            SEC: 1000,
-            SECOND: 1000,
-            SECONDS: 1000,
-        };
-
-        const ms = multipliers[unit] ?? 0;
+        const ms = TIME_MULTIPLIERS[unit] ?? 0;
         return new Date(now - num * ms);
     }
 

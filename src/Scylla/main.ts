@@ -15,10 +15,8 @@ import {
     Extension,
     MangaProviding,
     PagedResults,
-    PaperbackInterceptor,
     URL as PBURL,
     Request,
-    Response,
     SearchFilter,
     SearchQuery,
     SearchResultItem,
@@ -27,6 +25,8 @@ import {
     TagSection,
 } from "@paperback/types";
 import * as cheerio from "cheerio";
+import { ScyllaInterceptor } from "./interceptors";
+import { Metadata } from "./models";
 import {
     isLastPage,
     parseChapterDetails,
@@ -37,7 +37,7 @@ import {
     parseViewMore,
 } from "./parsers";
 
-const SCYLLA_DOMAIN = "https://scyllacomics.xyz";
+export const SCYLLA_DOMAIN = "https://scyllacomics.xyz";
 
 type ScyllaImplementation = Extension &
     SearchResultsProviding &
@@ -45,32 +45,6 @@ type ScyllaImplementation = Extension &
     ChapterProviding &
     DiscoverSectionProviding &
     CloudflareBypassRequestProviding;
-
-type Metadata = {
-    page?: number;
-    completed?: boolean;
-};
-
-class ScyllaInterceptor extends PaperbackInterceptor {
-    async interceptRequest(request: Request): Promise<Request> {
-        request.headers = {
-            ...(request.headers ?? {}),
-            ...{
-                referer: `${SCYLLA_DOMAIN}/`,
-                "user-agent": await Application.getDefaultUserAgent(),
-            },
-        };
-        return request;
-    }
-
-    override async interceptResponse(
-        request: Request,
-        response: Response,
-        data: ArrayBuffer,
-    ): Promise<ArrayBuffer> {
-        return data;
-    }
-}
 
 export class ScyllaExtension implements ScyllaImplementation {
     globalRateLimiter = new BasicRateLimiter("rateLimiter", {
@@ -85,9 +59,9 @@ export class ScyllaExtension implements ScyllaImplementation {
     });
 
     async initialise(): Promise<void> {
-        this.globalRateLimiter.registerInterceptor();
-        this.cookieStorageInterceptor.registerInterceptor();
         this.mainRequestInterceptor.registerInterceptor();
+        this.cookieStorageInterceptor.registerInterceptor();
+        this.globalRateLimiter.registerInterceptor();
     }
 
     async getDiscoverSections(): Promise<DiscoverSection[]> {
@@ -143,16 +117,6 @@ export class ScyllaExtension implements ScyllaImplementation {
                 cookie.name.startsWith("_cf") ||
                 cookie.name.startsWith("__cf")
             ) {
-                // Find existing cookie with the same name
-                const existingCookie =
-                    this.cookieStorageInterceptor.cookies.find(
-                        (x) => x.name === cookie.name,
-                    );
-                // Remove existing cookie
-                if (existingCookie) {
-                    this.cookieStorageInterceptor.deleteCookie(existingCookie);
-                }
-
                 this.cookieStorageInterceptor.setCookie(cookie);
             }
         }
@@ -222,30 +186,8 @@ export class ScyllaExtension implements ScyllaImplementation {
             .setQueryItem("status", "")
             .setQueryItem("page", String(page));
 
-        const getFilterValue = (id: string) =>
-            query.filters?.find((filter) => filter.id === id)?.value;
+        this.applyFiltersToUrl(query, url);
 
-        const genres =
-            (getFilterValue("genres") as Record<
-                string,
-                "included" | "excluded"
-            >) ?? {};
-
-        for (const [key, value] of Object.entries(genres)) {
-            if (value === "included") {
-                url.setQueryItem("genre[]", key);
-            }
-        }
-
-        // strict matching filter, look into getting paperback to use this with a toggle
-        const strictVal = getFilterValue("strict");
-        const isStrict =
-            typeof strictVal === "string" &&
-            (strictVal.toLowerCase() === "on" ||
-                strictVal.toLowerCase() === "true");
-        if (isStrict) {
-            url.setQueryItem("strict", "on");
-        }
         const request: Request = {
             url: url.toString(),
             method: "GET",
@@ -259,6 +201,33 @@ export class ScyllaExtension implements ScyllaImplementation {
             items: manga,
             metadata: metadata,
         };
+    }
+
+    private applyFiltersToUrl(query: SearchQuery, url: PBURL): void {
+        const getFilterValue = (id: string) =>
+            query.filters?.find((filter) => filter.id === id)?.value;
+
+        const genres =
+            (getFilterValue("genres") as Record<
+                string,
+                "included" | "excluded"
+            >) ?? {};
+        for (const [key, value] of Object.entries(genres)) {
+            if (value === "included") {
+                url.setQueryItem("genre[]", key);
+            }
+        }
+
+        // strict matching filter, look into getting paperback to use this with a toggle
+        const strictVal = getFilterValue("strict");
+        const isStrict =
+            typeof strictVal === "string" &&
+            (strictVal.toLowerCase() === "on" ||
+                strictVal.toLowerCase() === "true");
+
+        if (isStrict) {
+            url.setQueryItem("strict", "on");
+        }
     }
 
     async getSearchFilters(): Promise<SearchFilter[]> {
@@ -347,7 +316,7 @@ export class ScyllaExtension implements ScyllaImplementation {
         }
         if (status === 403) {
             throw new Error(
-                "Server returned 403 Forbidden. Logins not yet supported. Let me know on Discord if you can view this title when logged in on the website.",
+                "Server returned 403 Forbidden. This title may have been removed due to a DMCA request or is otherwise unavailable.",
             );
         }
     }
