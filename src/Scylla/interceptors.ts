@@ -1,15 +1,16 @@
-import { PaperbackInterceptor, Request, Response } from "@paperback/types";
-import { SCYLLA_DOMAIN } from "./main";
+import { 
+    PaperbackInterceptor,
+    Request,
+    Response,
+} from "@paperback/types";
+import { 
+    SCYLLA_DOMAIN,
+} from "./main";
 
 export class ScyllaInterceptor extends PaperbackInterceptor {
     async interceptRequest(request: Request): Promise<Request> {
-        request.headers = {
-            ...(request.headers ?? {}),
-            ...{
-                referer: `${SCYLLA_DOMAIN}/`,
-                "user-agent": await Application.getDefaultUserAgent(),
-            },
-        };
+        request.headers = request.headers ?? {};
+        request.headers.referer = `${SCYLLA_DOMAIN}/`;
         return request;
     }
 
