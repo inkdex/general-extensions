@@ -1,70 +1,42 @@
 import { Form, FormSectionElement, Section, SelectRow } from "@paperback/types";
 import { languages } from "./languages";
 
-// Function to get the selected languages from the application state
 export function getLanguages(): string[] {
     return (
         (Application.getState("languages") as string[] | undefined) ?? ["en"]
     );
 }
 
-// Class for managing language settings in a form
 export class BatoToSettingsForm extends Form {
-    // State management for the languages field
-    private languagesState = new State<string[]>(
-        this,
-        "languages",
-        getLanguages(),
-    );
-
-    // Override to define the sections of the form
     override getSections(): FormSectionElement[] {
         return [
-            this.createLanguageSettingsSection(), // Only language-related section
+            Section(
+                {
+                    id: "languageSettings",
+                    footer: "Filter mangas by language. At least one language must be selected.",
+                },
+                [
+                    SelectRow("languages", {
+                        title: "Languages",
+                        value: getLanguages(),
+                        minItemCount: 1,
+                        maxItemCount: languages.length,
+                        options: languages.map((lang) => ({
+                            id: lang.value,
+                            title: lang.name,
+                        })),
+                        onValueChange: Application.Selector(
+                            this as BatoToSettingsForm,
+                            "updateLanguages",
+                        ),
+                    }),
+                ],
+            ),
         ];
     }
 
-    // Create the language settings section
-    private createLanguageSettingsSection(): FormSectionElement {
-        return Section("languageSettings", [
-            SelectRow("languages", {
-                title: "Languages",
-                value: this.languagesState.value,
-                minItemCount: 1,
-                maxItemCount: 100,
-                options: languages.map((lang) => ({
-                    id: lang.langCode,
-                    title: lang.name,
-                })),
-                onValueChange: this.languagesState.selector,
-            }),
-        ]);
-    }
-}
-
-// Class for managing state of a form field
-class State<T> {
-    private _value: T;
-    public get value(): T {
-        return this._value;
-    }
-
-    public get selector(): SelectorID<(value: T) => Promise<void>> {
-        return Application.Selector(this as State<T>, "updateValue");
-    }
-
-    constructor(
-        private form: Form,
-        private persistKey: string,
-        value: T,
-    ) {
-        this._value = value;
-    }
-
-    // Update the state value and persist it
-    public async updateValue(value: T): Promise<void> {
-        this._value = value;
-        Application.setState(value, this.persistKey);
-        this.form.reloadForm();
+    async updateLanguages(value: string[]): Promise<void> {
+        Application.setState(value, "languages");
+        this.reloadForm();
     }
 }

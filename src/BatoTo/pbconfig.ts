@@ -3,7 +3,7 @@ import { ContentRating, SourceInfo, SourceIntents } from "@paperback/types";
 export default {
     name: "Bato.To",
     description: "Extension that pulls content from bato.to.",
-    version: "1.0.0-alpha.3",
+    version: "1.0.0-alpha.4",
     icon: "icon.png",
     language: "en",
     contentRating: ContentRating.ADULT,
