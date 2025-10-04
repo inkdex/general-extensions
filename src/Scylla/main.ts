@@ -15,7 +15,7 @@ import {
     Extension,
     MangaProviding,
     PagedResults,
-    URL as PBURL,
+    URL,
     Request,
     SearchFilter,
     SearchQuery,
@@ -124,7 +124,7 @@ export class ScyllaExtension implements ScyllaImplementation {
 
     async getGenreTags(): Promise<TagSection[]> {
         const request: Request = {
-            url: new PBURL(SCYLLA_DOMAIN).addPathComponent("manga").toString(),
+            url: new URL(SCYLLA_DOMAIN).addPathComponent("manga").toString(),
             method: "GET",
         };
 
@@ -134,7 +134,7 @@ export class ScyllaExtension implements ScyllaImplementation {
 
     async getMangaDetails(mangaId: string): Promise<SourceManga> {
         const request: Request = {
-            url: new PBURL(SCYLLA_DOMAIN)
+            url: new URL(SCYLLA_DOMAIN)
                 .addPathComponent("manga")
                 .addPathComponent(mangaId)
                 .toString(),
@@ -146,7 +146,7 @@ export class ScyllaExtension implements ScyllaImplementation {
 
     async getChapters(sourceManga: SourceManga): Promise<Chapter[]> {
         const request: Request = {
-            url: new PBURL(SCYLLA_DOMAIN)
+            url: new URL(SCYLLA_DOMAIN)
                 .addPathComponent("manga")
                 .addPathComponent(sourceManga.mangaId)
                 .toString(),
@@ -159,7 +159,7 @@ export class ScyllaExtension implements ScyllaImplementation {
 
     async getChapterDetails(chapter: Chapter): Promise<ChapterDetails> {
         const request: Request = {
-            url: new PBURL(SCYLLA_DOMAIN)
+            url: new URL(SCYLLA_DOMAIN)
                 .addPathComponent("manga")
                 .addPathComponent(chapter.sourceManga.mangaId)
                 .addPathComponent(chapter.chapterId)
@@ -176,7 +176,7 @@ export class ScyllaExtension implements ScyllaImplementation {
     ): Promise<PagedResults<SearchResultItem>> {
         const page: number = metadata?.page ?? 1;
 
-        const url = new PBURL("https://scyllacomics.xyz")
+        const url = new URL("https://scyllacomics.xyz")
             .addPathComponent("manga")
             .setQueryItem(
                 "title",
@@ -203,7 +203,7 @@ export class ScyllaExtension implements ScyllaImplementation {
         };
     }
 
-    private applyFiltersToUrl(query: SearchQuery, url: PBURL): void {
+    private applyFiltersToUrl(query: SearchQuery, url: URL): void {
         const getFilterValue = (id: string) =>
             query.filters?.find((filter) => filter.id === id)?.value;
 
@@ -273,7 +273,7 @@ export class ScyllaExtension implements ScyllaImplementation {
         const page: number = metadata?.page ?? 1;
 
         const request: Request = {
-            url: new PBURL(SCYLLA_DOMAIN)
+            url: new URL(SCYLLA_DOMAIN)
                 .addPathComponent("manga")
                 .setQueryItem("page", String(page))
                 .setQueryItem("filter", filter)

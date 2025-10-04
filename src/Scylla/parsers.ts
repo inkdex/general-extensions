@@ -4,7 +4,7 @@ import {
     ContentRating,
     DiscoverSectionItem,
     MangaInfo,
-    URL as PBURL,
+    URL,
     SearchResultItem,
     SourceManga,
     Tag,
@@ -100,7 +100,7 @@ export const parseMangaDetails = (
             status,
             author,
             tagGroups: tagSections,
-            shareUrl: new PBURL(sourceUrl)
+            shareUrl: new URL(sourceUrl)
                 .addPathComponent("manga")
                 .addPathComponent(mangaId)
                 .toString(),
