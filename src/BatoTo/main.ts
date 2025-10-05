@@ -700,28 +700,22 @@ export class BatoToExtension implements BatoToImplementation {
             const chapterId = chapterPath.split("/").pop() || "";
             const rawChapterText = chapterLink.text().trim();
 
-            // Extract chapter number and subtitle
-            const chapterMatch = rawChapterText.match(
-                /(?:Chapter|Ch\.?)\s*([\d.]+)(?:\s*[:\--]\s*(.*))?/i,
-            );
-            const episodeMatch = rawChapterText.match(
-                /(?:Episode|Ep\.?)\s*([\d.]+)(?:\s*[:\--]\s*(.*))?/i,
-            );
+            if (!chapterId) return;
+
+            // Chapter number parsing
+            const chapNum = parseFloat(chapterId.split("-ch_").pop() || "0");
+
+            // Extract volume if present
             const volumeMatch = rawChapterText.match(
                 /(?:Volume|Vol\.?)\s*([\d.]+)(?:\s*[:\--]\s*(.*))?/i,
             );
-            const chapNum = chapterMatch
-                ? parseFloat(chapterMatch[1])
-                : episodeMatch
-                  ? parseFloat(episodeMatch[1])
-                  : 0;
             const volume = volumeMatch ? parseFloat(volumeMatch[1]) : 0;
-            // Show full title if no chapter number found
-            const title = chapterMatch
-                ? (chapterMatch[2] ?? "").trim()
-                : episodeMatch
-                  ? (episodeMatch[2] ?? "").trim()
-                  : rawChapterText.trim();
+            const titleMatch = rawChapterText.split(chapNum.toString()).pop();
+            const title = titleMatch
+                ? titleMatch.replace(/^[\s:;.,\-–—]+/, "").trim()
+                : rawChapterText.includes(chapNum.toString())
+                  ? ""
+                  : rawChapterText;
 
             // Extract publish date from time attribute
             const rawDate = row.find("time").attr("time") || "";
