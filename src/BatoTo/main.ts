@@ -28,8 +28,7 @@ import {
 import * as cheerio from "cheerio";
 import { URLBuilder } from "../utils/url-builder/base";
 import { BatoToSettingsForm, getLanguages } from "./forms";
-import { adultGenres, genres, matureGenres } from "./genres";
-import type { Metadata } from "./models";
+import { AdultGenres, Genres, MatureGenres, type Metadata } from "./models";
 
 const DOMAIN_NAME = "https://bato.to";
 
@@ -344,7 +343,7 @@ export class BatoToExtension implements BatoToImplementation {
     // Populates the genre section
     async getGenreSection(): Promise<PagedResults<DiscoverSectionItem>> {
         return {
-            items: genres.map((genre) => ({
+            items: Genres.map((genre) => ({
                 type: "genresCarouselItem",
                 searchQuery: {
                     title: "",
@@ -366,7 +365,7 @@ export class BatoToExtension implements BatoToImplementation {
         filters.push({
             id: "genres",
             type: "multiselect",
-            options: genres,
+            options: Genres,
             allowExclusion: true,
             value: {},
             title: "Genre Filter",
@@ -626,7 +625,7 @@ export class BatoToExtension implements BatoToImplementation {
 
         // Build tag sections
         const tagSections: TagSection[] = [];
-        if (genres.length > 0) {
+        if (Genres.length > 0) {
             tagSections.push({
                 id: "genres",
                 title: "Genres",
@@ -639,9 +638,9 @@ export class BatoToExtension implements BatoToImplementation {
 
         // Determine content rating based on genres
         let contentRating = ContentRating.EVERYONE;
-        if (mangaGenres.some((genre) => adultGenres.includes(genre))) {
+        if (mangaGenres.some((genre) => AdultGenres.includes(genre))) {
             contentRating = ContentRating.ADULT;
-        } else if (mangaGenres.some((genre) => matureGenres.includes(genre))) {
+        } else if (mangaGenres.some((genre) => MatureGenres.includes(genre))) {
             contentRating = ContentRating.MATURE;
         }
 
