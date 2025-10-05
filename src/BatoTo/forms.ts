@@ -1,5 +1,5 @@
 import { Form, FormSectionElement, Section, SelectRow } from "@paperback/types";
-import { languages } from "./languages";
+import { Languages } from "./models";
 
 export function getLanguages(): string[] {
     return (
@@ -20,8 +20,8 @@ export class BatoToSettingsForm extends Form {
                         title: "Languages",
                         value: getLanguages(),
                         minItemCount: 1,
-                        maxItemCount: languages.length,
-                        options: languages.map((lang) => ({
+                        maxItemCount: Languages.length,
+                        options: Languages.map((lang) => ({
                             id: lang.value,
                             title: lang.name,
                         })),
