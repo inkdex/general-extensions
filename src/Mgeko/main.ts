@@ -22,6 +22,7 @@ import {
     SearchQuery,
     SearchResultItem,
     SearchResultsProviding,
+    SortingOption,
     SourceManga,
     TagSection,
 } from "@paperback/types";
@@ -207,67 +208,6 @@ export class MgekoExtension implements MgekoImplementation {
         return parseChapterDetails($, chapter);
     }
 
-    async getSearchResults(
-        query: SearchQuery,
-        metadata: Metadata | undefined,
-    ): Promise<PagedResults<SearchResultItem>> {
-        const page: number = metadata?.page ?? 1;
-        let request: Request;
-
-        // Regular search
-        if (query.title?.trim()) {
-            request = {
-                url: new URLBuilder(MGEKO_DOMAIN)
-                    .addPath("search")
-                    .addQuery("search", encodeURI(query.title.trim()))
-                    .build(),
-                method: "GET",
-            };
-        } else {
-            // Tag/Filter Search
-            const getFilterValue = (id: string) =>
-                query.filters?.find((filter) => filter.id === id)?.value;
-
-            const genres =
-                (getFilterValue("genres") as Record<
-                    string,
-                    "included" | "excluded"
-                >) ?? {};
-
-            const genreIncluded = Object.entries(genres)
-                .filter(([, value]) => value === "included")
-                .map(([key]) => key)
-                .join(",");
-
-            const genreExcluded = Object.entries(genres)
-                .filter(([, value]) => value === "excluded")
-                .map(([key]) => key)
-                .join(",");
-
-            const sortBy = (getFilterValue("sortBy") as string) ?? "Views";
-
-            request = {
-                url: new URLBuilder(MGEKO_DOMAIN)
-                    .addPath("browse-comics")
-                    .addQuery("sort_by", sortBy)
-                    .addQuery("genre_included", genreIncluded)
-                    .addQuery("genre_excluded", genreExcluded)
-                    .addQuery("results", page)
-                    .build(),
-                method: "GET",
-            };
-        }
-
-        const $ = await this.fetchCheerio(request);
-        const manga = parseSearch($, MGEKO_DOMAIN);
-
-        metadata = !isLastPage($) ? { page: page + 1 } : undefined;
-        return {
-            items: manga,
-            metadata: metadata,
-        };
-    }
-
     async getSearchFilters(): Promise<SearchFilter[]> {
         const filters: SearchFilter[] = [];
 
@@ -300,6 +240,81 @@ export class MgekoExtension implements MgekoImplementation {
         });
 
         return filters;
+    }
+
+    async getSortingOptions(): Promise<SortingOption[]> {
+        return [
+            { id: "Ratings", label: "Ratings" },
+            { id: "Views", label: "Views" },
+            { id: "New", label: "New" },
+            { id: "Updated", label: "Updated" },
+            { id: "Random", label: "Random" },
+        ];
+    }
+
+    async getSearchResults(
+        query: SearchQuery,
+        metadata: Metadata | undefined,
+        sortingOption?: SortingOption,
+    ): Promise<PagedResults<SearchResultItem>> {
+        const page: number = metadata?.page ?? 1;
+        let request: Request;
+        const isQuerySearch = query.title?.trim().length ?? 0 > 0;
+
+        // Regular search
+        if (isQuerySearch) {
+            request = {
+                url: new URLBuilder(MGEKO_DOMAIN)
+                    .addPath("autocomplete")
+                    .addQuery("term", encodeURI(query.title.trim()))
+                    .build(),
+                method: "GET",
+            };
+        } else {
+            // Tag/Filter Search
+            const getFilterValue = (id: string) =>
+                query.filters?.find((filter) => filter.id === id)?.value;
+
+            const genres =
+                (getFilterValue("genres") as Record<
+                    string,
+                    "included" | "excluded"
+                >) ?? {};
+
+            const genreIncluded = Object.entries(genres)
+                .filter(([, value]) => value === "included")
+                .map(([key]) => key)
+                .join(",");
+
+            const genreExcluded = Object.entries(genres)
+                .filter(([, value]) => value === "excluded")
+                .map(([key]) => key)
+                .join(",");
+
+            const sortBy = sortingOption?.id ?? "Ratings";
+
+            request = {
+                url: new URLBuilder(MGEKO_DOMAIN)
+                    .addPath("browse-comics")
+                    .addQuery("filter", sortBy)
+                    .addQuery("genre_included", genreIncluded)
+                    .addQuery("genre_excluded", genreExcluded)
+                    .addQuery("results", page)
+                    .build(),
+                method: "GET",
+            };
+        }
+
+        const $ = await this.fetchCheerio(request);
+        const manga = parseSearch($, MGEKO_DOMAIN);
+
+        // Search results do not have pagination
+        metadata =
+            !isLastPage($) && !isQuerySearch ? { page: page + 1 } : undefined;
+        return {
+            items: manga,
+            metadata: metadata,
+        };
     }
 
     private async getFilteredSectionItems(

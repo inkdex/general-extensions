@@ -213,7 +213,7 @@ export const parseGenreTags = ($: CheerioAPI): TagSection[] => {
     }
 
     const tagSections: TagSection[] = [
-        { id: "genres", title: "genres", tags: arrayTags },
+        { id: "genres", title: "Genres", tags: arrayTags },
     ];
     return tagSections;
 };
@@ -224,7 +224,10 @@ export const parseSearch = (
 ): SearchResultItem[] => {
     const mangas: SearchResultItem[] = [];
     for (const obj of $("li.novel-item", "ul.novel-list").toArray()) {
-        let image: string = $("img", obj).first().attr("data-src") ?? "";
+        let image: string =
+            $("img", obj).first().attr("data-src") ??
+            $("img", obj).first().attr("src") ??
+            "";
         if (image.startsWith("/")) image = baseUrl + image;
 
         const title: string = $("img", obj).first().attr("alt") ?? "";
