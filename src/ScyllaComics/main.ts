@@ -4,7 +4,6 @@ import {
     ChapterDetails,
     ChapterProviding,
     CloudflareBypassRequestProviding,
-    CloudflareError,
     Cookie,
     CookieStorageInterceptor,
     DiscoverSection,
@@ -23,24 +22,20 @@ import {
     TagSection,
     URL,
 } from "@paperback/types";
-import * as cheerio from "cheerio";
 import { Metadata } from "./models";
-import { ScyllaComicsInterceptor } from "./network";
+import { fetchCheerio, ScyllaComicsInterceptor } from "./network";
 import {
+    getFeaturedSectionItems,
+    getMostPopularSectionItems,
+    getRecentChaptersSectionItems,
+    getRecentlyAddedSectionItems,
     isLastPage,
     parseChapterDetails,
     parseChapters,
     parseGenreTags,
     parseMangaDetails,
     parseSearch,
-
-
-    getFeaturedSectionItems,
-    getMostPopularSectionItems,
-    getRecentlyAddedSectionItems,
-    getRecentChaptersSectionItems,
 } from "./parsers";
-
 
 export const SCYLLA_COMICS_DOMAIN = "https://scyllacomics.xyz";
 
@@ -100,24 +95,24 @@ export class ScyllaComicsExtension implements ScyllaComicsImplementation {
     }
 
     async getDiscoverSectionItems(
-    section: DiscoverSection,
-    metadata: Metadata | undefined,
-): Promise<PagedResults<DiscoverSectionItem>> {
-    switch (section.id) {
-        case "featured":
-            return getFeaturedSectionItems(this);
-        case "most_popular":
-            return getMostPopularSectionItems(this, metadata);
-        case "recently_added":
-            return getRecentlyAddedSectionItems(this, metadata);
-        case "recent_chapters":
-            return getRecentChaptersSectionItems(this, metadata);
-        case "genres":
-            return this.getGenreSectionItems();
-        default:
-            return { items: [], metadata: undefined };
+        section: DiscoverSection,
+        metadata: Metadata | undefined,
+    ): Promise<PagedResults<DiscoverSectionItem>> {
+        switch (section.id) {
+            case "featured":
+                return getFeaturedSectionItems();
+            case "most_popular":
+                return getMostPopularSectionItems(metadata);
+            case "recently_added":
+                return getRecentlyAddedSectionItems(metadata);
+            case "recent_chapters":
+                return getRecentChaptersSectionItems(metadata);
+            case "genres":
+                return this.getGenreSectionItems();
+            default:
+                return { items: [], metadata: undefined };
+        }
     }
-}
 
     async saveCloudflareBypassCookies(cookies: Cookie[]): Promise<void> {
         for (const cookie of cookies) {
@@ -139,7 +134,7 @@ export class ScyllaComicsExtension implements ScyllaComicsImplementation {
             method: "GET",
         };
 
-        const $ = await this.fetchCheerio(request);
+        const $ = await fetchCheerio(request);
         return parseGenreTags($);
     }
 
@@ -151,7 +146,7 @@ export class ScyllaComicsExtension implements ScyllaComicsImplementation {
                 .toString(),
             method: "GET",
         };
-        const $ = await this.fetchCheerio(request);
+        const $ = await fetchCheerio(request);
         return parseMangaDetails($, mangaId, SCYLLA_COMICS_DOMAIN);
     }
 
@@ -164,7 +159,7 @@ export class ScyllaComicsExtension implements ScyllaComicsImplementation {
             method: "GET",
         };
 
-        const $ = await this.fetchCheerio(request);
+        const $ = await fetchCheerio(request);
         return parseChapters($, sourceManga);
     }
 
@@ -177,7 +172,7 @@ export class ScyllaComicsExtension implements ScyllaComicsImplementation {
                 .toString(),
             method: "GET",
         };
-        const $ = await this.fetchCheerio(request);
+        const $ = await fetchCheerio(request);
         return parseChapterDetails($, chapter);
     }
 
@@ -204,7 +199,7 @@ export class ScyllaComicsExtension implements ScyllaComicsImplementation {
             method: "GET",
         };
 
-        const $ = await this.fetchCheerio(request);
+        const $ = await fetchCheerio(request);
         const manga = parseSearch($, "https://scyllacomics.xyz");
 
         metadata = !isLastPage($) ? { page: page + 1 } : undefined;
@@ -293,32 +288,5 @@ export class ScyllaComicsExtension implements ScyllaComicsImplementation {
             metadata: undefined,
         };
     }
-
-    // may need to check for cf headers if challenges appear in future
-    checkCloudflareStatus(status: number): void {
-        if (status === 503) {
-            throw new CloudflareError({
-                url: SCYLLA_COMICS_DOMAIN,
-                method: "GET",
-            });
-        }
-        if (status === 403) {
-            throw new Error(
-                "Server returned 403 Forbidden. This title may have been removed due to a DMCA request or is otherwise unavailable.",
-            );
-        }
-    }
-
-    async fetchCheerio(request: Request): Promise<cheerio.CheerioAPI> {
-        const [response, data] = await Application.scheduleRequest(request);
-        this.checkCloudflareStatus(response.status);
-        return cheerio.load(Application.arrayBufferToUTF8String(data), {
-            xml: {
-                xmlMode: false,
-                decodeEntities: false,
-            },
-        });
-    }
 }
-
 export const ScyllaComics = new ScyllaComicsExtension();

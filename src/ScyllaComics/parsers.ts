@@ -4,18 +4,18 @@ import {
     ContentRating,
     DiscoverSectionItem,
     MangaInfo,
+    PagedResults,
+    Request,
     SearchResultItem,
     SourceManga,
     Tag,
     TagSection,
     URL,
-    PagedResults,
-    Request,
 } from "@paperback/types";
-import { Metadata } from "./models";
-import { CheerioAPI } from "cheerio";
+import type { CheerioAPI } from "cheerio";
 import { SCYLLA_COMICS_DOMAIN } from "./main";
-import { TIME_MULTIPLIERS } from "./models";
+import { Metadata, TIME_MULTIPLIERS } from "./models";
+import { fetchCheerio } from "./network";
 
 export function parseMangaDetails(
     $: CheerioAPI,
@@ -310,20 +310,18 @@ export function parseViewMore(
     return out;
 }
 
-// new parse functions from main should go here
-// --- Discover Section Parse Helpers ---
 
-export async function getFeaturedSectionItems(
-    source: { fetchCheerio(request: Request): Promise<CheerioAPI> },
-): Promise<PagedResults<DiscoverSectionItem>> {
+// TODO: move pagination logic to a helper?
+export async function getFeaturedSectionItems(): Promise<
+    PagedResults<DiscoverSectionItem>
+> {
     const request: Request = { url: SCYLLA_COMICS_DOMAIN, method: "GET" };
-    const $ = await source.fetchCheerio(request);
+    const $ = await fetchCheerio(request);
     const items = parseViewMore($, "#home-slider", "featured");
     return { items, metadata: undefined };
 }
 
 export async function getMostPopularSectionItems(
-    source: { fetchCheerio(request: Request): Promise<CheerioAPI> },
     metadata?: Metadata,
 ): Promise<PagedResults<DiscoverSectionItem>> {
     const page = metadata?.page ?? 1;
@@ -331,7 +329,7 @@ export async function getMostPopularSectionItems(
     // page 1 = homepage carousel
     if (page === 1) {
         const request: Request = { url: SCYLLA_COMICS_DOMAIN, method: "GET" };
-        const $ = await source.fetchCheerio(request);
+        const $ = await fetchCheerio(request);
         const items = parseViewMore($, "#popular-cards", "most_popular");
         return { items, metadata: { page: 2 } };
     }
@@ -341,20 +339,19 @@ export async function getMostPopularSectionItems(
         url: `${SCYLLA_COMICS_DOMAIN}/manga?page=${page - 1}`,
         method: "GET",
     };
-    const $ = await source.fetchCheerio(request);
+    const $ = await fetchCheerio(request);
 
     const items = parseViewMore($, "div#card-real", "most_popular");
 
     const currentPage =
-        parseInt($("li.pagination-link.pagination-active span").text().trim()) ||
-        page - 1;
+        parseInt(
+            $("li.pagination-link.pagination-active span").text().trim(),
+        ) || page - 1;
     const nextPageExists =
-        $("li.pagination-link")
-            .filter((_, el) => {
-                const txt = $(el).text().trim();
-                return /^\d+$/.test(txt) && parseInt(txt) === currentPage + 1;
-            })
-            .length > 0;
+        $("li.pagination-link").filter((_, el) => {
+            const txt = $(el).text().trim();
+            return /^\d+$/.test(txt) && parseInt(txt) === currentPage + 1;
+        }).length > 0;
 
     return {
         items,
@@ -363,7 +360,6 @@ export async function getMostPopularSectionItems(
 }
 
 export async function getRecentlyAddedSectionItems(
-    source: { fetchCheerio(request: Request): Promise<CheerioAPI> },
     metadata?: Metadata,
 ): Promise<PagedResults<DiscoverSectionItem>> {
     const page = metadata?.page ?? 1;
@@ -371,20 +367,19 @@ export async function getRecentlyAddedSectionItems(
         url: `${SCYLLA_COMICS_DOMAIN}/manga?page=${page}`,
         method: "GET",
     };
-    const $ = await source.fetchCheerio(request);
+    const $ = await fetchCheerio(request);
 
     const items = parseViewMore($, "div#card-real", "recently_added");
 
     const currentPage =
-        parseInt($("li.pagination-link.pagination-active span").text().trim()) ||
-        page;
+        parseInt(
+            $("li.pagination-link.pagination-active span").text().trim(),
+        ) || page;
     const nextPageExists =
-        $("li.pagination-link")
-            .filter((_, el) => {
-                const txt = $(el).text().trim();
-                return /^\d+$/.test(txt) && parseInt(txt) === currentPage + 1;
-            })
-            .length > 0;
+        $("li.pagination-link").filter((_, el) => {
+            const txt = $(el).text().trim();
+            return /^\d+$/.test(txt) && parseInt(txt) === currentPage + 1;
+        }).length > 0;
 
     return {
         items,
@@ -393,7 +388,6 @@ export async function getRecentlyAddedSectionItems(
 }
 
 export async function getRecentChaptersSectionItems(
-    source: { fetchCheerio(request: Request): Promise<CheerioAPI> },
     metadata?: Metadata,
 ): Promise<PagedResults<DiscoverSectionItem>> {
     const page = metadata?.page ?? 1;
@@ -404,20 +398,19 @@ export async function getRecentChaptersSectionItems(
                 : SCYLLA_COMICS_DOMAIN,
         method: "GET",
     };
-    const $ = await source.fetchCheerio(request);
+    const $ = await fetchCheerio(request);
 
     const items = parseViewMore($, "section:last-of-type", "recent_chapters");
 
     const currentPage =
-        parseInt($("li.pagination-link.pagination-active span").text().trim()) ||
-        page;
+        parseInt(
+            $("li.pagination-link.pagination-active span").text().trim(),
+        ) || page;
     const nextPageExists =
-        $("li.pagination-link")
-            .filter((_, el) => {
-                const txt = $(el).text().trim();
-                return /^\d+$/.test(txt) && parseInt(txt) === currentPage + 1;
-            })
-            .length > 0;
+        $("li.pagination-link").filter((_, el) => {
+            const txt = $(el).text().trim();
+            return /^\d+$/.test(txt) && parseInt(txt) === currentPage + 1;
+        }).length > 0;
 
     return {
         items,
