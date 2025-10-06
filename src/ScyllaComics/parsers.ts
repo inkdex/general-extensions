@@ -310,7 +310,6 @@ export function parseViewMore(
     return out;
 }
 
-
 // TODO: move pagination logic to a helper?
 export async function getFeaturedSectionItems(): Promise<
     PagedResults<DiscoverSectionItem>
