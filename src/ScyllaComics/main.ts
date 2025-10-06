@@ -26,7 +26,7 @@ import {
 } from "@paperback/types";
 import * as cheerio from "cheerio";
 import type { CheerioAPI } from "cheerio";
-import { ScyllaComicsInterceptor } from "./interceptors";
+import { ScyllaComicsInterceptor } from "./network";
 import { Metadata } from "./models";
 import {
     isLastPage,
