@@ -11,7 +11,6 @@ import {
     DiscoverSectionItem,
     DiscoverSectionProviding,
     DiscoverSectionType,
-    EndOfPageResults,
     Extension,
     MangaProviding,
     PagedResults,
@@ -25,7 +24,6 @@ import {
     URL,
 } from "@paperback/types";
 import * as cheerio from "cheerio";
-import type { CheerioAPI } from "cheerio";
 import { Metadata } from "./models";
 import { ScyllaComicsInterceptor } from "./network";
 import {
@@ -35,8 +33,14 @@ import {
     parseGenreTags,
     parseMangaDetails,
     parseSearch,
-    parseViewMore,
+
+
+    getFeaturedSectionItems,
+    getMostPopularSectionItems,
+    getRecentlyAddedSectionItems,
+    getRecentChaptersSectionItems,
 } from "./parsers";
+
 
 export const SCYLLA_COMICS_DOMAIN = "https://scyllacomics.xyz";
 
@@ -96,125 +100,24 @@ export class ScyllaComicsExtension implements ScyllaComicsImplementation {
     }
 
     async getDiscoverSectionItems(
-        section: DiscoverSection,
-        metadata: Metadata | undefined,
-    ): Promise<PagedResults<DiscoverSectionItem>> {
-        const page = metadata?.page ?? 1;
-
-        const hasNext = ($: CheerioAPI, cur: number) =>
-            $("li.pagination-link").filter((_, el) => {
-                const txt = $(el).text().trim();
-                return /^\d+$/.test(txt) && parseInt(txt) === cur + 1;
-            }).length > 0;
-
-        let url = SCYLLA_COMICS_DOMAIN;
-        if (section.id === "recent_chapters" && page > 1) {
-            url = `${SCYLLA_COMICS_DOMAIN}/?page=${page}`;
-        } else if (
-            (section.id === "most_popular" ||
-                section.id === "recently_added") &&
-            page > 1
-        ) {
-            url = `${SCYLLA_COMICS_DOMAIN}/manga?page=${page}`;
-        }
-
-        const request: Request = { url, method: "GET" };
-        const $ = await this.fetchCheerio(request);
-
-        switch (section.id) {
-            case "featured":
-                return {
-                    items: parseViewMore($, "#home-slider", "featured"),
-                    metadata: undefined,
-                };
-
-            case "most_popular": {
-                let items: DiscoverSectionItem[];
-
-                // page 1 = homepage carousel
-                if (page === 1) {
-                    items = parseViewMore($, "#popular-cards", "most_popular");
-                    return { items, metadata: { page: 2 } }; // prepare next page
-                }
-
-                // page >= 2
-                const url = `${SCYLLA_COMICS_DOMAIN}/manga?page=${page - 1}`; // offset because page 1 was carousel
-                const req: Request = { url, method: "GET" };
-                const $$ = await this.fetchCheerio(req);
-
-                items = parseViewMore($$, "div#card-real", "most_popular");
-
-                const currentPage =
-                    parseInt(
-                        $$("li.pagination-link.pagination-active span")
-                            .text()
-                            .trim(),
-                    ) || page - 1;
-                const nextPageExists = hasNext($$, currentPage);
-
-                return {
-                    items,
-                    metadata: nextPageExists ? { page: page + 1 } : undefined,
-                };
-            }
-
-            case "recently_added": {
-                const url = `${SCYLLA_COMICS_DOMAIN}/manga?page=${page}`;
-                const req: Request = { url, method: "GET" };
-                const $$ = await this.fetchCheerio(req);
-
-                const items = parseViewMore(
-                    $$,
-                    "div#card-real",
-                    "recently_added",
-                );
-
-                const currentPage =
-                    parseInt(
-                        $$("li.pagination-link.pagination-active span")
-                            .text()
-                            .trim(),
-                    ) || page;
-                const nextPageExists = hasNext($$, currentPage);
-
-                return {
-                    items,
-                    metadata: nextPageExists
-                        ? { page: currentPage + 1 }
-                        : undefined,
-                };
-            }
-
-            case "recent_chapters": {
-                const items = parseViewMore(
-                    $,
-                    "section:last-of-type",
-                    "recent_chapters",
-                );
-
-                const currentPage =
-                    parseInt(
-                        $("li.pagination-link.pagination-active span")
-                            .text()
-                            .trim(),
-                    ) || page;
-                const nextPageExists = hasNext($, currentPage);
-
-                return {
-                    items,
-                    metadata: nextPageExists
-                        ? { page: currentPage + 1 }
-                        : undefined,
-                };
-            }
-
-            case "genres":
-                return this.getGenreSectionItems();
-
-            default:
-                return { items: [], metadata: undefined };
-        }
+    section: DiscoverSection,
+    metadata: Metadata | undefined,
+): Promise<PagedResults<DiscoverSectionItem>> {
+    switch (section.id) {
+        case "featured":
+            return getFeaturedSectionItems(this);
+        case "most_popular":
+            return getMostPopularSectionItems(this, metadata);
+        case "recently_added":
+            return getRecentlyAddedSectionItems(this, metadata);
+        case "recent_chapters":
+            return getRecentChaptersSectionItems(this, metadata);
+        case "genres":
+            return this.getGenreSectionItems();
+        default:
+            return { items: [], metadata: undefined };
     }
+}
 
     async saveCloudflareBypassCookies(cookies: Cookie[]): Promise<void> {
         for (const cookie of cookies) {
@@ -370,32 +273,6 @@ export class ScyllaComicsExtension implements ScyllaComicsImplementation {
         });
 
         return filters;
-    }
-
-    private async getFilteredSectionItems(
-        filter: string,
-        metadata: Metadata | undefined,
-    ): Promise<PagedResults<DiscoverSectionItem>> {
-        if (metadata?.completed) return EndOfPageResults;
-
-        const page: number = metadata?.page ?? 1;
-
-        const request: Request = {
-            url: new URL(SCYLLA_COMICS_DOMAIN)
-                .addPathComponent("manga")
-                .setQueryItem("page", String(page))
-                .setQueryItem("filter", filter)
-                .toString(),
-            method: "GET",
-        };
-        const $ = await this.fetchCheerio(request);
-        const manga = parseViewMore($);
-        metadata = !isLastPage($) ? { page: page + 1 } : undefined;
-
-        return {
-            items: manga,
-            metadata: metadata,
-        };
     }
 
     async getGenreSectionItems(): Promise<PagedResults<DiscoverSectionItem>> {
