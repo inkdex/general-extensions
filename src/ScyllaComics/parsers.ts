@@ -11,6 +11,7 @@ import {
     URL,
 } from "@paperback/types";
 import { CheerioAPI } from "cheerio";
+import { SCYLLA_COMICS_DOMAIN } from "./main";
 import { TIME_MULTIPLIERS } from "./models";
 
 export function parseMangaDetails(
@@ -195,40 +196,115 @@ export function parseChapterDetails(
     };
 }
 
-export function parseViewMore($: CheerioAPI): DiscoverSectionItem[] {
-    const manga: DiscoverSectionItem[] = [];
-    const collectedIds: string[] = [];
+export function parseViewMore(
+    $: CheerioAPI,
+    selector = "div#card-real",
+    sectionId?: string,
+): DiscoverSectionItem[] {
+    const out: DiscoverSectionItem[] = [];
+    const seen = new Set<string>();
+    const container = $(selector);
 
-    $("div#card-real").each((_, obj) => {
-        let image: string =
-            $("img.lazyload", obj).attr("data-src") ??
-            $("img", obj).attr("src") ??
+    const anchors = container.find("a[href*='/manga/']").toArray();
+    for (const a of anchors) {
+        const href = $(a).attr("href") ?? "";
+        const id = href.replace(/\/$/, "").split("/").pop() ?? "";
+        if (!id || seen.has(id)) continue;
+
+        let image =
+            $(a).find("img[data-src]").attr("data-src") ??
+            $(a).find("img").attr("src") ??
             "";
-        if (image.startsWith("/")) image = "https://scyllacomics.xyz" + image;
+        if (!image) {
+            const slide = $(a).closest("swiper-slide");
+            if (slide.length) {
+                image =
+                    slide.find("img[data-src]").attr("data-src") ??
+                    slide.find("img").attr("src") ??
+                    "";
+            }
+        }
+        if (image.startsWith("/")) image = SCYLLA_COMICS_DOMAIN + image;
 
-        const title: string =
-            $("img.lazyload", obj).attr("alt") ??
-            $("h2.text-sm.font-semibold", obj).text().trim() ??
+        let title =
+            $(a).find("img").attr("alt") ??
+            $(a).find("h2").first().text().trim() ??
             "";
+        if (!title) {
+            const slide = $(a).closest("swiper-slide");
+            if (slide.length) {
+                title =
+                    slide.find("h2").first().text().trim() ||
+                    slide.find("img").attr("alt") ||
+                    "";
+            }
+        }
+        if (!title) continue;
 
-        const id =
-            $("a", obj).attr("href")?.replace(/\/$/, "").split("/").pop() ?? "";
+        let subtitle = "";
+        if (sectionId === "recent_chapters") {
+            const cardParent = $(a).closest("div.flex.flex-col.gap-2");
+            const chapterBlock = cardParent
+                .children("div.flex.flex-col")
+                .last();
+            const chapterText = chapterBlock.find("a b").first().text().trim();
+            const timeAgo = chapterBlock
+                .find("span.text-xs")
+                .first()
+                .text()
+                .trim();
 
-        if (!id || !title || collectedIds.includes(id)) return;
+            if (chapterText) {
+                subtitle = `Chp ${chapterText}${timeAgo ? ` • ${timeAgo}` : ""}`;
+            }
+        }
 
-        manga.push({
+        out.push({
             type: "simpleCarouselItem",
             mangaId: id,
             title: Application.decodeHTMLEntities(title),
             imageUrl: image,
-            subtitle: "",
+            subtitle,
             contentRating: ContentRating.ADULT,
         });
 
-        collectedIds.push(id);
-    });
+        seen.add(id);
+    }
 
-    return manga;
+    // fallback for featured section which uses a swiper slider instead of cards
+    if (out.length === 0) {
+        container.find("swiper-slide").each((_, slide) => {
+            const $slide = $(slide);
+            const href = $slide.find("a[href*='/manga/']").attr("href") ?? "";
+            const id = href.replace(/\/$/, "").split("/").pop() ?? "";
+            if (!id || seen.has(id)) return;
+
+            let image =
+                $slide.find("img[data-src]").attr("data-src") ??
+                $slide.find("img").attr("src") ??
+                "";
+            if (image.startsWith("/")) image = SCYLLA_COMICS_DOMAIN + image;
+
+            const title =
+                $slide.find("h2").first().text().trim() ||
+                $slide.find("img").attr("alt") ||
+                "";
+            if (!title) return;
+
+            out.push({
+                type: "simpleCarouselItem",
+                mangaId: id,
+                title: Application.decodeHTMLEntities(title),
+                imageUrl: image,
+                subtitle: "",
+                contentRating: ContentRating.ADULT,
+            });
+
+            seen.add(id);
+        });
+    }
+
+    return out;
 }
 
 export function parseGenreTags($: CheerioAPI): TagSection[] {
