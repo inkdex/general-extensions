@@ -4,14 +4,18 @@ import {
     ContentRating,
     DiscoverSectionItem,
     MangaInfo,
+    PagedResults,
+    Request,
     SearchResultItem,
     SourceManga,
     Tag,
     TagSection,
     URL,
 } from "@paperback/types";
-import { CheerioAPI } from "cheerio";
-import { TIME_MULTIPLIERS } from "./models";
+import type { CheerioAPI } from "cheerio";
+import { SCYLLA_COMICS_DOMAIN } from "./main";
+import { Metadata, TIME_MULTIPLIERS } from "./models";
+import { fetchCheerio } from "./network";
 
 export function parseMangaDetails(
     $: CheerioAPI,
@@ -195,40 +199,222 @@ export function parseChapterDetails(
     };
 }
 
-export function parseViewMore($: CheerioAPI): DiscoverSectionItem[] {
-    const manga: DiscoverSectionItem[] = [];
-    const collectedIds: string[] = [];
+export function parseViewMore(
+    $: CheerioAPI,
+    selector = "div#card-real",
+    sectionId?: string,
+): DiscoverSectionItem[] {
+    const out: DiscoverSectionItem[] = [];
+    const seen = new Set<string>();
+    const container = $(selector);
 
-    $("div#card-real").each((_, obj) => {
-        let image: string =
-            $("img.lazyload", obj).attr("data-src") ??
-            $("img", obj).attr("src") ??
+    const anchors = container.find("a[href*='/manga/']").toArray();
+    for (const a of anchors) {
+        const href = $(a).attr("href") ?? "";
+        const id = href.replace(/\/$/, "").split("/").pop() ?? "";
+        if (!id || seen.has(id)) continue;
+
+        let image =
+            $(a).find("img[data-src]").attr("data-src") ??
+            $(a).find("img").attr("src") ??
             "";
-        if (image.startsWith("/")) image = "https://scyllacomics.xyz" + image;
+        if (!image) {
+            const slide = $(a).closest("swiper-slide");
+            if (slide.length) {
+                image =
+                    slide.find("img[data-src]").attr("data-src") ??
+                    slide.find("img").attr("src") ??
+                    "";
+            }
+        }
+        if (image.startsWith("/")) image = SCYLLA_COMICS_DOMAIN + image;
 
-        const title: string =
-            $("img.lazyload", obj).attr("alt") ??
-            $("h2.text-sm.font-semibold", obj).text().trim() ??
+        let title =
+            $(a).find("img").attr("alt") ??
+            $(a).find("h2").first().text().trim() ??
             "";
+        if (!title) {
+            const slide = $(a).closest("swiper-slide");
+            if (slide.length) {
+                title =
+                    slide.find("h2").first().text().trim() ||
+                    slide.find("img").attr("alt") ||
+                    "";
+            }
+        }
+        if (!title) continue;
 
-        const id =
-            $("a", obj).attr("href")?.replace(/\/$/, "").split("/").pop() ?? "";
+        let subtitle = "";
+        if (sectionId === "recent_chapters") {
+            const cardParent = $(a).closest("div.flex.flex-col.gap-2");
+            const chapterBlock = cardParent
+                .children("div.flex.flex-col")
+                .last();
+            const chapterText = chapterBlock.find("a b").first().text().trim();
+            const timeAgo = chapterBlock
+                .find("span.text-xs")
+                .first()
+                .text()
+                .trim();
 
-        if (!id || !title || collectedIds.includes(id)) return;
+            if (chapterText) {
+                subtitle = `Chp ${chapterText}${timeAgo ? ` • ${timeAgo}` : ""}`;
+            }
+        }
 
-        manga.push({
+        out.push({
             type: "simpleCarouselItem",
             mangaId: id,
             title: Application.decodeHTMLEntities(title),
             imageUrl: image,
-            subtitle: "",
+            subtitle,
             contentRating: ContentRating.ADULT,
         });
 
-        collectedIds.push(id);
-    });
+        seen.add(id);
+    }
 
-    return manga;
+    // fallback for featured section which uses a swiper slider instead of cards
+    if (out.length === 0) {
+        container.find("swiper-slide").each((_, slide) => {
+            const $slide = $(slide);
+            const href = $slide.find("a[href*='/manga/']").attr("href") ?? "";
+            const id = href.replace(/\/$/, "").split("/").pop() ?? "";
+            if (!id || seen.has(id)) return;
+
+            let image =
+                $slide.find("img[data-src]").attr("data-src") ??
+                $slide.find("img").attr("src") ??
+                "";
+            if (image.startsWith("/")) image = SCYLLA_COMICS_DOMAIN + image;
+
+            const title =
+                $slide.find("h2").first().text().trim() ||
+                $slide.find("img").attr("alt") ||
+                "";
+            if (!title) return;
+
+            out.push({
+                type: "simpleCarouselItem",
+                mangaId: id,
+                title: Application.decodeHTMLEntities(title),
+                imageUrl: image,
+                subtitle: "",
+                contentRating: ContentRating.ADULT,
+            });
+
+            seen.add(id);
+        });
+    }
+
+    return out;
+}
+
+// TODO: move pagination logic to a helper?
+export async function getFeaturedSectionItems(): Promise<
+    PagedResults<DiscoverSectionItem>
+> {
+    const request: Request = { url: SCYLLA_COMICS_DOMAIN, method: "GET" };
+    const $ = await fetchCheerio(request);
+    const items = parseViewMore($, "#home-slider", "featured");
+    return { items, metadata: undefined };
+}
+
+export async function getMostPopularSectionItems(
+    metadata?: Metadata,
+): Promise<PagedResults<DiscoverSectionItem>> {
+    const page = metadata?.page ?? 1;
+
+    // page 1 = homepage carousel
+    if (page === 1) {
+        const request: Request = { url: SCYLLA_COMICS_DOMAIN, method: "GET" };
+        const $ = await fetchCheerio(request);
+        const items = parseViewMore($, "#popular-cards", "most_popular");
+        return { items, metadata: { page: 2 } };
+    }
+
+    // page >= 2 (offset because page 1 was carousel)
+    const request: Request = {
+        url: `${SCYLLA_COMICS_DOMAIN}/manga?page=${page - 1}`,
+        method: "GET",
+    };
+    const $ = await fetchCheerio(request);
+
+    const items = parseViewMore($, "div#card-real", "most_popular");
+
+    const currentPage =
+        parseInt(
+            $("li.pagination-link.pagination-active span").text().trim(),
+        ) || page - 1;
+    const nextPageExists =
+        $("li.pagination-link").filter((_, el) => {
+            const txt = $(el).text().trim();
+            return /^\d+$/.test(txt) && parseInt(txt) === currentPage + 1;
+        }).length > 0;
+
+    return {
+        items,
+        metadata: nextPageExists ? { page: page + 1 } : undefined,
+    };
+}
+
+export async function getRecentlyAddedSectionItems(
+    metadata?: Metadata,
+): Promise<PagedResults<DiscoverSectionItem>> {
+    const page = metadata?.page ?? 1;
+    const request: Request = {
+        url: `${SCYLLA_COMICS_DOMAIN}/manga?page=${page}`,
+        method: "GET",
+    };
+    const $ = await fetchCheerio(request);
+
+    const items = parseViewMore($, "div#card-real", "recently_added");
+
+    const currentPage =
+        parseInt(
+            $("li.pagination-link.pagination-active span").text().trim(),
+        ) || page;
+    const nextPageExists =
+        $("li.pagination-link").filter((_, el) => {
+            const txt = $(el).text().trim();
+            return /^\d+$/.test(txt) && parseInt(txt) === currentPage + 1;
+        }).length > 0;
+
+    return {
+        items,
+        metadata: nextPageExists ? { page: currentPage + 1 } : undefined,
+    };
+}
+
+export async function getRecentChaptersSectionItems(
+    metadata?: Metadata,
+): Promise<PagedResults<DiscoverSectionItem>> {
+    const page = metadata?.page ?? 1;
+    const request: Request = {
+        url:
+            page > 1
+                ? `${SCYLLA_COMICS_DOMAIN}/?page=${page}`
+                : SCYLLA_COMICS_DOMAIN,
+        method: "GET",
+    };
+    const $ = await fetchCheerio(request);
+
+    const items = parseViewMore($, "section:last-of-type", "recent_chapters");
+
+    const currentPage =
+        parseInt(
+            $("li.pagination-link.pagination-active span").text().trim(),
+        ) || page;
+    const nextPageExists =
+        $("li.pagination-link").filter((_, el) => {
+            const txt = $(el).text().trim();
+            return /^\d+$/.test(txt) && parseInt(txt) === currentPage + 1;
+        }).length > 0;
+
+    return {
+        items,
+        metadata: nextPageExists ? { page: currentPage + 1 } : undefined,
+    };
 }
 
 export function parseGenreTags($: CheerioAPI): TagSection[] {
