@@ -306,7 +306,7 @@ export class AtsumaruExtension implements AtsumaruImplementation {
                 );
                 break;
             }
-        } while (currentPage <= totalPages);
+        } while (currentPage < totalPages);
 
         chapters.sort((a, b) => (b.chapNum ?? 0) - (a.chapNum ?? 0));
 
