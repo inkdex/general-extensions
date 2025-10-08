@@ -26,13 +26,13 @@ import * as htmlparser2 from "htmlparser2";
 import { URLBuilder } from "../utils/url-builder/base";
 import { Interceptor } from "./interceptors";
 import {
+    ChapterApiResponse,
     ChapterDetailsApiResponse,
     HomePageApiResponse,
     InfiniteApiResponse,
     MangaApiResponse,
     metadata,
     SearchApiResponse,
-    ChapterApiResponse,
 } from "./model";
 
 const baseUrl = "https://atsu.moe/";
@@ -258,54 +258,64 @@ export class AtsumaruExtension implements AtsumaruImplementation {
     }
 
     async getChapters(sourceManga: SourceManga): Promise<Chapter[]> {
-    const mangaId = sourceManga.mangaId;
-    const chapters: Chapter[] = [];
-    let currentPage = 0;
-    let totalPages = 1;
+        const mangaId = sourceManga.mangaId;
+        const chapters: Chapter[] = [];
+        let currentPage = 0;
+        let totalPages = 1;
 
-    do {
-        const request: Request = {
-            url: `${baseUrl}api/manga/chapters?id=${mangaId}&filter=all&sort=desc&page=${currentPage}`,
-            method: "GET",
-        };
+        do {
+            const request: Request = {
+                url: `${baseUrl}api/manga/chapters?id=${mangaId}&filter=all&sort=desc&page=${currentPage}`,
+                method: "GET",
+            };
 
-        try {
-            const response = await this.fetchJson<ChapterApiResponse>(request);
+            try {
+                const response =
+                    await this.fetchJson<ChapterApiResponse>(request);
 
-            if (!response?.chapters?.length) {
-                console.warn(`[chapters] No chapters found on page ${currentPage} for ${mangaId}`);
+                if (!response?.chapters?.length) {
+                    console.warn(
+                        `[chapters] No chapters found on page ${currentPage} for ${mangaId}`,
+                    );
+                    break;
+                }
+
+                for (const ch of response.chapters) {
+                    const stripped = ch.title
+                        ?.replace(/^Chapter\s*/i, "")
+                        .trim();
+                    const isNumeric = /^\d+$/.test(stripped ?? "");
+
+                    chapters.push({
+                        chapterId: ch.id,
+                        sourceManga,
+                        title: isNumeric ? undefined : stripped, // let Paperback generate title if number only
+                        volume: 0,
+                        chapNum: ch.number ?? 0,
+                        publishDate: new Date(ch.createdAt),
+                        langCode: "🇬🇧",
+                    });
+                }
+
+                totalPages = response.pages ?? 1;
+                currentPage++;
+            } catch (err: unknown) {
+                console.error(
+                    `[chapters] fetchJson error on page ${currentPage}:`,
+                    err,
+                );
                 break;
             }
+        } while (currentPage <= totalPages);
 
-            for (const ch of response.chapters) {
-                const stripped = ch.title?.replace(/^Chapter\s*/i, "").trim();
-                const isNumeric = /^\d+$/.test(stripped ?? "");
+        chapters.sort((a, b) => (b.chapNum ?? 0) - (a.chapNum ?? 0));
 
-                chapters.push({
-                    chapterId: ch.id,
-                    sourceManga,
-                    title: isNumeric ? undefined : stripped, // let Paperback generate title if number only
-                    volume: 0,
-                    chapNum: ch.number ?? 0,
-                    publishDate: new Date(ch.createdAt),
-                    langCode: "🇬🇧",
-                });
-            }
+        console.log(
+            `[chapters] Loaded ${chapters.length} chapters for ${mangaId} (${totalPages} pages)`,
+        );
 
-            totalPages = response.pages ?? 1;
-            currentPage++;
-        } catch (err: unknown) {
-            console.error(`[chapters] fetchJson error on page ${currentPage}:`, err);
-            break;
-        }
-    } while (currentPage <= totalPages);
-
-    chapters.sort((a, b) => (b.chapNum ?? 0) - (a.chapNum ?? 0));
-
-    console.log(`[chapters] Loaded ${chapters.length} chapters for ${mangaId} (${totalPages} pages)`);
-
-    return chapters;
-}
+        return chapters;
+    }
 
     async getChapterDetails(chapter: Chapter): Promise<ChapterDetails> {
         const apiUrl = new URLBuilder(baseUrl)
