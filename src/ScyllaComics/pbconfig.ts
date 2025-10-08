@@ -1,24 +1,22 @@
 import { ContentRating, SourceInfo, SourceIntents } from "@paperback/types";
 
 export default {
-    name: "Bato.To",
-    description: "Extension that pulls content from bato.to.",
-    version: "1.0.0-alpha.4",
+    name: "Scylla Comics",
+    description: "Extension that pulls content from scyllacomics.xyz.",
+    version: "1.0.0-alpha.2",
     icon: "icon.png",
     language: "en",
     contentRating: ContentRating.ADULT,
     capabilities: [
-        SourceIntents.SETTINGS_UI,
+        SourceIntents.CLOUDFLARE_BYPASS_REQUIRED,
         SourceIntents.DISCOVER_SECIONS,
-        SourceIntents.MANGA_SEARCH,
         SourceIntents.MANGA_CHAPTERS,
+        SourceIntents.MANGA_SEARCH,
     ],
     badges: [],
     developers: [
         {
-            name: "Inkdex",
-            website: "https://inkdex.github.io",
-            github: "https://github.com/inkdex",
+            name: "Lucifers Circle",
         },
     ],
 } satisfies SourceInfo;

@@ -149,10 +149,11 @@ export const parseChapterDetails = (
     chapter: Chapter,
 ): ChapterDetails => {
     const pages: string[] = [];
-    for (const img of $("img", "div#chapter-reader").toArray()) {
+    for (const img of $(".page-in img[onerror]").toArray()) {
         let image = $(img).attr("src") ?? "";
         if (!image) image = $(img).attr("data-src") ?? "";
         if (!image) continue;
+        if (image.includes("credits-mgeko.png")) continue;
         pages.push(image);
     }
 
@@ -212,7 +213,7 @@ export const parseGenreTags = ($: CheerioAPI): TagSection[] => {
     }
 
     const tagSections: TagSection[] = [
-        { id: "genres", title: "genres", tags: arrayTags },
+        { id: "genres", title: "Genres", tags: arrayTags },
     ];
     return tagSections;
 };
@@ -223,7 +224,10 @@ export const parseSearch = (
 ): SearchResultItem[] => {
     const mangas: SearchResultItem[] = [];
     for (const obj of $("li.novel-item", "ul.novel-list").toArray()) {
-        let image: string = $("img", obj).first().attr("data-src") ?? "";
+        let image: string =
+            $("img", obj).first().attr("data-src") ??
+            $("img", obj).first().attr("src") ??
+            "";
         if (image.startsWith("/")) image = baseUrl + image;
 
         const title: string = $("img", obj).first().attr("alt") ?? "";

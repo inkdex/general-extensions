@@ -1,11 +1,4 @@
-import {
-    Form,
-    FormSectionElement,
-    LabelRow,
-    NavigationRow,
-    Section,
-    SelectRow,
-} from "@paperback/types";
+import { Form, FormSectionElement, Section, SelectRow } from "@paperback/types";
 
 // Language Helper Class
 class MFLanguagesClass {
@@ -66,25 +59,6 @@ export function setLanguages(languages: string[]): void {
 
 // Main Settings Form
 export class MangaFireSettingsForm extends Form {
-    override getSections(): FormSectionElement[] {
-        return [
-            Section("mainSettings", [
-                LabelRow("settingsLabel", {
-                    title: "MangaFire Settings",
-                    subtitle: "Configure your reading experience",
-                }),
-                NavigationRow("contentSettings", {
-                    title: "Content Settings",
-                    subtitle: "Languages and display options",
-                    form: new ContentSettingsForm(),
-                }),
-            ]),
-        ];
-    }
-}
-
-// Content Settings Form
-export class ContentSettingsForm extends Form {
     private languagesState: {
         value: string[];
         updateValue: (newValue: string[]) => Promise<void>;
@@ -109,38 +83,40 @@ export class ContentSettingsForm extends Form {
 
     override getSections(): FormSectionElement[] {
         return [
-            Section("contentSettings", [
-                LabelRow("contentSettingsLabel", {
-                    title: "Content Settings",
-                    subtitle: "Configure your reading experience",
-                }),
-                SelectRow("languages", {
-                    title: "Languages",
-                    subtitle: (() => {
-                        const selectedLangCodes = this.languagesState.value;
-                        const selectedLangNames = selectedLangCodes
-                            .map(
-                                (langCode) =>
-                                    `${MFLanguages.getFlagCode(langCode)} ${MFLanguages.getName(
-                                        langCode,
-                                    )}`,
-                            )
-                            .sort();
-                        return selectedLangNames.join(", ");
-                    })(),
-                    value: this.languagesState.value,
-                    options: MFLanguages.getCodeList().map((code) => ({
-                        id: code,
-                        title: `${MFLanguages.getFlagCode(code)} ${MFLanguages.getName(code)}`,
-                    })),
-                    minItemCount: 1,
-                    maxItemCount: MFLanguages.getCodeList().length,
-                    onValueChange: Application.Selector(
-                        this as ContentSettingsForm,
-                        "updateValue",
-                    ),
-                }),
-            ]),
+            Section(
+                {
+                    id: "languageContent",
+                    footer: "Filter chapters by language. At least one language must be selected.",
+                },
+                [
+                    SelectRow("languages", {
+                        title: "Languages",
+                        subtitle: (() => {
+                            const selectedLangCodes = this.languagesState.value;
+                            const selectedLangNames = selectedLangCodes
+                                .map(
+                                    (langCode) =>
+                                        `${MFLanguages.getFlagCode(langCode)} ${MFLanguages.getName(
+                                            langCode,
+                                        )}`,
+                                )
+                                .sort();
+                            return selectedLangNames.join(", ");
+                        })(),
+                        value: this.languagesState.value,
+                        options: MFLanguages.getCodeList().map((code) => ({
+                            id: code,
+                            title: `${MFLanguages.getFlagCode(code)} ${MFLanguages.getName(code)}`,
+                        })),
+                        minItemCount: 1,
+                        maxItemCount: MFLanguages.getCodeList().length,
+                        onValueChange: Application.Selector(
+                            this as MangaFireSettingsForm,
+                            "updateValue",
+                        ),
+                    }),
+                ],
+            ),
         ];
     }
 }
