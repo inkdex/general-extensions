@@ -534,20 +534,17 @@ export class MangaFireExtension implements MangaFireImplementation {
         const allRequests = [];
 
         for (const lang of languages) {
-            for (const type of ["read", "manga"]) {
-                allRequests.push({
-                    url: new URLBuilder(baseUrl)
-                        .addPath("ajax")
-                        .addPath(type)
-                        .addPath(mangaId)
-                        .addPath("chapter")
-                        .addPath(lang)
-                        .build(),
-                    method: "GET",
-                    language: lang,
-                    type: type,
-                });
-            }
+            allRequests.push({
+                url: new URLBuilder(baseUrl)
+                    .addPath("ajax")
+                    .addPath("manga")
+                    .addPath(mangaId)
+                    .addPath("chapter")
+                    .addPath(lang)
+                    .build(),
+                method: "GET",
+                language: lang,
+            });
         }
 
         const responses = await Promise.allSettled(
@@ -558,19 +555,14 @@ export class MangaFireExtension implements MangaFireImplementation {
                 }).then(([, buffer]) => ({
                     buffer,
                     language: req.language,
-                    type: req.type,
                 })),
             ),
         );
 
         const chapters: Chapter[] = [];
-        const timestampMaps = new Map<string, Map<string, string>>();
 
         for (const response of responses) {
-            if (
-                response.status === "fulfilled" &&
-                response.value.type === "manga"
-            ) {
+            if (response.status === "fulfilled") {
                 try {
                     const buffer = response.value.buffer;
                     const language = response.value.language;
@@ -586,68 +578,32 @@ export class MangaFireExtension implements MangaFireImplementation {
 
                     if (html) {
                         const $r2 = cheerio.load(html);
-                        const timestampMap = new Map<string, string>();
-
                         $r2("li").each((_, el) => {
                             const li = $r2(el);
                             const chapterNumber = li.attr("data-number") || "0";
+                            const link = li.find("a");
                             const dateText = li
                                 .find("span")
                                 .last()
                                 .text()
                                 .trim();
-                            timestampMap.set(chapterNumber, dateText);
-                        });
-
-                        if (timestampMap.size > 0) {
-                            timestampMaps.set(language, timestampMap);
-                        }
-                    }
-                } catch (error) {
-                    console.error(
-                        `Failed to parse buffer for language ${response.value.language}:`,
-                        error,
-                    );
-                }
-            }
-        }
-
-        for (const response of responses) {
-            if (
-                response.status === "fulfilled" &&
-                response.value.type === "read"
-            ) {
-                try {
-                    const buffer = response.value.buffer;
-                    const language = response.value.language;
-
-                    const r1 = JSON.parse(
-                        Application.arrayBufferToUTF8String(buffer),
-                    ) as Result;
-
-                    if (
-                        r1?.result &&
-                        typeof r1.result !== "string" &&
-                        r1.result.html
-                    ) {
-                        const $1 = cheerio.load(r1.result.html);
-                        const timestampMap = timestampMaps.get(language);
-
-                        $1("li").each((_, el) => {
-                            const li = $1(el);
-                            const link = li.find("a");
-                            const chapterNumber =
-                                link.attr("data-number") || "0";
-                            const timestamp = timestampMap?.get(chapterNumber);
+                            const title =
+                                link
+                                    .find("span")
+                                    .first()
+                                    .text()
+                                    .trim()
+                                    .split(`${chapterNumber}:`)[1]
+                                    ?.trim() || undefined;
 
                             chapters.push({
                                 chapterId: link.attr("data-id") || "0",
-                                title: link.find("span").first().text().trim(),
+                                title: title,
                                 sourceManga,
                                 chapNum: parseFloat(String(chapterNumber)),
-                                publishDate: timestamp
-                                    ? new Date(convertToISO8601(timestamp))
-                                    : undefined,
+                                publishDate: new Date(
+                                    convertToISO8601(dateText),
+                                ),
                                 volume: 0,
                                 langCode: getLanguageFlag(language),
                                 version: getLanguageVersion(language),
