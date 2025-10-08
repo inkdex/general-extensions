@@ -36,6 +36,12 @@ export interface ChapterApiItem {
     progress: null;
 }
 
+export interface ChapterApiResponse {
+    chapters: ChapterApiItem[];
+    pages: number;
+    page: number;
+}
+
 export interface MangaPage {
     id: string;
     authors: MangaPageAuthor[];
