@@ -1,4 +1,4 @@
-import { SearchQuery } from "@paperback/types";
+import { type SearchQuery } from "@paperback/types";
 import { MANGA_PILL_DOMAIN } from "./models";
 
 export function getFilterTagsBySection(

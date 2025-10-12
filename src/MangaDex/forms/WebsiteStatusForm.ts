@@ -1,9 +1,9 @@
 import {
     ButtonRow,
     Form,
-    FormSectionElement,
     Section,
     WebViewRow,
+    type FormSectionElement,
 } from "@paperback/types";
 import * as cheerio from "cheerio";
 

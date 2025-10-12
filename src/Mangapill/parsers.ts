@@ -1,13 +1,13 @@
 import {
-    Chapter,
-    ChapterDetails,
-    DiscoverSectionItem,
-    SearchResultItem,
-    SourceManga,
-    Tag,
-    TagSection,
+    type Chapter,
+    type ChapterDetails,
+    type DiscoverSectionItem,
+    type SearchResultItem,
+    type SourceManga,
+    type Tag,
+    type TagSection,
 } from "@paperback/types";
-import { CheerioAPI } from "cheerio";
+import { type CheerioAPI } from "cheerio";
 import { decodeHTML } from "entities";
 import { formatTagId, getShareUrl } from "./helpers";
 import pbconfig from "./pbconfig";

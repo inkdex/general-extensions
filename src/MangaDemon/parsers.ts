@@ -3,9 +3,9 @@
 // Responsible for parsing HTML responses from demonicscans.org.
 // Extracts manga details, chapter lists, search results, and chapter page images.
 
-import { DiscoverSectionItem } from "@paperback/types";
-import { CheerioAPI } from "cheerio";
-import { SearchResultItem } from "./models";
+import { type DiscoverSectionItem } from "@paperback/types";
+import { type CheerioAPI } from "cheerio";
+import { type SearchResultItem } from "./models";
 
 export class MangaDemonParser {
     /**

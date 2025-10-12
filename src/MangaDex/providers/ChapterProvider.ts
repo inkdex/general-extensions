@@ -1,11 +1,11 @@
 import {
-    Chapter,
-    ChapterDetails,
     ContentRating,
-    MangaInfo,
-    SourceManga,
-    UpdateManager,
     URL,
+    type Chapter,
+    type ChapterDetails,
+    type MangaInfo,
+    type SourceManga,
+    type UpdateManager,
 } from "@paperback/types";
 import { MDLanguages } from "../MangaDexHelper";
 import { parseMangaItemDetails } from "../MangaDexParser";

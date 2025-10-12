@@ -1,4 +1,4 @@
-import { Filters } from "./interfaces/AsuraScansInterfaces";
+import { type Filters } from "./interfaces/AsuraScansInterfaces";
 
 export async function setFilters(data: Filters) {
     for (const genre of data.genres) {

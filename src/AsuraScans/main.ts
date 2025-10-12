@@ -1,24 +1,24 @@
 import {
     BasicRateLimiter,
-    Chapter,
-    ChapterDetails,
-    ChapterProviding,
-    DiscoverSection,
-    DiscoverSectionItem,
-    DiscoverSectionProviding,
     DiscoverSectionType,
-    Extension,
     Form,
-    MangaProviding,
-    PagedResults,
-    Request,
-    SearchFilter,
-    SearchQuery,
-    SearchResultItem,
-    SearchResultsProviding,
-    SettingsFormProviding,
-    SourceManga,
-    TagSection,
+    type Chapter,
+    type ChapterDetails,
+    type ChapterProviding,
+    type DiscoverSection,
+    type DiscoverSectionItem,
+    type DiscoverSectionProviding,
+    type Extension,
+    type MangaProviding,
+    type PagedResults,
+    type Request,
+    type SearchFilter,
+    type SearchQuery,
+    type SearchResultItem,
+    type SearchResultsProviding,
+    type SettingsFormProviding,
+    type SourceManga,
+    type TagSection,
 } from "@paperback/types";
 import * as cheerio from "cheerio";
 import { URLBuilder } from "../utils/url-builder/array-query-variant";
@@ -38,9 +38,9 @@ import {
 import { AsuraSettingForm } from "./AsuraSettings";
 import { setFilters } from "./AsuraUtils";
 import {
-    AsuraScansMetadata,
-    Filters,
-    Page,
+    type AsuraScansMetadata,
+    type Filters,
+    type Page,
 } from "./interfaces/AsuraScansInterfaces";
 
 export class AsuraScansExtension

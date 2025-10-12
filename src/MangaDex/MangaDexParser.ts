@@ -1,9 +1,9 @@
 import {
     ContentRating,
-    SearchQuery,
-    SourceManga,
-    Tag,
-    TagSection,
+    type SearchQuery,
+    type SourceManga,
+    type Tag,
+    type TagSection,
 } from "@paperback/types";
 import { MDImageQuality } from "./MangaDexHelper";
 import {

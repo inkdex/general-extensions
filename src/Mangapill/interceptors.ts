@@ -1,4 +1,8 @@
-import { PaperbackInterceptor, Request, Response } from "@paperback/types";
+import {
+    PaperbackInterceptor,
+    type Request,
+    type Response,
+} from "@paperback/types";
 import { MANGA_PILL_DOMAIN } from "./models";
 
 export class MangapillInterceptor extends PaperbackInterceptor {

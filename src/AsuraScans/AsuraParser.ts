@@ -1,19 +1,19 @@
 import {
-    Chapter,
-    ChapterDetails,
     ContentRating,
-    DiscoverSectionItem,
-    SearchResultItem,
-    SourceManga,
-    Tag,
-    TagSection,
+    type Chapter,
+    type ChapterDetails,
+    type DiscoverSectionItem,
+    type SearchResultItem,
+    type SourceManga,
+    type Tag,
+    type TagSection,
 } from "@paperback/types";
-import { CheerioAPI, load } from "cheerio";
+import { load, type CheerioAPI } from "cheerio";
 import { URLBuilder } from "../utils/url-builder/base";
 import { AS_DOMAIN } from "./AsuraConfig";
 import { getShowUpcomingChapters } from "./AsuraSettings";
 import { getFilter, getMangaId } from "./AsuraUtils";
-import { Filters } from "./interfaces/AsuraScansInterfaces";
+import { type Filters } from "./interfaces/AsuraScansInterfaces";
 import pbconfig from "./pbconfig";
 
 export const parseMangaDetails = async (

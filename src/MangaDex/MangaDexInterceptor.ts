@@ -1,4 +1,8 @@
-import { PaperbackInterceptor, Request, Response } from "@paperback/types";
+import {
+    PaperbackInterceptor,
+    type Request,
+    type Response,
+} from "@paperback/types";
 import jpeg from "jpeg-js";
 import UPNG from "upng-js";
 import {

@@ -1,13 +1,13 @@
 import {
     ButtonRow,
     Form,
-    FormItemElement,
-    FormSectionElement,
     LabelRow,
     NavigationRow,
     Section,
-    SourceManga,
     URL,
+    type FormItemElement,
+    type FormSectionElement,
+    type SourceManga,
 } from "@paperback/types";
 import { parseMangaDetails } from "../MangaDexParser";
 import { getAccessToken, getUpdateBatchSize } from "../MangaDexSettings";

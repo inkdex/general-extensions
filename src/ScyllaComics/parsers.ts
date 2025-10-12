@@ -1,20 +1,20 @@
 import {
-    Chapter,
-    ChapterDetails,
     ContentRating,
-    DiscoverSectionItem,
-    MangaInfo,
-    PagedResults,
-    Request,
-    SearchResultItem,
-    SourceManga,
-    Tag,
-    TagSection,
     URL,
+    type Chapter,
+    type ChapterDetails,
+    type DiscoverSectionItem,
+    type MangaInfo,
+    type PagedResults,
+    type Request,
+    type SearchResultItem,
+    type SourceManga,
+    type Tag,
+    type TagSection,
 } from "@paperback/types";
 import type { CheerioAPI } from "cheerio";
 import { SCYLLA_COMICS_DOMAIN } from "./main";
-import { Metadata, TIME_MULTIPLIERS } from "./models";
+import { TIME_MULTIPLIERS, type Metadata } from "./models";
 import { fetchCheerio } from "./network";
 
 export function parseMangaDetails(

@@ -1,12 +1,12 @@
 import {
-    PagedResults,
-    SearchFilter,
-    SearchQuery,
-    SearchResultItem,
-    TagSection,
     URL,
+    type PagedResults,
+    type SearchFilter,
+    type SearchQuery,
+    type SearchResultItem,
+    type TagSection,
 } from "@paperback/types";
-import { SortingOption } from "@paperback/types/src/SortingOption";
+import { type SortingOption } from "@paperback/types/src/SortingOption";
 import tagJSON from "../external/tag.json";
 import { parseMangaList } from "../MangaDexParser";
 import {

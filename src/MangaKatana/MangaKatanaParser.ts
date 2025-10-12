@@ -1,5 +1,9 @@
-import { SearchResultItem, Tag, TagSection } from "@paperback/types";
-import { CheerioAPI } from "cheerio";
+import {
+    type SearchResultItem,
+    type Tag,
+    type TagSection,
+} from "@paperback/types";
+import { type CheerioAPI } from "cheerio";
 
 export const parseTags = ($: CheerioAPI): TagSection[] => {
     const arrayTags: Tag[] = [];

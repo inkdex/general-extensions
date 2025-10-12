@@ -1,10 +1,10 @@
 import {
     Form,
-    FormSectionElement,
     Section,
     SelectRow,
-    SettingsFormProviding,
     ToggleRow,
+    type FormSectionElement,
+    type SettingsFormProviding,
 } from "@paperback/types";
 import { Language, LanguagesOptions } from "./WebtoonI18NHelper";
 

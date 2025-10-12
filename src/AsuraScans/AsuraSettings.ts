@@ -1,10 +1,10 @@
 import {
     ButtonRow,
     Form,
-    FormSectionElement,
     LabelRow,
     Section,
     ToggleRow,
+    type FormSectionElement,
 } from "@paperback/types";
 
 function toBoolean(value: unknown): boolean {

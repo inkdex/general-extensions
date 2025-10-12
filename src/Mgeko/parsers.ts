@@ -1,15 +1,15 @@
 import {
-    Chapter,
-    ChapterDetails,
     ContentRating,
-    DiscoverSectionItem,
-    MangaInfo,
-    SearchResultItem,
-    SourceManga,
-    Tag,
-    TagSection,
+    type Chapter,
+    type ChapterDetails,
+    type DiscoverSectionItem,
+    type MangaInfo,
+    type SearchResultItem,
+    type SourceManga,
+    type Tag,
+    type TagSection,
 } from "@paperback/types";
-import { CheerioAPI } from "cheerio";
+import { type CheerioAPI } from "cheerio";
 import { URLBuilder } from "../utils/url-builder/base";
 
 export const parseMangaDetails = (

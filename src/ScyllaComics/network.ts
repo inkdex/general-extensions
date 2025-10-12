@@ -1,8 +1,8 @@
 import {
     CloudflareError,
     PaperbackInterceptor,
-    Request,
-    Response,
+    type Request,
+    type Response,
 } from "@paperback/types";
 import * as cheerio from "cheerio";
 import { SCYLLA_COMICS_DOMAIN } from "./main";

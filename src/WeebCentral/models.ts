@@ -1,4 +1,4 @@
-import { Chapter } from "@paperback/types";
+import { type Chapter } from "@paperback/types";
 
 // Constants
 

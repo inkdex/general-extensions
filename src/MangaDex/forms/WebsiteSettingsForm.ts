@@ -1,10 +1,10 @@
 import {
     DeferredItem,
     Form,
-    FormItemElement,
-    FormSectionElement,
     NavigationRow,
     Section,
+    type FormItemElement,
+    type FormSectionElement,
 } from "@paperback/types";
 
 /**

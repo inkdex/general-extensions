@@ -1,4 +1,8 @@
-import { ContentRating, SourceInfo, SourceIntents } from "@paperback/types";
+import {
+    ContentRating,
+    SourceIntents,
+    type SourceInfo,
+} from "@paperback/types";
 
 /**
  * Extension metadata and configuration

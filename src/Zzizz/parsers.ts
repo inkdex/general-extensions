@@ -3,17 +3,17 @@
 // Comments focus on intent, edge cases, and site-specific quirks for future maintainers.
 
 import {
-    Chapter,
-    ChapterDetails,
     ContentRating,
-    DiscoverSection,
-    DiscoverSectionItem,
-    SearchResultItem,
-    SourceManga,
-    Tag,
-    TagSection,
+    type Chapter,
+    type ChapterDetails,
+    type DiscoverSection,
+    type DiscoverSectionItem,
+    type SearchResultItem,
+    type SourceManga,
+    type Tag,
+    type TagSection,
 } from "@paperback/types";
-import { CheerioAPI } from "cheerio";
+import { type CheerioAPI } from "cheerio";
 import { ZizHelpers } from "./helpers";
 import { API_ENDPOINTS, DOMAIN, SELECTORS } from "./models";
 

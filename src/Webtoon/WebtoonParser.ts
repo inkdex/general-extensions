@@ -1,14 +1,17 @@
 import {
-    Chapter,
-    ChapterDetails,
     ContentRating,
-    PagedResults,
-    SearchResultItem,
-    SourceManga,
+    type Chapter,
+    type ChapterDetails,
+    type PagedResults,
+    type SearchResultItem,
+    type SourceManga,
 } from "@paperback/types";
-import { Cheerio, CheerioAPI } from "cheerio";
+import { type Cheerio, type CheerioAPI } from "cheerio";
 import type { Element } from "domhandler";
-import { WebtoonChaptersElemDto, WebtoonChaptersListDto } from "./WebtoonDtos";
+import {
+    type WebtoonChaptersElemDto,
+    type WebtoonChaptersListDto,
+} from "./WebtoonDtos";
 import { getLanguagesTitle, Language } from "./WebtoonI18NHelper";
 import { BASE_URL, WebtoonSettings } from "./WebtoonSettings";
 

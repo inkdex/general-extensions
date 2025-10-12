@@ -1,13 +1,13 @@
 import {
     ButtonRow,
     Form,
-    FormSectionElement,
     InputRow,
     LabelRow,
     Section,
     SelectRow,
     ToggleRow,
     URL,
+    type FormSectionElement,
 } from "@paperback/types";
 import {
     blockGroup,

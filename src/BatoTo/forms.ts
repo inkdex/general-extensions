@@ -1,4 +1,9 @@
-import { Form, FormSectionElement, Section, SelectRow } from "@paperback/types";
+import {
+    Form,
+    Section,
+    SelectRow,
+    type FormSectionElement,
+} from "@paperback/types";
 import { Languages } from "./models";
 
 export function getLanguages(): string[] {

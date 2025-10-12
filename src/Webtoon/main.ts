@@ -1,28 +1,28 @@
 import {
-    Chapter,
-    ChapterDetails,
-    ChapterProviding,
-    DiscoverSection,
-    DiscoverSectionItem,
-    DiscoverSectionProviding,
     DiscoverSectionType,
-    PagedResults,
-    SearchFilter,
-    SearchQuery,
-    SearchResultItem,
-    SearchResultsProviding,
-    SortingOption,
-    SourceManga,
     URL,
+    type Chapter,
+    type ChapterDetails,
+    type ChapterProviding,
+    type DiscoverSection,
+    type DiscoverSectionItem,
+    type DiscoverSectionProviding,
+    type PagedResults,
+    type SearchFilter,
+    type SearchQuery,
+    type SearchResultItem,
+    type SearchResultsProviding,
+    type SortingOption,
+    type SourceManga,
 } from "@paperback/types";
-import { WebtoonChaptersListDto } from "./WebtoonDtos";
+import { type WebtoonChaptersListDto } from "./WebtoonDtos";
 import {
     getDateDayFormat,
     getLanguagesTitle,
     Language,
 } from "./WebtoonI18NHelper";
 import { WebtoonInfra } from "./WebtoonInfra";
-import { Tag, WebtoonsSearchingMetadata } from "./WebtoonParser";
+import { type Tag, type WebtoonsSearchingMetadata } from "./WebtoonParser";
 import { BASE_URL, MOBILE_URL } from "./WebtoonSettings";
 
 export class WebtoonExtention
