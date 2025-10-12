@@ -1,4 +1,4 @@
-import { Response, URL } from "@paperback/types";
+import { URL, type Response } from "@paperback/types";
 import { WC_DOMAIN } from "./models";
 
 export interface Query {

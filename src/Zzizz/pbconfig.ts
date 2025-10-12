@@ -1,5 +1,9 @@
 // Paperback extension configuration for Zzizz
-import { ContentRating, SourceInfo, SourceIntents } from "@paperback/types";
+import {
+    ContentRating,
+    SourceIntents,
+    type SourceInfo,
+} from "@paperback/types";
 
 export default {
     name: "Zzizz",

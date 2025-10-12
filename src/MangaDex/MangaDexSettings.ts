@@ -1,11 +1,11 @@
 import {
     ButtonRow,
     Form,
-    FormItemElement,
-    FormSectionElement,
     NavigationRow,
     OAuthButtonRow,
     Section,
+    type FormItemElement,
+    type FormSectionElement,
 } from "@paperback/types";
 import { ContentSettingsForm } from "./forms/ContentSettingsForm";
 import { DiscoverSettingsForm } from "./forms/DiscoverSettingsForm";

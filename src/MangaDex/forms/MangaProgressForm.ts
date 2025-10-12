@@ -1,15 +1,15 @@
 import {
     ButtonRow,
-    Chapter,
     Form,
-    FormItemElement,
-    FormSectionElement,
     LabelRow,
     Section,
     SelectRow,
-    SourceManga,
     URL,
     WebViewRow,
+    type Chapter,
+    type FormItemElement,
+    type FormSectionElement,
+    type SourceManga,
 } from "@paperback/types";
 import {
     getSelectedCover,
@@ -54,7 +54,7 @@ export class MangaProgressForm extends Form {
         this.selectedCoverId = selectedCover?.id;
     }
 
-    get requiresExplicitSubmission(): boolean {
+    override get requiresExplicitSubmission(): boolean {
         return true;
     }
 
@@ -719,12 +719,12 @@ export class MangaProgressForm extends Form {
      */
     async handleWebViewCancel(): Promise<void> {}
 
-    formDidCancel(): void {}
+    override formDidCancel(): void {}
 
     /**
      * Submits changes to reading status and rating to MangaDex
      */
-    async formDidSubmit(): Promise<void> {
+    override async formDidSubmit(): Promise<void> {
         try {
             if (this.currentStatus !== "none") {
                 const url = new URL(MANGADEX_API);

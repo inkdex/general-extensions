@@ -1,9 +1,9 @@
 import {
     Form,
-    FormSectionElement,
     Section,
     SelectRow,
     ToggleRow,
+    type FormSectionElement,
 } from "@paperback/types";
 import { MDImageQuality, MDLanguages, MDRatings } from "../MangaDexHelper";
 import {

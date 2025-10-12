@@ -1,4 +1,9 @@
-import { Form, FormSectionElement, Section, ToggleRow } from "@paperback/types";
+import {
+    Form,
+    Section,
+    ToggleRow,
+    type FormSectionElement,
+} from "@paperback/types";
 import {
     getRelevanceScoringEnabled,
     getShowChapter,

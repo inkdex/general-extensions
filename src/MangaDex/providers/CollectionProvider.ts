@@ -1,9 +1,9 @@
 import {
-    LibraryItemSourceLinkProposal,
-    ManagedCollection,
-    ManagedCollectionChangeset,
-    SourceManga,
     URL,
+    type LibraryItemSourceLinkProposal,
+    type ManagedCollection,
+    type ManagedCollectionChangeset,
+    type SourceManga,
 } from "@paperback/types";
 import { parseMangaDetails } from "../MangaDexParser";
 import { getAccessToken } from "../MangaDexSettings";

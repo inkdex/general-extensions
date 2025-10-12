@@ -1,4 +1,4 @@
-import { Form } from "@paperback/types";
+import { Form, type SelectorID } from "@paperback/types";
 
 /**
  * State management utility for form values
@@ -15,7 +15,10 @@ export class State<T> {
      * Returns selector for binding to form elements
      */
     public get selector(): SelectorID<(value: T) => Promise<void>> {
-        return Application.Selector(this as State<T>, "updateValue");
+        return Application.Selector<State<T>, (value: T) => Promise<void>>(
+            this,
+            "updateValue",
+        );
     }
 
     constructor(

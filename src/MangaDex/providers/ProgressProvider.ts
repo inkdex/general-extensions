@@ -1,11 +1,11 @@
 import {
-    Chapter,
-    ChapterReadActionQueueProcessingResult,
     Form,
-    MangaProgress,
-    SourceManga,
-    TrackedMangaChapterReadAction,
     URL,
+    type Chapter,
+    type ChapterReadActionQueueProcessingResult,
+    type MangaProgress,
+    type SourceManga,
+    type TrackedMangaChapterReadAction,
 } from "@paperback/types";
 import { MangaProgressForm } from "../forms/MangaProgressForm";
 import {

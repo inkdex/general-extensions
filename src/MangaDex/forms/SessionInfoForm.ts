@@ -1,9 +1,9 @@
 import {
     ButtonRow,
     Form,
-    FormSectionElement,
     LabelRow,
     Section,
+    type FormSectionElement,
 } from "@paperback/types";
 import {
     authEndpointRequest,

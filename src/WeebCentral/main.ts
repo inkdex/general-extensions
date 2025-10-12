@@ -1,24 +1,24 @@
 import {
     BasicRateLimiter,
-    Chapter,
-    ChapterDetails,
-    ChapterProviding,
-    DiscoverSection,
-    DiscoverSectionItem,
-    DiscoverSectionProviding,
     DiscoverSectionType,
-    Extension,
     Form,
-    MangaProviding,
-    PagedResults,
-    SearchFilter,
-    SearchQuery,
-    SearchResultItem,
-    SearchResultsProviding,
-    SettingsFormProviding,
-    SourceManga,
-    Tag,
-    TagSection,
+    type Chapter,
+    type ChapterDetails,
+    type ChapterProviding,
+    type DiscoverSection,
+    type DiscoverSectionItem,
+    type DiscoverSectionProviding,
+    type Extension,
+    type MangaProviding,
+    type PagedResults,
+    type SearchFilter,
+    type SearchQuery,
+    type SearchResultItem,
+    type SearchResultsProviding,
+    type SettingsFormProviding,
+    type SourceManga,
+    type Tag,
+    type TagSection,
 } from "@paperback/types";
 import * as cheerio from "cheerio";
 import { getState } from "../utils/state";
@@ -31,7 +31,7 @@ import {
     newQuery,
 } from "./helpers";
 import { WeebCentralInterceptor } from "./interceptors";
-import { Metadata, TagSectionId } from "./models";
+import { TagSectionId, type Metadata } from "./models";
 import {
     isLastPage,
     parseChapterDetails,

@@ -1,20 +1,20 @@
 import {
-    Chapter,
-    ChapterDetails,
-    DiscoverSectionItem,
-    SearchResultItem,
-    SourceManga,
-    Tag,
-    TagSection,
+    type Chapter,
+    type ChapterDetails,
+    type DiscoverSectionItem,
+    type SearchResultItem,
+    type SourceManga,
+    type Tag,
+    type TagSection,
 } from "@paperback/types";
-import { CheerioAPI } from "cheerio";
+import { type CheerioAPI } from "cheerio";
 import { decodeHTML } from "entities";
 import { formatTagId, getRating, getShareUrl } from "./helpers";
 import {
-    ChapterWithMetadata,
     DEFAULT_LANGUAGE_CODE,
     TagSectionId,
     TagSectionTitle,
+    type ChapterWithMetadata,
 } from "./models";
 
 const officialTranslationSvgStroke = "#d8b4fe";

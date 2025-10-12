@@ -1,7 +1,7 @@
 import {
     ContentRating,
-    Chapter as SourceChapter,
-    SourceManga,
+    type Chapter as SourceChapter,
+    type SourceManga,
 } from "@paperback/types";
 
 export interface MangaPlusResponse {

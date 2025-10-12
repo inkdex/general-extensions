@@ -1,4 +1,4 @@
-import { Request } from "@paperback/types";
+import { type Request } from "@paperback/types";
 
 // API endpoints and common constants
 export const MANGADEX_DOMAIN = "https://mangadex.org";

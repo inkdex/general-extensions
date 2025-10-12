@@ -4,26 +4,26 @@
 // It implements all required interfaces for search, discovery, manga details, chapter listing, and chapter page retrieval.
 
 import {
-    Chapter,
-    ChapterDetails,
-    ChapterProviding,
-    CloudflareBypassRequestProviding,
     CloudflareError,
     ContentRating,
     CookieStorageInterceptor,
-    DiscoverSection,
-    DiscoverSectionItem,
-    DiscoverSectionProviding,
     DiscoverSectionType,
-    Extension,
-    MangaProviding,
-    PagedResults,
-    Response,
-    SearchFilter,
-    SearchQuery,
-    SearchResultsProviding,
-    SortingOption,
-    SourceManga,
+    type Chapter,
+    type ChapterDetails,
+    type ChapterProviding,
+    type CloudflareBypassRequestProviding,
+    type DiscoverSection,
+    type DiscoverSectionItem,
+    type DiscoverSectionProviding,
+    type Extension,
+    type MangaProviding,
+    type PagedResults,
+    type Response,
+    type SearchFilter,
+    type SearchQuery,
+    type SearchResultsProviding,
+    type SortingOption,
+    type SourceManga,
 } from "@paperback/types";
 import * as cheerio from "cheerio";
 import {
@@ -38,7 +38,7 @@ import {
     MOST_VIEWED_SECTION_TITLE,
     NEW_TITLES_SECTION_ID,
     NEW_TITLES_SECTION_TITLE,
-    SearchResultItem,
+    type SearchResultItem,
 } from "./models";
 import { MangaDemonParser } from "./parsers";
 

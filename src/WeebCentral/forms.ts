@@ -1,4 +1,9 @@
-import { ButtonRow, Form, FormSectionElement, Section } from "@paperback/types";
+import {
+    ButtonRow,
+    Form,
+    Section,
+    type FormSectionElement,
+} from "@paperback/types";
 
 export class SettingsForm extends Form {
     override getSections(): FormSectionElement[] {

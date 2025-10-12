@@ -1,11 +1,11 @@
 import {
     ButtonRow,
     Form,
-    FormItemElement,
-    FormSectionElement,
     LabelRow,
     Section,
     ToggleRow,
+    type FormItemElement,
+    type FormSectionElement,
 } from "@paperback/types";
 import {
     DEFAULT_SECTION_ORDER,

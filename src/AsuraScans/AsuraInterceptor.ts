@@ -1,4 +1,8 @@
-import { PaperbackInterceptor, Request, Response } from "@paperback/types";
+import {
+    PaperbackInterceptor,
+    type Request,
+    type Response,
+} from "@paperback/types";
 import { AS_DOMAIN } from "./AsuraConfig";
 
 export class AsuraInterceptor extends PaperbackInterceptor {

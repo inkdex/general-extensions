@@ -1,4 +1,8 @@
-import { PaperbackInterceptor, Request, Response } from "@paperback/types";
+import {
+    PaperbackInterceptor,
+    type Request,
+    type Response,
+} from "@paperback/types";
 
 export class FireInterceptor extends PaperbackInterceptor {
     override async interceptRequest(request: Request): Promise<Request> {

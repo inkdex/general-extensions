@@ -1,5 +1,9 @@
 // Paperback extension configuration for MangaDemon
-import { ContentRating, SourceInfo, SourceIntents } from "@paperback/types";
+import {
+    ContentRating,
+    SourceIntents,
+    type SourceInfo,
+} from "@paperback/types";
 
 export default {
     name: "MangaDemon",

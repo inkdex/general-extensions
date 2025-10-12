@@ -1,14 +1,15 @@
 import {
     BasicRateLimiter,
-    Extension,
-    PagedResults,
-    Request,
-    Response,
+    type Extension,
+    type PagedResults,
+    type Request,
+    type Response,
+    type SourceManga,
 } from "@paperback/types";
 import * as cheerio from "cheerio";
-import { CheerioAPI } from "cheerio";
-import { WebtoonDto } from "./WebtoonDtos";
-import { WebtoonParser, WebtoonsSearchingMetadata } from "./WebtoonParser";
+import { type CheerioAPI } from "cheerio";
+import { type WebtoonDto } from "./WebtoonDtos";
+import { WebtoonParser, type WebtoonsSearchingMetadata } from "./WebtoonParser";
 import { BASE_URL, MOBILE_URL } from "./WebtoonSettings";
 
 export abstract class WebtoonInfra extends WebtoonParser implements Extension {
@@ -27,6 +28,8 @@ export abstract class WebtoonInfra extends WebtoonParser implements Extension {
     async initialise(): Promise<void> {
         this.registerInterceptors();
     }
+
+    abstract getMangaDetails(mangaId: string): Promise<SourceManga>;
 
     registerInterceptors() {
         this.websiteRateLimiter.registerInterceptor();
@@ -131,7 +134,7 @@ class WebtoonWebSiteRateLimiter extends BasicRateLimiter {
         });
     }
 
-    async interceptRequest(request: Request): Promise<Request> {
+    override async interceptRequest(request: Request): Promise<Request> {
         if (request.url.startsWith(MOBILE_URL)) return request;
         return super.interceptRequest(request);
     }
@@ -146,7 +149,7 @@ class WebtoonMobileApiRateLimiter extends BasicRateLimiter {
         });
     }
 
-    async interceptRequest(request: Request): Promise<Request> {
+    override async interceptRequest(request: Request): Promise<Request> {
         if (!request.url.startsWith(MOBILE_URL)) return request;
         return super.interceptRequest(request);
     }

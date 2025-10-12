@@ -1,7 +1,7 @@
 import { lock, unlock } from "@paperback/types/src/impl/Lock";
 import { PaperbackInterceptor } from "@paperback/types/src/impl/PaperbackInterceptor";
-import { Request } from "@paperback/types/src/Request";
-import { Response } from "@paperback/types/src/Response";
+import { type Request } from "@paperback/types/src/Request";
+import { type Response } from "@paperback/types/src/Response";
 
 export type BasicRateLimiterOptions = {
     numberOfRequests: number;

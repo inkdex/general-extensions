@@ -6,32 +6,32 @@
 
 import {
     BasicRateLimiter,
-    Chapter,
-    ChapterDetails,
-    ChapterProviding,
     CloudflareError,
     ContentRating,
-    DiscoverSection,
-    DiscoverSectionItem,
-    DiscoverSectionProviding,
     DiscoverSectionType,
-    Extension,
-    MangaProviding,
-    PagedResults,
     PaperbackInterceptor,
-    Request,
-    Response,
-    SearchFilter,
-    SearchQuery,
-    SearchResultItem,
-    SearchResultsProviding,
-    SourceManga,
-    Tag,
-    TagSection,
+    type Chapter,
+    type ChapterDetails,
+    type ChapterProviding,
+    type DiscoverSection,
+    type DiscoverSectionItem,
+    type DiscoverSectionProviding,
+    type Extension,
+    type MangaProviding,
+    type PagedResults,
+    type Request,
+    type Response,
+    type SearchFilter,
+    type SearchQuery,
+    type SearchResultItem,
+    type SearchResultsProviding,
+    type SourceManga,
+    type Tag,
+    type TagSection,
 } from "@paperback/types";
 // Template content
 import * as cheerio from "cheerio";
-import { CheerioAPI } from "cheerio";
+import { type CheerioAPI } from "cheerio";
 import { URLBuilder } from "../utils/url-builder/base";
 import { genreOptions } from "./genreOptions";
 import { genres } from "./genres";
