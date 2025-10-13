@@ -2,11 +2,14 @@ import {
     BasicRateLimiter,
     CloudflareError,
     ContentRating,
+    CookieStorageInterceptor,
     DiscoverSectionType,
     Form,
     type Chapter,
     type ChapterDetails,
     type ChapterProviding,
+    type CloudflareBypassRequestProviding,
+    type Cookie,
     type DiscoverSection,
     type DiscoverSectionItem,
     type DiscoverSectionProviding,
@@ -28,6 +31,7 @@ import { URLBuilder } from "../utils/url-builder/base";
 import { getLanguages, MangaFireSettingsForm } from "./forms";
 import { FireInterceptor } from "./interceptors";
 import type { ImageData, Metadata, PageResponse, Result } from "./models";
+import genVrf from "./utils/genVrf";
 
 const baseUrl = "https://mangafire.to";
 
@@ -36,10 +40,14 @@ type MangaFireImplementation = Extension &
     MangaProviding &
     ChapterProviding &
     SettingsFormProviding &
-    DiscoverSectionProviding;
+    DiscoverSectionProviding &
+    CloudflareBypassRequestProviding;
 
 export class MangaFireExtension implements MangaFireImplementation {
     requestManager = new FireInterceptor("main");
+    cookieStorageInterceptor = new CookieStorageInterceptor({
+        storage: "stateManager",
+    });
     globalRateLimiter = new BasicRateLimiter("rateLimiter", {
         numberOfRequests: 10,
         bufferInterval: 1,
@@ -96,11 +104,11 @@ export class MangaFireExtension implements MangaFireImplementation {
     ): Promise<PagedResults<DiscoverSectionItem>> {
         switch (section.id) {
             case "popular_section":
-                return this.getPopularSectionItems(section, metadata);
+                return this.getPopularSectionItems(metadata);
             case "updated_section":
-                return this.getUpdatedSectionItems(section, metadata);
+                return this.getUpdatedSectionItems(metadata);
             case "new_manga_section":
-                return this.getNewMangaSectionItems(section, metadata);
+                return this.getNewMangaSectionItems(metadata);
             case "types_section":
                 return this.getTypesSection();
             case "genres_section":
@@ -109,6 +117,28 @@ export class MangaFireExtension implements MangaFireImplementation {
                 return this.getLanguagesSection();
             default:
                 return { items: [] };
+        }
+    }
+
+    async saveCloudflareBypassCookies(cookies: Cookie[]): Promise<void> {
+        for (const cookie of cookies) {
+            if (
+                cookie.name.startsWith("cf") ||
+                cookie.name.startsWith("_cf") ||
+                cookie.name.startsWith("__cf")
+            ) {
+                // Find existing cookie with the same name
+                const existingCookie =
+                    this.cookieStorageInterceptor.cookies.find(
+                        (x) => x.name === cookie.name,
+                    );
+                // Remove existing cookie
+                if (existingCookie) {
+                    this.cookieStorageInterceptor.deleteCookie(existingCookie);
+                }
+
+                this.cookieStorageInterceptor.setCookie(cookie);
+            }
         }
     }
 
@@ -326,11 +356,13 @@ export class MangaFireExtension implements MangaFireImplementation {
         // With pages: https://mangafire.to/filter?page=2&keyword=one%20piece
         // ALL: https://mangafire.to/filter?keyword=one+peice&sort=recently_updated
         // Exclude: https://mangafire.to/filter?keyword=&genre%5B%5D=-9&sort=recently_updated
+        const vrf = await genVrf(query.title);
         const searchUrl = new URLBuilder(baseUrl)
             .addPath("filter")
             .addQuery("keyword", query.title)
             .addQuery("page", page.toString())
-            .addQuery("genre_mode", "and");
+            .addQuery("genre_mode", "and")
+            .addQuery("vrf", vrf);
 
         const getFilterValue = (id: string) =>
             query.filters.find((filter) => filter.id == id)?.value;
@@ -418,7 +450,7 @@ export class MangaFireExtension implements MangaFireImplementation {
                 imageUrl: image,
                 title: title,
                 subtitle: subtitle,
-                metadata: undefined,
+                contentRating: ContentRating.EVERYONE,
             });
         });
 
@@ -523,6 +555,7 @@ export class MangaFireExtension implements MangaFireImplementation {
                 contentRating: ContentRating.EVERYONE,
                 status: status as "ONGOING" | "COMPLETED" | "UNKNOWN",
                 tagGroups: tags,
+                shareUrl: `${baseUrl}/manga/${mangaId}`,
             },
         };
     }
@@ -531,91 +564,114 @@ export class MangaFireExtension implements MangaFireImplementation {
         const mangaId = sourceManga.mangaId.split(".")[1];
 
         const languages = getLanguages();
-        const allRequests = [];
-
-        for (const lang of languages) {
-            allRequests.push({
-                url: new URLBuilder(baseUrl)
-                    .addPath("ajax")
-                    .addPath("manga")
-                    .addPath(mangaId)
-                    .addPath("chapter")
-                    .addPath(lang)
-                    .build(),
-                method: "GET",
-                language: lang,
-            });
-        }
-
-        const responses = await Promise.allSettled(
-            allRequests.map((req) =>
-                Application.scheduleRequest({
-                    url: req.url,
-                    method: req.method,
-                }).then(([, buffer]) => ({
-                    buffer,
-                    language: req.language,
-                })),
-            ),
-        );
 
         const chapters: Chapter[] = [];
+        for (const language of languages) {
+            const vrf = await genVrf(`${mangaId}@chapter@${language}`);
 
-        for (const response of responses) {
-            if (response.status === "fulfilled") {
-                try {
-                    const buffer = response.value.buffer;
-                    const language = response.value.language;
+            const readRequest: Request = {
+                url: new URLBuilder(baseUrl)
+                    .addPath("ajax")
+                    .addPath("read")
+                    .addPath(mangaId)
+                    .addPath("chapter")
+                    .addPath(language)
+                    .addQuery("vrf", vrf)
+                    .build(),
+                method: "GET",
+            };
 
-                    const r2 = JSON.parse(
-                        Application.arrayBufferToUTF8String(buffer),
-                    ) as Result;
+            try {
+                // Find chapterId mapping first
+                const [readResponse, readBuffer] =
+                    await Application.scheduleRequest(readRequest);
+                this.checkCloudflareStatus(readResponse.status);
+                const readJson = JSON.parse(
+                    Application.arrayBufferToUTF8String(readBuffer),
+                ) as Result;
+                const readHtml =
+                    typeof readJson?.result === "string"
+                        ? readJson.result
+                        : readJson?.result?.html || "";
 
-                    const html =
-                        typeof r2?.result === "string"
-                            ? r2.result
-                            : r2?.result?.html || "";
+                if (!readHtml) continue;
+                const $read = cheerio.load(readHtml);
 
-                    if (html) {
-                        const $r2 = cheerio.load(html);
-                        $r2("li").each((_, el) => {
-                            const li = $r2(el);
-                            const chapterNumber = li.attr("data-number") || "0";
-                            const link = li.find("a");
-                            const dateText = li
-                                .find("span")
-                                .last()
-                                .text()
-                                .trim();
-                            const title =
-                                link
-                                    .find("span")
-                                    .first()
-                                    .text()
-                                    .trim()
-                                    .split(`${chapterNumber}:`)[1]
-                                    ?.trim() || undefined;
+                // Map of chapter number to chapter ID
+                const chapterIdMap: Map<number, string> = new Map();
 
-                            chapters.push({
-                                chapterId: link.attr("data-id") || "0",
-                                title: title,
-                                sourceManga,
-                                chapNum: parseFloat(String(chapterNumber)),
-                                publishDate: new Date(
-                                    convertToISO8601(dateText),
-                                ),
-                                volume: 0,
-                                langCode: getLanguageFlag(language),
-                                version: getLanguageVersion(language),
-                            });
-                        });
-                    }
-                } catch (error) {
-                    console.error(
-                        `Failed to parse buffer for language ${response.value.language}:`,
-                        error,
+                $read("li").each((_, el) => {
+                    const li = $read(el);
+                    const link = li.find("a");
+                    const chapterNumber = link.attr("data-number");
+                    const chapterId = link.attr("data-id");
+                    if (!chapterNumber || !chapterId) return;
+                    chapterIdMap.set(parseFloat(chapterNumber), chapterId);
+                });
+
+                const mangaRequest: Request = {
+                    url: new URLBuilder(baseUrl)
+                        .addPath("ajax")
+                        .addPath("manga")
+                        .addPath(mangaId)
+                        .addPath("chapter")
+                        .addPath(language)
+                        .build(),
+                    method: "GET",
+                };
+
+                const [mangaResponse, mangaBuffer] =
+                    await Application.scheduleRequest(mangaRequest);
+                this.checkCloudflareStatus(mangaResponse.status);
+
+                const mangaJson = JSON.parse(
+                    Application.arrayBufferToUTF8String(mangaBuffer),
+                ) as Result;
+
+                const mangaHtml =
+                    typeof mangaJson?.result === "string"
+                        ? mangaJson.result
+                        : mangaJson?.result?.html || "";
+
+                if (!mangaHtml) continue;
+
+                const $manga = cheerio.load(mangaHtml);
+                $manga("li").each((_, el) => {
+                    const li = $manga(el);
+                    const chapterNumber = li.attr("data-number");
+                    if (!chapterNumber) return;
+                    const chapterId = chapterIdMap.get(
+                        parseFloat(chapterNumber),
                     );
-                }
+                    if (!chapterId) return;
+
+                    const link = li.find("a");
+                    const dateText = li.find("span").last().text().trim();
+                    const title =
+                        link
+                            .find("span")
+                            .first()
+                            .text()
+                            .trim()
+                            .split(`${chapterNumber}:`)[1]
+                            ?.trim() || undefined;
+
+                    chapters.push({
+                        chapterId: chapterId,
+                        title: title,
+                        sourceManga,
+                        chapNum: parseFloat(String(chapterNumber)),
+                        publishDate: new Date(convertToISO8601(dateText)),
+                        volume: 0,
+                        langCode: getLanguageFlag(language),
+                        version: getLanguageVersion(language),
+                    });
+                });
+            } catch (error) {
+                console.error(
+                    `Failed to parse buffer for language ${language}:`,
+                    error,
+                );
             }
         }
 
@@ -624,13 +680,14 @@ export class MangaFireExtension implements MangaFireImplementation {
 
     async getChapterDetails(chapter: Chapter): Promise<ChapterDetails> {
         try {
-            // Utilizing ajax API
-            // Example: https://mangafire.to/ajax/read/chapter/3832635
+            const vrf = await genVrf(`chapter@${chapter.chapterId}`);
+
             const url = new URLBuilder(baseUrl)
                 .addPath("ajax")
                 .addPath("read")
                 .addPath("chapter")
                 .addPath(chapter.chapterId)
+                .addQuery("vrf", vrf)
                 .build();
 
             const request: Request = { url, method: "GET" };
@@ -655,12 +712,7 @@ export class MangaFireExtension implements MangaFireImplementation {
         }
     }
 
-    getMangaShareUrl(mangaId: string): string {
-        return `${baseUrl}/manga/${mangaId}`;
-    }
-
     async getUpdatedSectionItems(
-        section: DiscoverSection,
         metadata: { page?: number; collectedIds?: string[] } | undefined,
     ): Promise<PagedResults<DiscoverSectionItem>> {
         const page = metadata?.page ?? 1;
@@ -712,7 +764,7 @@ export class MangaFireExtension implements MangaFireImplementation {
                     imageUrl: image,
                     title: title,
                     subtitle: subtitle,
-                    metadata: undefined,
+                    contentRating: ContentRating.EVERYONE,
                 });
             }
         });
@@ -729,7 +781,6 @@ export class MangaFireExtension implements MangaFireImplementation {
     }
 
     async getPopularSectionItems(
-        section: DiscoverSection,
         metadata: { page?: number; collectedIds?: string[] } | undefined,
     ): Promise<PagedResults<DiscoverSectionItem>> {
         const page = metadata?.page ?? 1;
@@ -776,7 +827,7 @@ export class MangaFireExtension implements MangaFireImplementation {
                     imageUrl: image,
                     title: title,
                     supertitle: supertitle,
-                    metadata: undefined,
+                    contentRating: ContentRating.EVERYONE,
                 });
             }
         });
@@ -792,7 +843,6 @@ export class MangaFireExtension implements MangaFireImplementation {
     }
 
     async getNewMangaSectionItems(
-        section: DiscoverSection,
         metadata: { page?: number; collectedIds?: string[] } | undefined,
     ): Promise<PagedResults<DiscoverSectionItem>> {
         const page = metadata?.page ?? 1;
@@ -827,15 +877,14 @@ export class MangaFireExtension implements MangaFireImplementation {
 
             if (title && mangaId && !collectedIds.includes(mangaId)) {
                 collectedIds.push(mangaId);
-                items.push(
-                    createDiscoverSectionItem({
-                        id: mangaId,
-                        image: image,
-                        title: title,
-                        subtitle: subtitle,
-                        type: "simpleCarouselItem",
-                    }),
-                );
+                items.push({
+                    mangaId,
+                    imageUrl: image,
+                    title: title,
+                    subtitle: subtitle,
+                    contentRating: ContentRating.EVERYONE,
+                    type: "simpleCarouselItem",
+                });
             }
         });
 
@@ -867,9 +916,7 @@ export class MangaFireExtension implements MangaFireImplementation {
                     ],
                 },
                 name: type.label,
-                metadata: undefined,
             })),
-            metadata: undefined,
         };
     }
 
@@ -937,9 +984,7 @@ export class MangaFireExtension implements MangaFireImplementation {
                     ],
                 },
                 name: item.name,
-                metadata: undefined,
             })),
-            metadata: undefined,
         };
     }
 
@@ -960,9 +1005,7 @@ export class MangaFireExtension implements MangaFireImplementation {
                     ],
                 },
                 name: `${getLanguageFlag(lang.id)} ${lang.label}`,
-                metadata: undefined,
             })),
-            metadata: undefined,
         };
     }
 
@@ -982,23 +1025,6 @@ export class MangaFireExtension implements MangaFireImplementation {
             },
         });
     }
-}
-
-function createDiscoverSectionItem(options: {
-    id: string;
-    image: string;
-    title: string;
-    subtitle?: string;
-    type: "simpleCarouselItem";
-}): DiscoverSectionItem {
-    return {
-        type: options.type,
-        mangaId: options.id,
-        imageUrl: options.image,
-        title: options.title,
-        subtitle: options.subtitle,
-        metadata: undefined,
-    };
 }
 
 function convertToISO8601(dateText: string): string {
