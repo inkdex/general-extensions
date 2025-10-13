@@ -30,7 +30,13 @@ import * as cheerio from "cheerio";
 import { URLBuilder } from "../utils/url-builder/base";
 import { getLanguages, MangaFireSettingsForm } from "./forms";
 import { FireInterceptor } from "./interceptors";
-import type { ImageData, Metadata, PageResponse, Result } from "./models";
+import {
+    Genres,
+    type ImageData,
+    type Metadata,
+    type PageResponse,
+    type Result,
+} from "./models";
 import genVrf from "./utils/genVrf";
 
 const baseUrl = "https://mangafire.to";
@@ -921,55 +927,8 @@ export class MangaFireExtension implements MangaFireImplementation {
     }
 
     async getFilterSection(): Promise<PagedResults<DiscoverSectionItem>> {
-        const items = [
-            { id: "manhua", name: "Manhua", type: "type" },
-            { id: "manhwa", name: "Manhwa", type: "type" },
-            { id: "manga", name: "Manga", type: "type" },
-            { id: "1", name: "Action", type: "genres" },
-            { id: "78", name: "Adventure", type: "genres" },
-            { id: "3", name: "Avant Garde", type: "genres" },
-            { id: "4", name: "Boys Love", type: "genres" },
-            { id: "5", name: "Comedy", type: "genres" },
-            { id: "77", name: "Demons", type: "genres" },
-            { id: "6", name: "Drama", type: "genres" },
-            { id: "7", name: "Ecchi", type: "genres" },
-            { id: "79", name: "Fantasy", type: "genres" },
-            { id: "9", name: "Girls Love", type: "genres" },
-            { id: "10", name: "Gourmet", type: "genres" },
-            { id: "11", name: "Harem", type: "genres" },
-            { id: "530", name: "Horror", type: "genres" },
-            { id: "13", name: "Isekai", type: "genres" },
-            { id: "531", name: "Iyashikei", type: "genres" },
-            { id: "15", name: "Josei", type: "genres" },
-            { id: "532", name: "Kids", type: "genres" },
-            { id: "539", name: "Magic", type: "genres" },
-            { id: "533", name: "Mahou Shoujo", type: "genres" },
-            { id: "534", name: "Martial Arts", type: "genres" },
-            { id: "19", name: "Mecha", type: "genres" },
-            { id: "535", name: "Military", type: "genres" },
-            { id: "21", name: "Music", type: "genres" },
-            { id: "22", name: "Mystery", type: "genres" },
-            { id: "23", name: "Parody", type: "genres" },
-            { id: "536", name: "Psychological", type: "genres" },
-            { id: "25", name: "Reverse Harem", type: "genres" },
-            { id: "26", name: "Romance", type: "genres" },
-            { id: "73", name: "School", type: "genres" },
-            { id: "28", name: "Sci-Fi", type: "genres" },
-            { id: "537", name: "Seinen", type: "genres" },
-            { id: "30", name: "Shoujo", type: "genres" },
-            { id: "31", name: "Shounen", type: "genres" },
-            { id: "538", name: "Slice of Life", type: "genres" },
-            { id: "33", name: "Space", type: "genres" },
-            { id: "34", name: "Sports", type: "genres" },
-            { id: "75", name: "Super Power", type: "genres" },
-            { id: "76", name: "Supernatural", type: "genres" },
-            { id: "37", name: "Suspense", type: "genres" },
-            { id: "38", name: "Thriller", type: "genres" },
-            { id: "39", name: "Vampire", type: "genres" },
-        ];
-
         return {
-            items: items.map((item) => ({
+            items: Genres.map((item) => ({
                 type: "genresCarouselItem",
                 searchQuery: {
                     title: "",
