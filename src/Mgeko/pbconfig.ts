@@ -1,21 +1,21 @@
 import {
     ContentRating,
     SourceIntents,
-    type SourceInfo,
+    type ExtensionInfo,
 } from "@paperback/types";
 
 export default {
     name: "Mgeko",
     description: "Extension that pulls content from mgeko.cc.",
-    version: "1.0.0-alpha.11",
+    version: "1.0.0-alpha.12",
     icon: "icon.png",
     language: "en",
     contentRating: ContentRating.EVERYONE,
     capabilities: [
-        SourceIntents.CLOUDFLARE_BYPASS_REQUIRED,
-        SourceIntents.DISCOVER_SECIONS,
-        SourceIntents.MANGA_CHAPTERS,
-        SourceIntents.MANGA_SEARCH,
+        SourceIntents.CLOUDFLARE_BYPASS_PROVIDING,
+        SourceIntents.DISCOVER_SECIONS_PROVIDING,
+        SourceIntents.CHAPTER_PROVIDING,
+        SourceIntents.SEARCH_RESULTS_PROVIDING,
     ],
     badges: [],
     developers: [
@@ -25,4 +25,4 @@ export default {
             github: "https://github.com/inkdex",
         },
     ],
-} satisfies SourceInfo;
+} satisfies ExtensionInfo;
