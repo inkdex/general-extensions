@@ -237,9 +237,3 @@ export default async function genVrf(input: string) {
     });
     return webViewResult.result as string;
 }
-
-// Test case
-// const result = genVrf("zlw6m@chapter@en");
-// const test =
-//     "ZBYeRCjYBk0tkZnKW4kTuWBYwwM1e-csvu6vbLUY4zdcviixvK7VJ5ZjpFEsOUq42nE5ZBdEYGJfpA";
-// console.log(result, result === test);
