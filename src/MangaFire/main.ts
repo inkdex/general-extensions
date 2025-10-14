@@ -133,16 +133,6 @@ export class MangaFireExtension implements MangaFireImplementation {
                 cookie.name.startsWith("_cf") ||
                 cookie.name.startsWith("__cf")
             ) {
-                // Find existing cookie with the same name
-                const existingCookie =
-                    this.cookieStorageInterceptor.cookies.find(
-                        (x) => x.name === cookie.name,
-                    );
-                // Remove existing cookie
-                if (existingCookie) {
-                    this.cookieStorageInterceptor.deleteCookie(existingCookie);
-                }
-
                 this.cookieStorageInterceptor.setCookie(cookie);
             }
         }
