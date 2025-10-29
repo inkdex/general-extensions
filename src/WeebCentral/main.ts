@@ -39,6 +39,7 @@ import {
     parseHotSection,
     parseMangaDetails,
     parseRecentSection,
+    parseRecentSectionMore,
     parseRecommendedSection,
     parseSearch,
     parseTags,
@@ -120,8 +121,14 @@ export class WeebCentralExtension
                 const $ = cheerio.load(
                     Application.arrayBufferToUTF8String(buffer),
                 );
-                items = await parseRecentSection($);
-                metadata = !isLastPage($) ? { page: page + 1 } : undefined;
+                if (page == 1) {
+                    items = await parseRecentSection($);
+                } else {
+                    items = await parseRecentSectionMore($);
+                }
+                metadata = !isLastPage($, "View More...")
+                    ? { page: page + 1 }
+                    : undefined;
                 break;
             }
             case "hot": {
@@ -278,7 +285,7 @@ export class WeebCentralExtension
         const $ = cheerio.load(Application.arrayBufferToUTF8String(buffer));
 
         const items = await parseSearch($);
-        metadata = isLastPage($)
+        metadata = isLastPage($, "View More Results...")
             ? undefined
             : { ...metadata, offset: offset + LIMIT };
         return { items, metadata };
