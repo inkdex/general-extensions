@@ -39,7 +39,7 @@ import {
     parseHotSection,
     parseMangaDetails,
     parseRecentSection,
-    parseRecentSectionMore,
+    parseRecentSectionViewMore,
     parseRecommendedSection,
     parseSearch,
     parseTags,
@@ -50,6 +50,7 @@ import {
     fetchChaptersPage,
     fetchHomepage,
     fetchMangaDetailsPage,
+    fetchRecentViewMorePage,
     fetchSearchPage,
 } from "./requests";
 
@@ -117,14 +118,20 @@ export class WeebCentralExtension
                 break;
             }
             case "recent": {
-                const [_, buffer] = await fetchHomepage();
-                const $ = cheerio.load(
-                    Application.arrayBufferToUTF8String(buffer),
-                );
+                let $: cheerio.CheerioAPI;
                 if (page == 1) {
+                    const [_, buffer] = await fetchHomepage();
+                    $ = cheerio.load(
+                        Application.arrayBufferToUTF8String(buffer),
+                    );
+
                     items = await parseRecentSection($);
                 } else {
-                    items = await parseRecentSectionMore($);
+                    const [_, buffer] = await fetchRecentViewMorePage(page);
+                    $ = cheerio.load(
+                        Application.arrayBufferToUTF8String(buffer),
+                    );
+                    items = await parseRecentSectionViewMore($);
                 }
                 metadata = !isLastPage($, "View More...")
                     ? { page: page + 1 }

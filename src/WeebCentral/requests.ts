@@ -77,3 +77,17 @@ export async function fetchSearchPage(
 
     return await Application.scheduleRequest(request);
 }
+
+export async function fetchRecentViewMorePage(
+    page: number,
+): Promise<[Response, ArrayBuffer]> {
+    const request = {
+        url: new URL(WC_DOMAIN)
+            .addPathComponent("latest-updates")
+            .addPathComponent(page.toString())
+            .toString(),
+        method: "GET",
+    };
+
+    return await Application.scheduleRequest(request);
+}
