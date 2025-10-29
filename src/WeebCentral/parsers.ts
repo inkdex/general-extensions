@@ -252,6 +252,41 @@ export const parseRecentSection = async (
     return recentSectionArray;
 };
 
+export const parseRecentSectionMore = async (
+    $: CheerioAPI,
+): Promise<DiscoverSectionItem[]> => {
+    const recentSectionArray: DiscoverSectionItem[] = [];
+    for (const recentObj of $("article").toArray()) {
+        const id =
+            $("a.aspect-square", recentObj)
+                .attr("href")
+                ?.replace(/\/$/, "")
+                ?.split("/")
+                .slice(-2)[0] ?? "";
+        const chapterId =
+            $("a.min-w-0", recentObj)
+                .attr("href")
+                ?.replace(/\/$/, "")
+                ?.split("/")
+                .slice(-2)[0] ?? "";
+        const title = $("div.font-semibold", recentObj).text().trim() ?? "";
+        const imageUrl =
+            $("a img", recentObj).attr("src") ??
+            $("a img", recentObj).attr("data-src") ??
+            "";
+        const subtitle = $("span", recentObj).last().text().trim() ?? "";
+        recentSectionArray.push({
+            imageUrl,
+            title: decodeHTML(title),
+            mangaId: id,
+            subtitle: decodeHTML(subtitle),
+            chapterId: chapterId,
+            type: "chapterUpdatesCarouselItem",
+        });
+    }
+    return recentSectionArray;
+};
+
 export const parseHotSection = async (
     $: CheerioAPI,
 ): Promise<DiscoverSectionItem[]> => {
@@ -364,6 +399,6 @@ const parseIntoTagSection = (
     return tagSection;
 };
 
-export const isLastPage = ($: CheerioAPI): boolean => {
-    return $('span:contains("View More Results...")').toArray().length == 0;
+export const isLastPage = ($: CheerioAPI, spanString: string): boolean => {
+    return $(`span:contains("${spanString}")`).toArray().length == 0;
 };
