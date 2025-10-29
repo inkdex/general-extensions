@@ -8,6 +8,7 @@ import {
     type TagSection,
 } from "@paperback/types";
 import { type CheerioAPI } from "cheerio";
+import { type Element } from "domhandler";
 import { decodeHTML } from "entities";
 import { formatTagId, getRating, getShareUrl } from "./helpers";
 import {
@@ -222,69 +223,51 @@ export const parseRecentSection = async (
         "article",
         "section.bg-base-200.rounded-sm",
     ).toArray()) {
-        const id =
-            $("a.aspect-square", recentObj)
-                .attr("href")
-                ?.replace(/\/$/, "")
-                ?.split("/")
-                .slice(-2)[0] ?? "";
-        const chapterId =
-            $("a.min-w-0", recentObj)
-                .attr("href")
-                ?.replace(/\/$/, "")
-                ?.split("/")
-                .slice(-2)[0] ?? "";
-        const title = $("div.font-semibold", recentObj).text().trim() ?? "";
-        const imageUrl =
-            $("a img", recentObj).attr("src") ??
-            $("a img", recentObj).attr("data-src") ??
-            "";
-        const subtitle = $("span", recentObj).last().text().trim() ?? "";
-        recentSectionArray.push({
-            imageUrl,
-            title: decodeHTML(title),
-            mangaId: id,
-            subtitle: decodeHTML(subtitle),
-            chapterId: chapterId,
-            type: "chapterUpdatesCarouselItem",
-        });
+        recentSectionArray.push(parseRecentObject(recentObj, $));
     }
     return recentSectionArray;
 };
 
-export const parseRecentSectionMore = async (
+export const parseRecentSectionViewMore = async (
     $: CheerioAPI,
 ): Promise<DiscoverSectionItem[]> => {
     const recentSectionArray: DiscoverSectionItem[] = [];
     for (const recentObj of $("article").toArray()) {
-        const id =
-            $("a.aspect-square", recentObj)
-                .attr("href")
-                ?.replace(/\/$/, "")
-                ?.split("/")
-                .slice(-2)[0] ?? "";
-        const chapterId =
-            $("a.min-w-0", recentObj)
-                .attr("href")
-                ?.replace(/\/$/, "")
-                ?.split("/")
-                .slice(-2)[0] ?? "";
-        const title = $("div.font-semibold", recentObj).text().trim() ?? "";
-        const imageUrl =
-            $("a img", recentObj).attr("src") ??
-            $("a img", recentObj).attr("data-src") ??
-            "";
-        const subtitle = $("span", recentObj).last().text().trim() ?? "";
-        recentSectionArray.push({
-            imageUrl,
-            title: decodeHTML(title),
-            mangaId: id,
-            subtitle: decodeHTML(subtitle),
-            chapterId: chapterId,
-            type: "chapterUpdatesCarouselItem",
-        });
+        recentSectionArray.push(parseRecentObject(recentObj, $));
     }
     return recentSectionArray;
+};
+
+const parseRecentObject = (
+    recentObj: Element,
+    $: CheerioAPI,
+): DiscoverSectionItem => {
+    const id =
+        $("a.aspect-square", recentObj)
+            .attr("href")
+            ?.replace(/\/$/, "")
+            ?.split("/")
+            .slice(-2)[0] ?? "";
+    const chapterId =
+        $("a.min-w-0", recentObj)
+            .attr("href")
+            ?.replace(/\/$/, "")
+            ?.split("/")
+            .slice(-2)[0] ?? "";
+    const title = $("div.font-semibold", recentObj).text().trim() ?? "";
+    const imageUrl =
+        $("a img", recentObj).attr("src") ??
+        $("a img", recentObj).attr("data-src") ??
+        "";
+    const subtitle = $("span", recentObj).last().text().trim() ?? "";
+    return {
+        imageUrl,
+        title: decodeHTML(title),
+        mangaId: id,
+        subtitle: decodeHTML(subtitle),
+        chapterId: chapterId,
+        type: "chapterUpdatesCarouselItem",
+    };
 };
 
 export const parseHotSection = async (
