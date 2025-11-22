@@ -1,21 +1,21 @@
 import {
     ContentRating,
     SourceIntents,
-    type SourceInfo,
+    type ExtensionInfo,
 } from "@paperback/types";
 
 export default {
     name: "Asura Scans",
     description: "Extension that pulls content from asuracomic.net.",
-    version: "1.0.0-alpha.8",
+    version: "1.0.0-alpha.9",
     icon: "icon.png",
     language: "en",
     contentRating: ContentRating.EVERYONE,
     capabilities: [
-        SourceIntents.MANGA_CHAPTERS,
-        SourceIntents.DISCOVER_SECIONS,
-        SourceIntents.SETTINGS_UI,
-        SourceIntents.MANGA_SEARCH,
+        SourceIntents.CHAPTER_PROVIDING,
+        SourceIntents.DISCOVER_SECIONS_PROVIDING,
+        SourceIntents.SETTINGS_FORM_PROVIDING,
+        SourceIntents.SEARCH_RESULTS_PROVIDING,
     ],
     badges: [],
     developers: [
@@ -23,5 +23,8 @@ export default {
             name: "nyzzik",
             github: "https://github.com/nyzzik",
         },
+        {
+            name: "Saw_6",
+        },
     ],
-} satisfies SourceInfo;
+} satisfies ExtensionInfo;
