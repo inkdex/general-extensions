@@ -214,20 +214,6 @@ export class MgekoExtension implements MgekoImplementation {
             });
         }
 
-        // Register Sort By Filter
-        filters.push({
-            id: "sortBy",
-            type: "dropdown",
-            options: [
-                { id: "Random", value: "Random" },
-                { id: "New", value: "New" },
-                { id: "Updated", value: "Updated" },
-                { id: "Views", value: "Views" },
-            ],
-            value: "Views",
-            title: "Sort By Filter",
-        });
-
         return filters;
     }
 
