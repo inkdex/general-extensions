@@ -168,25 +168,15 @@ export const parseViewMore = ($: CheerioAPI): DiscoverSectionItem[] => {
     const manga: DiscoverSectionItem[] = [];
     const collectedIds: string[] = [];
 
-    for (const obj of $("li.novel-item", "ul.novel-list").toArray()) {
-        const image: string = $("img", obj).first().attr("data-src") ?? "";
+    for (const obj of $("article.comic-card").toArray()) {
+        const image: string = $("img", obj).first().attr("src") ?? "";
         const title: string = $("img", obj).first().attr("alt") ?? "";
         const id =
             $("a", obj).attr("href")?.replace(/\/$/, "").split("/").pop() ?? "";
-        const getChapter = $("div.novel-stats > strong", obj).text().trim();
 
-        const chapNumRegex = /(\d+)(?:[-.]\d+)?/.exec(getChapter);
-        let chapNum = 0;
-        if (chapNumRegex?.[1]) {
-            let chapRegex = chapNumRegex[1];
-            if (chapRegex.includes("-"))
-                chapRegex = chapRegex.replace("-", ".");
-            chapNum = Number(chapRegex);
-        }
-
-        const subtitle = chapNum
-            ? `Chapter ${chapNum.toString()}`
-            : "Chapter N/A";
+        const subtitle: string = $(".comic-card__stat--rating", obj)
+            .text()
+            .trim();
 
         if (!id || !title || collectedIds.includes(id)) continue;
         manga.push({
@@ -194,7 +184,7 @@ export const parseViewMore = ($: CheerioAPI): DiscoverSectionItem[] => {
             mangaId: id,
             title: Application.decodeHTMLEntities(title),
             imageUrl: image,
-            subtitle: Application.decodeHTMLEntities(subtitle),
+            subtitle: subtitle,
             contentRating: ContentRating.EVERYONE,
         });
         collectedIds.push(id);
@@ -205,8 +195,8 @@ export const parseViewMore = ($: CheerioAPI): DiscoverSectionItem[] => {
 
 export const parseGenreTags = ($: CheerioAPI): TagSection[] => {
     const arrayTags: Tag[] = [];
-    for (const tag of $(".genre-select-i label").toArray()) {
-        const title = $(tag).attr("for") ?? "";
+    for (const tag of $("button.chip[data-group='include_genres']").toArray()) {
+        const title = $(tag).attr("data-value") ?? "";
 
         if (!title) continue;
         arrayTags.push({ id: title.replaceAll(" ", "_"), title: title });
@@ -218,7 +208,7 @@ export const parseGenreTags = ($: CheerioAPI): TagSection[] => {
     return tagSections;
 };
 
-export const parseSearch = (
+export const parseOldSearch = (
     $: CheerioAPI,
     baseUrl: string,
 ): SearchResultItem[] => {
@@ -260,19 +250,33 @@ export const parseSearch = (
     return mangas;
 };
 
-export const isLastPage = ($: CheerioAPI): boolean => {
-    let isLast = false;
+export const parseSearch = (
+    $: CheerioAPI,
+    baseUrl: string,
+): SearchResultItem[] => {
+    const mangas: SearchResultItem[] = [];
+    for (const obj of $("article.comic-card").toArray()) {
+        let image: string =
+            $("img", obj).first().attr("data-src") ??
+            $("img", obj).first().attr("src") ??
+            "";
+        if (image.startsWith("/")) image = baseUrl + image;
 
-    const pages = $(".mg-pagination-table")
-        .first()
-        .remove()
-        .text()
-        .trim()
-        .split(" / ");
+        const title: string = $("img", obj).first().attr("alt") ?? "";
+        const id =
+            $("a", obj).attr("href")?.replace(/\/$/, "").split("/").pop() ?? "";
 
-    const currentPage = Number(pages[0]);
-    const lastPage = Number(pages[1]);
+        const subtitle: string = $(".comic-card__stat--rating", obj)
+            .text()
+            .trim();
 
-    if (currentPage >= lastPage) isLast = true;
-    return isLast;
+        mangas.push({
+            mangaId: id,
+            title: Application.decodeHTMLEntities(title),
+            imageUrl: image,
+            subtitle: subtitle,
+            contentRating: ContentRating.EVERYONE,
+        });
+    }
+    return mangas;
 };
