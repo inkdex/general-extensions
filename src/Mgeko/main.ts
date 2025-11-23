@@ -28,12 +28,13 @@ import {
 } from "@paperback/types";
 import * as cheerio from "cheerio";
 import { URLBuilder } from "../utils/url-builder/base";
+import type { BrowseResult, Metadata } from "./models";
 import {
-    isLastPage,
     parseChapterDetails,
     parseChapters,
     parseGenreTags,
     parseMangaDetails,
+    parseOldSearch,
     parseSearch,
     parseViewMore,
 } from "./parsers";
@@ -46,11 +47,6 @@ type MgekoImplementation = Extension &
     ChapterProviding &
     DiscoverSectionProviding &
     CloudflareBypassRequestProviding;
-
-type Metadata = {
-    page?: number;
-    completed?: boolean;
-};
 
 class MgekoInterceptor extends PaperbackInterceptor {
     async interceptRequest(request: Request): Promise<Request> {
@@ -94,13 +90,13 @@ export class MgekoExtension implements MgekoImplementation {
     async getDiscoverSections(): Promise<DiscoverSection[]> {
         return [
             {
-                id: "most_viewed",
-                title: "Most Viewed",
+                id: "popular_all_time",
+                title: "Popular All Time",
                 type: DiscoverSectionType.prominentCarousel,
             },
             {
-                id: "new",
-                title: "New",
+                id: "top_rated",
+                title: "Top Rated",
                 type: DiscoverSectionType.simpleCarousel,
             },
             {
@@ -121,12 +117,15 @@ export class MgekoExtension implements MgekoImplementation {
         metadata: Metadata | undefined,
     ): Promise<PagedResults<DiscoverSectionItem>> {
         switch (section.id) {
-            case "most_viewed":
-                return this.getFilteredSectionItems("Views", metadata);
-            case "new":
-                return this.getFilteredSectionItems("New", metadata);
+            case "popular_all_time":
+                return this.getFilteredSectionItems(
+                    "popular_all_time",
+                    metadata,
+                );
+            case "top_rated":
+                return this.getFilteredSectionItems("rating", metadata);
             case "latest_updates":
-                return this.getFilteredSectionItems("Updated", metadata);
+                return this.getFilteredSectionItems("latest", metadata);
             case "genres":
                 return this.getGenreSectionItems();
             default:
@@ -234,11 +233,15 @@ export class MgekoExtension implements MgekoImplementation {
 
     async getSortingOptions(): Promise<SortingOption[]> {
         return [
-            { id: "Ratings", label: "Ratings" },
-            { id: "Views", label: "Views" },
-            { id: "New", label: "New" },
-            { id: "Updated", label: "Updated" },
-            { id: "Random", label: "Random" },
+            { id: "rating", label: "Top Rated" },
+            { id: "latest", label: "Latest" },
+            { id: "recently_added", label: "Recently Added" },
+            { id: "popular_daily", label: "Popular Daily" },
+            { id: "popular_weekly", label: "Popular Weekly" },
+            { id: "popular_monthly", label: "Popular Monthly" },
+            { id: "popular_all_time", label: "Popular All Time" },
+            { id: "az", label: "Title (A-Z)" },
+            { id: "za", label: "Title (Z-A)" },
         ];
     }
 
@@ -248,19 +251,34 @@ export class MgekoExtension implements MgekoImplementation {
         sortingOption?: SortingOption,
     ): Promise<PagedResults<SearchResultItem>> {
         const page: number = metadata?.page ?? 1;
-        let request: Request;
         const isQuerySearch = query.title?.trim().length ?? 0 > 0;
 
         // Regular search
         if (isQuerySearch) {
-            request = {
+            const request = {
                 url: new URLBuilder(MGEKO_DOMAIN)
                     .addPath("autocomplete")
                     .addQuery("term", encodeURI(query.title.trim()))
                     .build(),
                 method: "GET",
             };
+
+            const $ = await this.fetchCheerio(request);
+
+            const manga = parseOldSearch($, MGEKO_DOMAIN);
+
+            return {
+                items: manga,
+            };
         } else {
+            const urlBuilder = new URLBuilder(MGEKO_DOMAIN)
+                .addPath("browse-comics")
+                .addPath("data");
+
+            urlBuilder.addQuery("page", page);
+
+            urlBuilder.addQuery("sort", sortingOption?.id ?? "rating");
+
             // Tag/Filter Search
             const getFilterValue = (id: string) =>
                 query.filters?.find((filter) => filter.id === id)?.value;
@@ -276,39 +294,43 @@ export class MgekoExtension implements MgekoImplementation {
                 .map(([key]) => key)
                 .join(",");
 
+            urlBuilder.addQuery("genre_included", genreIncluded);
+
             const genreExcluded = Object.entries(genres)
                 .filter(([, value]) => value === "excluded")
                 .map(([key]) => key)
                 .join(",");
 
-            const sortBy = sortingOption?.id ?? "Ratings";
+            urlBuilder.addQuery("genre_excluded", genreExcluded);
 
-            request = {
-                url: new URLBuilder(MGEKO_DOMAIN)
-                    .addPath("browse-comics")
-                    .addQuery("filter", sortBy)
-                    .addQuery("genre_included", genreIncluded)
-                    .addQuery("genre_excluded", genreExcluded)
-                    .addQuery("results", page)
-                    .build(),
+            const request = {
+                url: urlBuilder.build(),
                 method: "GET",
             };
+
+            const parsedData = await this.fetchApi<BrowseResult>(request);
+            const $ = cheerio.load(parsedData.results_html, {
+                xml: {
+                    xmlMode: false,
+                    decodeEntities: false,
+                },
+            });
+
+            const manga = parseSearch($, MGEKO_DOMAIN);
+
+            metadata =
+                parsedData.page < parsedData.num_pages
+                    ? { page: page + 1 }
+                    : undefined;
+            return {
+                items: manga,
+                metadata: metadata,
+            };
         }
-
-        const $ = await this.fetchCheerio(request);
-        const manga = parseSearch($, MGEKO_DOMAIN);
-
-        // Search results do not have pagination
-        metadata =
-            !isLastPage($) && !isQuerySearch ? { page: page + 1 } : undefined;
-        return {
-            items: manga,
-            metadata: metadata,
-        };
     }
 
     private async getFilteredSectionItems(
-        filter: string,
+        sort: string,
         metadata: Metadata | undefined,
     ): Promise<PagedResults<DiscoverSectionItem>> {
         if (metadata?.completed) return EndOfPageResults;
@@ -318,14 +340,24 @@ export class MgekoExtension implements MgekoImplementation {
         const request: Request = {
             url: new URLBuilder(MGEKO_DOMAIN)
                 .addPath("browse-comics")
-                .addQuery("results", page)
-                .addQuery("filter", filter)
+                .addPath("data")
+                .addQuery("page", page)
+                .addQuery("sort", sort)
                 .build(),
             method: "GET",
         };
-        const $ = await this.fetchCheerio(request);
+        const parsedData = await this.fetchApi<BrowseResult>(request);
+        const $ = cheerio.load(parsedData.results_html, {
+            xml: {
+                xmlMode: false,
+                decodeEntities: false,
+            },
+        });
         const manga = parseViewMore($);
-        metadata = !isLastPage($) ? { page: page + 1 } : undefined;
+        metadata =
+            parsedData.page < parsedData.num_pages
+                ? { page: page + 1 }
+                : undefined;
 
         return {
             items: manga,
@@ -367,6 +399,27 @@ export class MgekoExtension implements MgekoImplementation {
                 decodeEntities: false,
             },
         });
+    }
+
+    async fetchApi<T>(request: Request): Promise<T> {
+        let response: Response;
+        let data: ArrayBuffer;
+        try {
+            [response, data] = await Application.scheduleRequest(request);
+            this.checkCloudflareStatus(response.status);
+        } catch {
+            throw new Error(
+                `Failed to fetch data from ${request.url} (request error)`,
+            );
+        }
+
+        try {
+            return JSON.parse(Application.arrayBufferToUTF8String(data)) as T;
+        } catch {
+            throw new Error(
+                `Failed to fetch data from ${request.url} (Invalid response)`,
+            );
+        }
     }
 }
 
