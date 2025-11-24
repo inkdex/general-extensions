@@ -7,16 +7,16 @@ import {
 export default {
     name: "MangaFire",
     description: "Extension that pulls content from mangafire.to.",
-    version: "1.0.0-alpha.7",
+    version: "1.0.0-alpha.8",
     icon: "icon.png",
     language: "multi",
     contentRating: ContentRating.EVERYONE,
-    capabilities: [
-        SourceIntents.DISCOVER_SECIONS_PROVIDING,
-        SourceIntents.SEARCH_RESULTS_PROVIDING,
-        SourceIntents.CHAPTER_PROVIDING,
-        SourceIntents.SETTINGS_FORM_PROVIDING,
-    ],
+    capabilities:
+        SourceIntents.DISCOVER_SECIONS_PROVIDING |
+        SourceIntents.SEARCH_RESULTS_PROVIDING |
+        SourceIntents.CHAPTER_PROVIDING |
+        SourceIntents.SETTINGS_FORM_PROVIDING |
+        SourceIntents.CLOUDFLARE_BYPASS_PROVIDING,
     badges: [],
     developers: [
         {
