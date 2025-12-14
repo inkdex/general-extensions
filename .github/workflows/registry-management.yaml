@@ -1,30 +1,30 @@
 name: Registry Management
 
 on:
-    workflow_run:
-        workflows:
-            - Bundle and Deploy
-        types:
-            - completed
+  workflow_run:
+    workflows:
+      - Bundle and Deploy
+    types:
+      - completed
 
 concurrency:
-    group: ${{ github.workflow }}
-    cancel-in-progress: false
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
 
 jobs:
-    registry-update:
-        name: Registry Management
-        runs-on: ubuntu-latest
-        steps:
-            - name: Registry Management Workflow Dispatch
-              env:
-                  GH_TOKEN: ${{ secrets.REGISTRY_MANAGEMENT }}
-              run: |
-                  gh api \
-                    --method POST \
-                    -H 'Accept: application/vnd.github+json' \
-                    -H 'X-GitHub-Api-Version: 2022-11-28' \
-                    /repos/inkdex/extensions/dispatches \
-                    -f 'event_type=registry-management' \
-                    -F "client_payload[repository]=${{ github.repository }}" \
-                    -F "client_payload[branch]=${{ github.ref_name }}"
+  registry-update:
+    name: Registry Management
+    runs-on: ubuntu-latest
+    steps:
+      - name: Registry Management Workflow Dispatch
+        env:
+          GH_TOKEN: ${{ secrets.REGISTRY_MANAGEMENT }}
+        run: |
+          gh api \
+            --method POST \
+            -H 'Accept: application/vnd.github+json' \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            /repos/inkdex/extensions/dispatches \
+            -f 'event_type=registry-management' \
+            -F "client_payload[repository]=${{ github.repository }}" \
+            -F "client_payload[branch]=${{ github.ref_name }}"

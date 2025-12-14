@@ -1,37 +1,37 @@
 name: Bundle and Deploy
 
 on:
-    push:
-        branches:
-            - "[0-9]+.[0-9]+/*"
-            - "[0-9]+.[0-9]+/*"
+  push:
+    branches:
+      - "[0-9]+.[0-9]+/*"
+      - "[0-9]+.[0-9]+/*"
 
 permissions:
-    contents: write
+  contents: write
 
 concurrency:
-    group: ${{ github.workflow }}
-    cancel-in-progress: false
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
 
 jobs:
-    bundle-deploy:
-        name: Bundle and Deploy
-        runs-on: ubuntu-latest
-        steps:
-            - name: Checkout Branch
-              uses: actions/checkout@v4
-            - name: Setup Node.js Environment
-              uses: actions/setup-node@v4
-              with:
-                  node-version: 22
-                  cache: npm
-            - name: Install Dependencies
-              run: npm ci
-            - name: Bundle Extensions
-              run: npm run bundle
-            - name: Deploy to GitHub Pages
-              uses: peaceiris/actions-gh-pages@v4
-              with:
-                  github_token: ${{ secrets.GITHUB_TOKEN }}
-                  publish_dir: bundles
-                  destination_dir: ${{ github.ref_name }}
+  bundle-deploy:
+    name: Bundle and Deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Branch
+        uses: actions/checkout@v4
+      - name: Setup Node.js Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install Dependencies
+        run: npm ci
+      - name: Bundle Extensions
+        run: npm run bundle
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: bundles
+          destination_dir: ${{ github.ref_name }}

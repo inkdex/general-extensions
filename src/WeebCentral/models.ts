@@ -8,26 +8,26 @@ export const DEFAULT_LANGUAGE_CODE = "🇬🇧";
 // Enums
 
 export enum TagSectionId {
-    Genres = "included_tag",
-    SeriesStatus = "included_status",
-    SeriesType = "included_type",
-    Order = "order",
+  Genres = "included_tag",
+  SeriesStatus = "included_status",
+  SeriesType = "included_type",
+  Order = "order",
 }
 
 export enum TagSectionTitle {
-    Genres = "Genres",
-    SeriesStatus = "Series Status",
-    SeriesType = "Series Type",
-    Order = "Order",
+  Genres = "Genres",
+  SeriesStatus = "Series Status",
+  SeriesType = "Series Type",
+  Order = "Order",
 }
 
 // Interfaces
 
 export interface Metadata {
-    page?: number; // For homepage sections
-    offset?: number; // For search results
+  page?: number; // For homepage sections
+  offset?: number; // For search results
 }
 
 export interface ChapterWithMetadata extends Chapter {
-    chapterType: string;
+  chapterType: string;
 }

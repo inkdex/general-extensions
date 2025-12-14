@@ -1,5 +1,5 @@
 export default async function genVrf(input: string) {
-    const script = `
+  const script = `
         const RC4_KEYS = {
             l: "u8cBwTi1CM4XE3BkwG5Ble3AxWgnhKiXD9Cr279yNW0=",
             g: "t00NOJ/Fl3wZtez1xU6/YvcWDoXzjrDHJLL2r/IWgcY=",
@@ -225,15 +225,15 @@ export default async function genVrf(input: string) {
         return base64UrlEncodeBytes(bytes);
     `;
 
-    const webViewResult = await Application.executeInWebView({
-        source: {
-            html: "<html></html>",
-            baseUrl: "http://127.0.0.1",
-            loadCSS: false,
-            loadImages: false,
-        },
-        inject: script,
-        storage: { cookies: [] },
-    });
-    return webViewResult.result as string;
+  const webViewResult = await Application.executeInWebView({
+    source: {
+      html: "<html></html>",
+      baseUrl: "http://127.0.0.1",
+      loadCSS: false,
+      loadImages: false,
+    },
+    inject: script,
+    storage: { cookies: [] },
+  });
+  return webViewResult.result as string;
 }
