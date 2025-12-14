@@ -1,44 +1,44 @@
 {
-    // Visit https://aka.ms/tsconfig to read more about this file
-    "compilerOptions": {
-        // File Layout
-        // "rootDir": "./src",
-        // "outDir": "./dist",
-        "tsBuildInfoFile": "./node_modules/.cache/.tsbuildinfo",
+  // Visit https://aka.ms/tsconfig to read more about this file
+  "compilerOptions": {
+    // File Layout
+    // "rootDir": "./src",
+    // "outDir": "./dist",
+    "tsBuildInfoFile": "./node_modules/.cache/.tsbuildinfo",
 
-        // Environment Settings
-        // See also https://aka.ms/tsconfig/module
-        "module": "preserve",
-        "moduleResolution": "bundler",
-        "target": "esnext",
-        "resolveJsonModule": true,
+    // Environment Settings
+    // See also https://aka.ms/tsconfig/module
+    "module": "preserve",
+    "moduleResolution": "bundler",
+    "target": "esnext",
+    "resolveJsonModule": true,
 
-        // Other Outputs
-        // "sourceMap": true,
-        // "declaration": true,
-        // "declarationMap": true,
-        "noEmit": true,
+    // Other Outputs
+    // "sourceMap": true,
+    // "declaration": true,
+    // "declarationMap": true,
+    "noEmit": true,
 
-        // Stricter Typechecking Options
-        // "noUncheckedIndexedAccess": true, // TODO: Re-enable this later
-        // "exactOptionalPropertyTypes": false,
+    // Stricter Typechecking Options
+    // "noUncheckedIndexedAccess": true, // TODO: Re-enable this later
+    // "exactOptionalPropertyTypes": false,
 
-        // Style Options
-        // "noImplicitReturns": true,
-        "noImplicitOverride": true,
-        // "noUnusedLocals": true,
-        // "noUnusedParameters": true,
-        // "noFallthroughCasesInSwitch": true,
-        // "noPropertyAccessFromIndexSignature": true,
+    // Style Options
+    // "noImplicitReturns": true,
+    "noImplicitOverride": true,
+    // "noUnusedLocals": true,
+    // "noUnusedParameters": true,
+    // "noFallthroughCasesInSwitch": true,
+    // "noPropertyAccessFromIndexSignature": true,
 
-        // Recommended Options
-        "strict": true,
-        "verbatimModuleSyntax": true,
-        "isolatedModules": true,
-        "esModuleInterop": true,
-        "forceConsistentCasingInFileNames": true,
-        "noUncheckedSideEffectImports": true,
-        "moduleDetection": "force",
-        "skipLibCheck": true
-    }
+    // Recommended Options
+    "strict": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "noUncheckedSideEffectImports": true,
+    "moduleDetection": "force",
+    "skipLibCheck": true,
+  },
 }

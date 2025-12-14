@@ -1,10 +1,10 @@
 import {
-    Form,
-    Section,
-    SelectRow,
-    ToggleRow,
-    type FormSectionElement,
-    type SettingsFormProviding,
+  Form,
+  Section,
+  SelectRow,
+  ToggleRow,
+  type FormSectionElement,
+  type SettingsFormProviding,
 } from "@paperback/types";
 import { Language, LanguagesOptions } from "./WebtoonI18NHelper";
 
@@ -14,76 +14,66 @@ export const BASE_URL = "https://www.webtoons.com";
 export const MOBILE_URL = "https://m.webtoons.com";
 
 function toBoolean(value: unknown): boolean {
-    return (value ?? false) === "true";
+  return (value ?? false) === "true";
 }
 
 export abstract class WebtoonSettings implements SettingsFormProviding {
-    get canvasWanted(): boolean {
-        return toBoolean(Application.getState(CANVAS_WANTED));
-    }
+  get canvasWanted(): boolean {
+    return toBoolean(Application.getState(CANVAS_WANTED));
+  }
 
-    set canvasWanted(value: boolean) {
-        Application.setState(value.toString(), CANVAS_WANTED);
-    }
+  set canvasWanted(value: boolean) {
+    Application.setState(value.toString(), CANVAS_WANTED);
+  }
 
-    get languages(): Language[] {
-        return (
-            (Application.getState(LANGUAGES) as Language[]) ?? [
-                Language.ENGLISH,
-            ]
-        );
-    }
+  get languages(): Language[] {
+    return (Application.getState(LANGUAGES) as Language[]) ?? [Language.ENGLISH];
+  }
 
-    set languages(value: string[]) {
-        Application.setState(value, LANGUAGES);
-    }
+  set languages(value: string[]) {
+    Application.setState(value, LANGUAGES);
+  }
 
-    async getSettingsForm(): Promise<Form> {
-        return new WebtoonSettingForm(this);
-    }
+  async getSettingsForm(): Promise<Form> {
+    return new WebtoonSettingForm(this);
+  }
 }
 
 class WebtoonSettingForm extends Form {
-    private settings: WebtoonSettings;
+  private settings: WebtoonSettings;
 
-    constructor(settings: WebtoonSettings) {
-        super();
-        this.settings = settings;
-    }
+  constructor(settings: WebtoonSettings) {
+    super();
+    this.settings = settings;
+  }
 
-    override getSections(): FormSectionElement[] {
-        return [
-            Section("settings", [
-                SelectRow(LANGUAGES, {
-                    title: "Languages",
-                    value: this.settings.languages,
-                    minItemCount: 1,
-                    maxItemCount: 200,
-                    options: LanguagesOptions,
-                    onValueChange: Application.Selector(
-                        this as WebtoonSettingForm,
-                        "setLanguages",
-                    ),
-                }),
-                ToggleRow(CANVAS_WANTED, {
-                    title: "Show Canvas",
-                    value: this.settings.canvasWanted,
-                    onValueChange: Application.Selector(
-                        this as WebtoonSettingForm,
-                        "setCanvasWanted",
-                    ),
-                }),
-            ]),
-        ];
-    }
+  override getSections(): FormSectionElement[] {
+    return [
+      Section("settings", [
+        SelectRow(LANGUAGES, {
+          title: "Languages",
+          value: this.settings.languages,
+          minItemCount: 1,
+          maxItemCount: 200,
+          options: LanguagesOptions,
+          onValueChange: Application.Selector(this as WebtoonSettingForm, "setLanguages"),
+        }),
+        ToggleRow(CANVAS_WANTED, {
+          title: "Show Canvas",
+          value: this.settings.canvasWanted,
+          onValueChange: Application.Selector(this as WebtoonSettingForm, "setCanvasWanted"),
+        }),
+      ]),
+    ];
+  }
 
-    async setCanvasWanted(value: boolean): Promise<void> {
-        this.settings.canvasWanted = value;
-        Application.invalidateDiscoverSections();
-    }
+  async setCanvasWanted(value: boolean): Promise<void> {
+    this.settings.canvasWanted = value;
+    Application.invalidateDiscoverSections();
+  }
 
-    async setLanguages(value: string[]): Promise<void> {
-        this.settings.languages = value;
-        Application.invalidateDiscoverSections();
-    }
+  async setLanguages(value: string[]): Promise<void> {
+    this.settings.languages = value;
+    Application.invalidateDiscoverSections();
+  }
 }
