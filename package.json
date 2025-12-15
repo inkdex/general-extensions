@@ -1,8 +1,7 @@
 {
   "name": "general-extensions",
-  "repositoryName": "General Extensions (0.9)",
-  "description": "Paperback extensions for websites with unique, non-generic themes. Maintained by Inkdex.",
   "private": true,
+  "description": "Paperback extensions for websites with unique, non-generic themes. Maintained by Inkdex.",
   "type": "module",
   "scripts": {
     "lint": "oxlint --type-aware --fix",
@@ -27,11 +26,12 @@
     "fastest-levenshtein": "^1.0.16",
     "husky": "^9.1.7",
     "jpeg-js": "^0.4.4",
-    "oxfmt": "^0.17.0",
-    "oxlint": "^1.32.0",
+    "oxfmt": "^0.18.0",
+    "oxlint": "^1.33.0",
     "oxlint-tsgolint": "^0.9.0",
     "stemmer": "^2.0.1",
     "typescript": "^5.9.3",
     "upng-js": "^2.1.0"
-  }
+  },
+  "repositoryName": "General Extensions (0.9)"
 }
