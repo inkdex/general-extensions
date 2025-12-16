@@ -106,6 +106,8 @@ export class ContentSettingsForm extends Form {
         }),
         ToggleRow("skip_same_chapter", {
           title: "Skip Same Chapter",
+          subtitle:
+            "Skip chapters that have the same title and publish date and prioritize the newest chapter",
           value: this.skipSameChapterState.value,
           onValueChange: this.skipSameChapterState.selector,
         }),
@@ -129,7 +131,7 @@ export class ContentSettingsForm extends Form {
         ToggleRow("crop_images", {
           title: "Enable Image Cropping",
           subtitle:
-            "Automatically removes whitespace borders from images. Will noticeably increase loading time. Works best with Data Saver enabled",
+            "Automatically removes whitespace borders from images. Will noticeably increase loading time",
           value: this.cropImagesState.value,
           onValueChange: this.cropImagesState.selector,
         }),

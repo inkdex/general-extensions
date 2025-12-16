@@ -510,7 +510,7 @@ export class MangaProgressForm extends Form {
         this.readChapterIds = new Set(readResponse.data);
       }
 
-      this.chapters = await this.chapterProvider.getChapters(this.sourceManga, true);
+      this.chapters = await this.chapterProvider.getChapters(this.sourceManga, undefined, true);
 
       this.isChaptersLoaded = true;
       this.isChaptersLoading = false;

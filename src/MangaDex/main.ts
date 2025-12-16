@@ -100,21 +100,24 @@ export class MangaDexExtension implements MangaDexImplementation {
     return this.searchProvider.getSearchTags();
   }
 
-  async getSortingOptions(): Promise<SortingOption[]> {
-    return this.searchProvider.getSortingOptions();
+  async getSortingOptions(query: SearchQuery): Promise<SortingOption[]> {
+    return this.searchProvider.getSortingOptions(query);
   }
 
   // ChapterProviding implementation
-  async getChapters(sourceManga: SourceManga): Promise<Chapter[]> {
-    return this.chapterProvider.getChapters(sourceManga);
+  async getChapters(sourceManga: SourceManga, sinceDate?: Date): Promise<Chapter[]> {
+    return this.chapterProvider.getChapters(sourceManga, sinceDate);
   }
 
   async getChapterDetails(chapter: Chapter): Promise<ChapterDetails> {
     return this.chapterProvider.getChapterDetails(chapter);
   }
 
-  async processTitlesForUpdates(updateManager: UpdateManager): Promise<void> {
-    return this.chapterProvider.processTitlesForUpdates(updateManager);
+  async processTitlesForUpdates(
+    updateManager: UpdateManager,
+    lastUpdateDate?: Date,
+  ): Promise<void> {
+    return this.chapterProvider.processTitlesForUpdates(updateManager, lastUpdateDate);
   }
 
   // SettingsFormProviding implementation

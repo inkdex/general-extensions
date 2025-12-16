@@ -107,7 +107,7 @@ export class ProgressProvider {
 
     if (chapterPreloadingEnabled) {
       try {
-        chapters = await this.chapterProvider.getChapters(sourceManga, true);
+        chapters = await this.chapterProvider.getChapters(sourceManga, undefined, true);
       } catch (error) {
         console.log(`Error fetching chapters: ${String(error)}`);
       }
@@ -195,33 +195,23 @@ export class ProgressProvider {
     const guidRegex =
       /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 
+    const trackingEnabled = getTrackingEnabled();
+    if (!trackingEnabled) {
+      return {
+        successfulItems: actions.map((action) => action.id),
+        failedItems: [],
+      };
+    }
+
     if (!getAccessToken()) {
       return {
         successfulItems: [],
-        failedItems: actions
-          .filter(
-            (action) =>
-              action.readChapter?.chapterId && guidRegex.test(action.readChapter.chapterId),
-          )
-          .map((action) => action.chapterId),
+        failedItems: actions.map((action) => action.id),
       };
     }
 
     const successfulItems: string[] = [];
     const failedItems: string[] = [];
-
-    const trackingEnabled = getTrackingEnabled();
-    if (!trackingEnabled) {
-      return {
-        successfulItems: [],
-        failedItems: actions
-          .filter(
-            (action) =>
-              action.readChapter?.chapterId && guidRegex.test(action.readChapter.chapterId),
-          )
-          .map((action) => action.chapterId),
-      };
-    }
 
     const allowedContentRatings = getTrackingContentRatings().map((rating) => rating.toLowerCase());
 
@@ -246,13 +236,14 @@ export class ProgressProvider {
       {
         mangaId: string;
         sourceManga: SourceManga;
-        chapterIds: string[];
+        actions: TrackedMangaChapterReadAction[];
       }
     > = {};
 
     for (const action of actions) {
-      const chapterId = action.readChapter?.chapterId;
+      const chapterId = action.chapterId;
       if (!chapterId || !guidRegex.test(chapterId)) {
+        failedItems.push(action.id);
         console.warn(
           `Skipping chapter read action due to invalid or missing chapterId ('${chapterId ?? "undefined"}') for manga: ${action.sourceManga.mangaId}`,
         );
@@ -267,7 +258,7 @@ export class ProgressProvider {
         const isAllowed = mappedRatings.some((rating) => allowedContentRatings.includes(rating));
 
         if (allowedContentRatings.length > 0 && !isAllowed) {
-          failedItems.push(chapterId);
+          failedItems.push(action.id);
           continue;
         }
       }
@@ -276,23 +267,18 @@ export class ProgressProvider {
         chaptersByManga[mangaId] = {
           mangaId,
           sourceManga: action.sourceManga,
-          chapterIds: [],
+          actions: [],
         };
       }
 
-      chaptersByManga[mangaId].chapterIds.push(chapterId);
+      chaptersByManga[mangaId].actions.push(action);
     }
 
     for (const mangaGroup of Object.values(chaptersByManga)) {
       try {
-        failedItems.push(...mangaGroup.chapterIds);
-      } catch {
-        failedItems.push(...mangaGroup.chapterIds);
-      }
-    }
+        const chapterIds = mangaGroup.actions.map((a) => a.chapterId);
+        const actionIds = mangaGroup.actions.map((a) => a.id);
 
-    for (const mangaGroup of Object.values(chaptersByManga)) {
-      try {
         const statusUrl = new URL(MANGADEX_API)
           .addPathComponent("manga")
           .addPathComponent(mangaGroup.mangaId)
@@ -305,13 +291,14 @@ export class ProgressProvider {
         });
 
         if (statusResponse.result !== "ok") {
+          failedItems.push(...actionIds);
           continue;
         }
 
         const sourceManga = mangaGroup.sourceManga;
         let unreadCount = sourceManga.unreadChapterCount || 0;
 
-        const chaptersToConsider = mangaGroup.chapterIds.length;
+        const chaptersToConsider = chapterIds.length;
         unreadCount = Math.max(0, unreadCount - chaptersToConsider);
 
         let newStatus: string | null = null;
@@ -330,8 +317,11 @@ export class ProgressProvider {
             body: { status: newStatus },
           });
         }
+
+        successfulItems.push(...actionIds);
       } catch (error) {
         console.log(`Error updating manga status: ${String(error)}`);
+        failedItems.push(...mangaGroup.actions.map((a) => a.id));
       }
     }
 
