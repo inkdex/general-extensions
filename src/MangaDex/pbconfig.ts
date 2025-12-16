@@ -1,4 +1,4 @@
-import { ContentRating, SourceIntents, type SourceInfo } from "@paperback/types";
+import { ContentRating, SourceIntents, type ExtensionInfo } from "@paperback/types";
 
 /**
  * Extension metadata and configuration
@@ -7,17 +7,17 @@ import { ContentRating, SourceIntents, type SourceInfo } from "@paperback/types"
 export default {
   name: "MangaDex",
   description: "Extension that pulls content from mangadex.org.",
-  version: "1.0.0-alpha.17",
+  version: "1.0.0-alpha.18",
   icon: "icon.png",
   languages: "multi",
   contentRating: ContentRating.EVERYONE,
   capabilities: [
-    SourceIntents.COLLECTION_MANAGEMENT,
-    SourceIntents.MANGA_CHAPTERS,
-    SourceIntents.DISCOVER_SECIONS,
-    SourceIntents.MANGA_SEARCH,
-    SourceIntents.SETTINGS_UI,
-    SourceIntents.MANGA_PROGRESS,
+    SourceIntents.MANAGED_COLLECTION_PROVIDING,
+    SourceIntents.CHAPTER_PROVIDING,
+    SourceIntents.DISCOVER_SECIONS_PROVIDING,
+    SourceIntents.SEARCH_RESULTS_PROVIDING,
+    SourceIntents.SETTINGS_FORM_PROVIDING,
+    SourceIntents.MANGA_PROGRESS_PROVIDING,
   ],
   badges: [],
   developers: [
@@ -27,4 +27,4 @@ export default {
       github: "https://github.com/inkdex",
     },
   ],
-} as SourceInfo;
+} as ExtensionInfo;

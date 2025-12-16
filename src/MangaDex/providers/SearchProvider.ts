@@ -192,17 +192,6 @@ export class SearchProvider {
       method: "GET",
     };
     const json = await fetchJSON<MangaDex.SearchResponse>(request);
-    if (json.data === undefined) {
-      throw new Error(
-        `Failed to create search results, check MangaDex status and your search query`,
-      );
-    } else if (json.data.length === 0 && offset === 0) {
-      const langStr = languages.join(", ");
-      const ratingStr = ratings.join(", ");
-      throw new Error(
-        `No results found. If it exists, check your language and content rating filters in the MangaDex extension settings\nEnabled Languages: ${langStr}\nEnabled Ratings: ${ratingStr}`,
-      );
-    }
 
     let ratingJson: MangaDex.StatisticsResponse | undefined = undefined;
     if (getShowSearchRatingInSubtitle() && json.data && json.data.length > 0) {
@@ -253,7 +242,7 @@ export class SearchProvider {
     return { items: results, metadata: nextMetadata };
   }
 
-  async getSortingOptions(): Promise<SortingOption[]> {
+  async getSortingOptions(_query: SearchQuery): Promise<SortingOption[]> {
     return [
       { id: "", label: "Latest Upload" },
       { id: "order[relevance]-desc", label: "Best Match" },

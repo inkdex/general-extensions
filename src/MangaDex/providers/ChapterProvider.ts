@@ -44,6 +44,7 @@ export class ChapterProvider {
    */
   async getChapters(
     sourceManga: SourceManga,
+    sinceDate?: Date,
     skipMetadataUpdate: boolean = false,
   ): Promise<Chapter[]> {
     const mangaId = sourceManga.mangaId;
@@ -288,26 +289,15 @@ export class ChapterProvider {
       }
     }
 
-    // if (chapters.length === 0) {
-    //     const langStr = languages.join(", ");
-    //     const ratingStr = ratings.join(", ");
-    //     if (totalChaptersFetched > 0 && hasExternalChapters) {
-    //         throw new Error(
-    //             `Chapters are hosted externally outside MangaDex, you'll need to use another source or read it online`,
-    //         );
-    //     } else if (totalChaptersFetched > 0) {
-    //         throw new Error(
-    //             `No chapters found matching your selected language(s) [${langStr}]. Chapters in other languages might exist`,
-    //         );
-    //     } else {
-    //         throw new Error(
-    //             `No chapters found. This manga has no chapters in your selected language(s) [${langStr}] or content ratings [${ratingStr}]`,
-    //         );
-    //     }
-    // }
+    const filteredChapters =
+      sinceDate instanceof Date
+        ? chapters.filter((chapter) => !chapter.publishDate || chapter.publishDate >= sinceDate)
+        : chapters;
 
-    return chapters.map((chapter) => {
-      chapter.sortingIndex = (chapter.sortingIndex ?? 0) + chapters.length;
+    const total = filteredChapters.length;
+
+    return filteredChapters.map((chapter, index) => {
+      chapter.sortingIndex = total - index;
       return chapter;
     });
   }
@@ -350,7 +340,10 @@ export class ChapterProvider {
   /**
    * Optimizes update process by filtering which manga need updates
    */
-  async processTitlesForUpdates(updateManager: UpdateManager): Promise<void> {
+  async processTitlesForUpdates(
+    updateManager: UpdateManager,
+    _lastUpdateDate?: Date,
+  ): Promise<void> {
     const sourceManga = updateManager.getQueuedItems();
 
     const mangaMap = new Map<string, SourceManga>();

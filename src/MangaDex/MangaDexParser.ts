@@ -16,6 +16,7 @@ import {
   getShowSearchRatingInSubtitle,
   getShowStatusIcons,
   getShowVolume,
+  getLanguages,
 } from "./MangaDexSettings";
 import { COVER_BASE_URL, MANGADEX_DOMAIN } from "./utils/CommonUtil";
 import { relevanceScore } from "./utils/titleRelevanceScore";
@@ -63,6 +64,36 @@ const ratingIconMap: Record<string, string> = {
   pornographic: "🔞",
 };
 
+const getFirstLanguageMatch = (
+  values: Record<string, string | undefined> | undefined,
+  languages: string[],
+): string | undefined => {
+  if (!values) return undefined;
+  for (const lang of languages) {
+    const match = values[lang];
+    if (match) return match;
+  }
+  return undefined;
+};
+
+const getFirstLanguageMatchFromAlt = (
+  altTitles: MangaDex.AltTitle[] | undefined,
+  languages: string[],
+): string | undefined => {
+  if (!altTitles) return undefined;
+  for (const lang of languages) {
+    for (const alt of altTitles) {
+      const match = (alt as Record<string, string | undefined>)[lang];
+      if (match) return match;
+    }
+  }
+  return undefined;
+};
+
+const getFirstValue = (
+  values: Record<string, string | undefined> | undefined,
+): string | undefined => Object.values(values ?? {}).find((v) => v);
+
 /**
  * Parses manga list from API response and formats for display
  * Handles relevance sorting and thumbnail formatting
@@ -78,17 +109,18 @@ export const parseMangaList = async (
 
   const thumbnailQuality = thumbnailSelector();
   const useCustomCovers = getCustomCoversEnabled();
+  const languages = getLanguages();
 
   for (const manga of object) {
     const mangaId = manga.id;
     const mangaDetails = manga.attributes;
-    const title =
-      Application.decodeHTMLEntities(
-        mangaDetails.title.en ??
-          mangaDetails.altTitles
-            .flatMap((x: MangaDex.AltTitle) => Object.values(x) as string[])
-            .find((t: string | undefined): t is string => t !== undefined),
-      ) ?? "Unknown Title";
+    const titleMatch =
+      getFirstLanguageMatch(mangaDetails.title as Record<string, string | undefined>, languages) ??
+      getFirstLanguageMatchFromAlt(mangaDetails.altTitles, languages) ??
+      getFirstValue(mangaDetails.title as Record<string, string | undefined>) ??
+      "";
+
+    const title = Application.decodeHTMLEntities(titleMatch);
 
     let coverFileName = manga.relationships
       .filter((x): x is MangaDex.Relationship => x.type.valueOf() === "cover_art")
@@ -268,14 +300,43 @@ export function parseMangaItemDetails(
   mangaId: string,
   mangaDetails: MangaDex.DatumAttributes,
 ): MangaItemDetails {
-  const primaryTitle: string =
-    mangaDetails.title.en ?? (Object.values(mangaDetails.title) as string[])[0];
+  const languages = getLanguages();
+
+  const primaryTitleMatch =
+    getFirstLanguageMatch(mangaDetails.title as Record<string, string | undefined>, languages) ??
+    getFirstLanguageMatchFromAlt(mangaDetails.altTitles, languages) ??
+    getFirstValue(mangaDetails.title as Record<string, string | undefined>) ??
+    "";
+
+  const primaryTitle: string = Application.decodeHTMLEntities(primaryTitleMatch);
 
   const secondaryTitles: string[] = mangaDetails.altTitles.flatMap(
     (x: MangaDex.AltTitle) => Object.values(x) as string[],
   );
 
-  const desc = (mangaDetails.description.en ?? "")?.replace(/\[\/?[bus]]/g, "");
+  const descriptionMatch =
+    getFirstLanguageMatch(
+      mangaDetails.description as Record<string, string | undefined>,
+      languages,
+    ) ??
+    (mangaDetails.description as Record<string, string | undefined>).en ??
+    "";
+
+  const desc = Application.decodeHTMLEntities(descriptionMatch)?.replace(/\[\/?[bus]]/g, "") ?? "";
+
+  const hasAniList = Boolean((mangaDetails.links as MangaDex.Links | undefined)?.al);
+  const hasMangaUpdates = Boolean((mangaDetails.links as MangaDex.Links | undefined)?.mu);
+  const hasMyAnimeList = Boolean((mangaDetails.links as MangaDex.Links | undefined)?.mal);
+
+  let synopsis = desc;
+  if (hasAniList || hasMangaUpdates || hasMyAnimeList) {
+    const trackers: string[] = [];
+    if (hasAniList) trackers.push("AniList");
+    if (hasMangaUpdates) trackers.push("MangaUpdates");
+    if (hasMyAnimeList) trackers.push("MyAnimeList");
+    const trackingLine = `Tracking available for:\n${trackers.join("\n")}`;
+    synopsis = synopsis ? `${synopsis}\n\n${trackingLine}` : trackingLine;
+  }
 
   const status = mangaDetails.status;
 
@@ -289,7 +350,7 @@ export function parseMangaItemDetails(
   return {
     primaryTitle,
     secondaryTitles,
-    synopsis: desc,
+    synopsis,
     status,
     tagGroups: [{ id: "tags", title: "Tags", tags }],
     contentRating:

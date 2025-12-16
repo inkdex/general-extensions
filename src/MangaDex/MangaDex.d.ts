@@ -148,6 +148,7 @@ declare namespace MangaDex {
 
   interface Title {
     en: string;
+    [language: string]: string | undefined;
   }
 
   enum TagType {
