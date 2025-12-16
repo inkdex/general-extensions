@@ -6,6 +6,7 @@ Paperback extensions for websites with unique, non-generic themes.
 
 - [Asura Scans](https://asuracomic.net)
 - [Bato.To](https://bato.to)
+- [Comix.To](https://comix.to)
 - [MangaDemon](https://demonicscans.org)
 - [MangaDex](https://mangadex.org)
 - [MangaFire](https://mangafire.to)
