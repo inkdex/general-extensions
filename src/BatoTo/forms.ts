@@ -6,7 +6,7 @@ import {
 } from "@paperback/types";
 import { Languages, MirrorDomains } from "./models";
 
-const DEFAULT_MIRROR = "dto.to";
+const DEFAULT_MIRROR = "ato.to";
 
 export function getLanguages(): string[] {
   return (Application.getState("languages") as string[] | undefined) ?? ["en"];
