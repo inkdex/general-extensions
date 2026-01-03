@@ -27,10 +27,8 @@ import {
 } from "@paperback/types";
 import * as cheerio from "cheerio";
 import { URLBuilder } from "../utils/url-builder/base";
-import { BatoToSettingsForm, getLanguages } from "./forms";
+import { BatoToSettingsForm, getLanguages, getSelectedMirror } from "./forms";
 import { AdultGenres, Genres, MatureGenres, type Metadata } from "./models";
-
-const DOMAIN_NAME = "https://dto.to";
 
 // Should match the capabilities which you defined in pbconfig.ts
 type BatoToImplementation = SettingsFormProviding &
@@ -43,13 +41,15 @@ type BatoToImplementation = SettingsFormProviding &
 // Intercepts all the requests and responses and allows you to make changes to them
 class MainInterceptor extends PaperbackInterceptor {
   override async interceptRequest(request: Request): Promise<Request> {
+    const selectedMirror = "https://" + getSelectedMirror()[0];
     request.headers = {
       ...request.headers,
-
       "user-agent": await Application.getDefaultUserAgent(),
-      referer: `${DOMAIN_NAME}/`,
-      origin: `${DOMAIN_NAME}/`,
-      ...(request.url.includes("wordpress.com") && { Accept: "image/avif,image/webp,*/*" }),
+      referer: `${selectedMirror}/`,
+      origin: `${selectedMirror}/`,
+      ...(request.url.includes("wordpress.com") && {
+        Accept: "image/avif,image/webp,*/*",
+      }),
     };
 
     return request;
@@ -138,8 +138,9 @@ export class BatoToExtension implements BatoToImplementation {
     const items: DiscoverSectionItem[] = [];
     const collectedIds = metadata?.collectedIds ?? [];
 
+    const selectedMirror = "https://" + getSelectedMirror()[0];
     const request = {
-      url: new URLBuilder(DOMAIN_NAME).build(),
+      url: new URLBuilder(selectedMirror).build(),
       method: "GET",
     };
 
@@ -189,8 +190,9 @@ export class BatoToExtension implements BatoToImplementation {
     const languages = getLanguages();
 
     //https://bato.to/latest?langs=en
+    const selectedMirror = "https://" + getSelectedMirror()[0];
     const request = {
-      url: new URLBuilder(DOMAIN_NAME)
+      url: new URLBuilder(selectedMirror)
         .addPath("latest")
         .addQuery("langs", languages.join(","))
         .build(),
@@ -260,8 +262,9 @@ export class BatoToExtension implements BatoToImplementation {
     const languages = getLanguages();
 
     //https://bato.to/browse?langs=nl&sort=views_m.za
+    const selectedMirror = "https://" + getSelectedMirror()[0];
     const request = {
-      url: new URLBuilder(DOMAIN_NAME)
+      url: new URLBuilder(selectedMirror)
         .addPath("browse")
         .addQuery("langs", languages.join(","))
         .addQuery("sort", "views_m.za")
@@ -391,7 +394,8 @@ export class BatoToExtension implements BatoToImplementation {
     const page = metadata?.page ?? 1; // Default to page 1 if not provided
     const languages: string[] = getLanguages();
 
-    const urlBuilder = new URLBuilder(DOMAIN_NAME).addPath("v3x-search");
+    const selectedMirror = "https://" + getSelectedMirror()[0];
+    const urlBuilder = new URLBuilder(selectedMirror).addPath("v3x-search");
 
     // Add search query
     if (query.title && query.title.trim() !== "") {
@@ -499,8 +503,9 @@ export class BatoToExtension implements BatoToImplementation {
 
   // Populates the title details
   async getMangaDetails(mangaId: string): Promise<SourceManga> {
+    const selectedMirror = "https://" + getSelectedMirror()[0];
     const request = {
-      url: new URLBuilder(DOMAIN_NAME).addPath("title").addPath(mangaId).build(),
+      url: new URLBuilder(selectedMirror).addPath("title").addPath(mangaId).build(),
       method: "GET",
     };
 
@@ -636,8 +641,9 @@ export class BatoToExtension implements BatoToImplementation {
   // Populates the chapter list
   async getChapters(sourceManga: SourceManga): Promise<Chapter[]> {
     const langCode = sourceManga.mangaInfo.additionalInfo?.langCode || "";
+    const selectedMirror = "https://" + getSelectedMirror()[0];
     const request = {
-      url: new URLBuilder(DOMAIN_NAME).addPath("title").addPath(sourceManga.mangaId).build(),
+      url: new URLBuilder(selectedMirror).addPath("title").addPath(sourceManga.mangaId).build(),
       method: "GET",
     };
 
@@ -690,8 +696,9 @@ export class BatoToExtension implements BatoToImplementation {
 
   // Populates a chapter with images
   async getChapterDetails(chapter: Chapter): Promise<ChapterDetails> {
+    const selectedMirror = "https://" + getSelectedMirror()[0];
     const request = {
-      url: new URLBuilder(DOMAIN_NAME)
+      url: new URLBuilder(selectedMirror)
         .addPath("title")
         .addPath(chapter.sourceManga.mangaId)
         .addPath(chapter.chapterId)
@@ -699,8 +706,8 @@ export class BatoToExtension implements BatoToImplementation {
       method: "GET",
     };
 
+    const $ = await this.fetchCheerio(request);
     try {
-      const $ = await this.fetchCheerio(request);
       const pages: string[] = [];
 
       // Find the astro-island component containing images
@@ -753,7 +760,8 @@ export class BatoToExtension implements BatoToImplementation {
 
   checkCloudflareStatus(status: number): void {
     if (status === 503 || status === 403) {
-      throw new CloudflareError({ url: DOMAIN_NAME, method: "GET" });
+      const selectedMirror = "https://" + getSelectedMirror()[0];
+      throw new CloudflareError({ url: selectedMirror, method: "GET" });
     }
   }
 }
