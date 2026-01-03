@@ -1,24 +1,19 @@
 import type { Chapter, ChapterDetails, Request, SourceManga } from "@paperback/types";
 import { URL } from "@paperback/types";
 import { QISCANS_API_BASE, QISCANS_DOMAIN } from "../../main";
-import type { MangaProvider } from "../manga/main";
+import { MangaProvider } from "../manga/main";
 import type { QIScansChaptersResponse } from "../shared/models";
 import { fetchJSON, fetchText } from "../shared/utils";
 import { parseChapterDetails, parseChapterList } from "./parsers";
 
 export class ChapterProvider {
-  private mangaProvider: MangaProvider;
-
-  constructor(mangaProvider: MangaProvider) {
-    this.mangaProvider = mangaProvider;
-  }
-
   async getChapters(sourceManga: SourceManga): Promise<Chapter[]> {
     const mangaId = sourceManga.mangaId;
 
     // ensure postId
     if (!sourceManga.mangaInfo?.additionalInfo?.postId) {
-      const updated = await this.mangaProvider.getMangaDetails(mangaId);
+      const mangaProvider = new MangaProvider();
+      const updated = await mangaProvider.getMangaDetails(mangaId);
       sourceManga.mangaInfo = updated.mangaInfo;
     }
 
