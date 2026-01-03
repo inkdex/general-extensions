@@ -1,9 +1,4 @@
-import {
-  Form,
-  Section,
-  SelectRow,
-  type FormSectionElement,
-} from "@paperback/types";
+import { Form, Section, SelectRow, type FormSectionElement } from "@paperback/types";
 import { Languages, MirrorDomains } from "./models";
 
 const DEFAULT_MIRROR = "ato.to";
@@ -13,11 +8,7 @@ export function getLanguages(): string[] {
 }
 
 export function getSelectedMirror(): string[] {
-  return (
-    (Application.getState("selectedMirror") as string[] | undefined) ?? [
-      DEFAULT_MIRROR,
-    ]
-  );
+  return (Application.getState("selectedMirror") as string[] | undefined) ?? [DEFAULT_MIRROR];
 }
 
 export class BatoToSettingsForm extends Form {
@@ -26,8 +17,7 @@ export class BatoToSettingsForm extends Form {
       Section(
         {
           id: "languageSettings",
-          footer:
-            "Filter mangas by language. At least one language must be selected.",
+          footer: "Filter mangas by language. At least one language must be selected.",
         },
         [
           SelectRow("languages", {
@@ -39,12 +29,9 @@ export class BatoToSettingsForm extends Form {
               id: lang.value,
               title: lang.name,
             })),
-            onValueChange: Application.Selector(
-              this as BatoToSettingsForm,
-              "updateLanguages"
-            ),
+            onValueChange: Application.Selector(this as BatoToSettingsForm, "updateLanguages"),
           }),
-        ]
+        ],
       ),
       Section(
         {
@@ -64,10 +51,10 @@ export class BatoToSettingsForm extends Form {
             })),
             onValueChange: Application.Selector(
               this as BatoToSettingsForm,
-              "updatedSelectedMirror"
+              "updatedSelectedMirror",
             ),
           }),
-        ]
+        ],
       ),
     ];
   }

@@ -31,7 +31,7 @@ import {
 import * as cheerio from "cheerio";
 import { URLBuilder } from "../utils/url-builder/base";
 import { BatoToSettingsForm, getLanguages, getSelectedMirror } from "./forms";
-import { AdultGenres, Genres, MatureGenres, type Metadata } from "./models";
+import { AdultGenres, Genres, ImageServers, MatureGenres, type Metadata } from "./models";
 
 // Should match the capabilities which you defined in pbconfig.ts
 type BatoToImplementation = SettingsFormProviding &
@@ -62,8 +62,29 @@ class MainInterceptor extends PaperbackInterceptor {
   override async interceptResponse(
     request: Request,
     response: Response,
-    data: ArrayBuffer
+    data: ArrayBuffer,
   ): Promise<ArrayBuffer> {
+    const SERVER_PATTERN = /^https:\/\/([a-z]\d{2})\./i;
+
+    if (response.status !== 503 || !SERVER_PATTERN.test(request.url)) {
+      return data;
+    }
+
+    const originalServer = request.url.match(SERVER_PATTERN)![1];
+
+    for (const server of ImageServers) {
+      if (server === originalServer) continue;
+
+      const [res, buf] = await Application.scheduleRequest({
+        ...request,
+        url: request.url.replace(SERVER_PATTERN, `https://${server}.`),
+      });
+
+      if (res.status === 200) {
+        return buf;
+      }
+    }
+
     return data;
   }
 }
@@ -124,7 +145,7 @@ export class BatoToExtension implements BatoToImplementation {
   // Populates both the discover sections
   async getDiscoverSectionItems(
     section: DiscoverSection,
-    metadata: Metadata | undefined
+    metadata: Metadata | undefined,
   ): Promise<PagedResults<DiscoverSectionItem>> {
     switch (section.id) {
       case "popular-updates":
@@ -154,7 +175,7 @@ export class BatoToExtension implements BatoToImplementation {
 
   // Populates the popular updates section
   async getPopularUpdates(
-    metadata: { page?: number; collectedIds?: string[] } | undefined
+    metadata: { page?: number; collectedIds?: string[] } | undefined,
   ): Promise<PagedResults<DiscoverSectionItem>> {
     const items: DiscoverSectionItem[] = [];
     const collectedIds = metadata?.collectedIds ?? [];
@@ -203,7 +224,7 @@ export class BatoToExtension implements BatoToImplementation {
   // Populates the latest releases section
   async getLatestReleases(
     section: DiscoverSection,
-    metadata: { page?: number; collectedIds?: string[] } | undefined
+    metadata: { page?: number; collectedIds?: string[] } | undefined,
   ): Promise<PagedResults<DiscoverSectionItem>> {
     const page = metadata?.page ?? 1;
     const items: DiscoverSectionItem[] = [];
@@ -268,16 +289,14 @@ export class BatoToExtension implements BatoToImplementation {
 
     return {
       items: items,
-      metadata: nextOffset
-        ? { page: nextOffset, collectedIds: collectedIds }
-        : undefined,
+      metadata: nextOffset ? { page: nextOffset, collectedIds: collectedIds } : undefined,
     };
   }
 
   // Populates the browse sections
   async getBrowseSections(
     section: DiscoverSection,
-    metadata: { page?: number; collectedIds?: string[] } | undefined
+    metadata: { page?: number; collectedIds?: string[] } | undefined,
   ): Promise<PagedResults<DiscoverSectionItem>> {
     const page = metadata?.page ?? 1;
     const items: DiscoverSectionItem[] = [];
@@ -355,9 +374,7 @@ export class BatoToExtension implements BatoToImplementation {
 
     return {
       items: items,
-      metadata: nextPage
-        ? { page: nextPage, collectedIds: collectedIds }
-        : undefined,
+      metadata: nextPage ? { page: nextPage, collectedIds: collectedIds } : undefined,
     };
   }
 
@@ -414,7 +431,7 @@ export class BatoToExtension implements BatoToImplementation {
   async getSearchResults(
     query: SearchQuery,
     metadata?: { page?: number },
-    sortingOption?: SortingOption
+    sortingOption?: SortingOption,
   ): Promise<PagedResults<SearchResultItem>> {
     const page = metadata?.page ?? 1; // Default to page 1 if not provided
     const languages: string[] = getLanguages();
@@ -435,10 +452,7 @@ export class BatoToExtension implements BatoToImplementation {
 
     if (genresFilter) {
       // Check if we have the genres as an object with inclusion status
-      const genresInclusionMap = genresFilter.value as Record<
-        string,
-        "included" | "excluded"
-      >;
+      const genresInclusionMap = genresFilter.value as Record<string, "included" | "excluded">;
 
       if (genresInclusionMap) {
         // Get the filters to access the genre options if needed
@@ -466,10 +480,7 @@ export class BatoToExtension implements BatoToImplementation {
 
         // Add all included genres as a comma-separated list
         if (includedGenres.length > 0) {
-          urlBuilder.addQuery(
-            "genres",
-            includedGenres.join(",") + "|" + excludedGenres.join(",")
-          );
+          urlBuilder.addQuery("genres", includedGenres.join(",") + "|" + excludedGenres.join(","));
         }
       }
       // If genres is already an array of strings
@@ -493,39 +504,35 @@ export class BatoToExtension implements BatoToImplementation {
     const searchResults: SearchResultItem[] = [];
 
     // Parse the search results
-    $(".grid.grid-cols-1.gap-5.border-t.border-t-base-200.pt-5 > div").each(
-      (_, element) => {
-        const unit = $(element);
-        const titleLink = unit.find("h3.font-bold.space-x-1.text-lg a");
-        const href = titleLink.attr("href") || "";
-        const mangaId = href.split("/title/")[1]?.split("/")[0] || ""; // Extract manga ID from URL
-        const image = unit.find("img").attr("src") || "";
-        const title = titleLink.text().trim();
+    $(".grid.grid-cols-1.gap-5.border-t.border-t-base-200.pt-5 > div").each((_, element) => {
+      const unit = $(element);
+      const titleLink = unit.find("h3.font-bold.space-x-1.text-lg a");
+      const href = titleLink.attr("href") || "";
+      const mangaId = href.split("/title/")[1]?.split("/")[0] || ""; // Extract manga ID from URL
+      const image = unit.find("img").attr("src") || "";
+      const title = titleLink.text().trim();
 
-        if (mangaId && title) {
-          searchResults.push({
-            mangaId: mangaId,
-            imageUrl: image,
-            title: title,
-            subtitle: "", // Add subtitle if needed
-          });
-        }
+      if (mangaId && title) {
+        searchResults.push({
+          mangaId: mangaId,
+          imageUrl: image,
+          title: title,
+          subtitle: "", // Add subtitle if needed
+        });
       }
-    );
+    });
 
     // Handle pagination
     let maxPage = 1;
     let hasNextPage = false;
 
     // Find all page buttons in the pagination section
-    $(".flex.items-center.flex-wrap.space-x-1.my-10.justify-center a").each(
-      (_, element) => {
-        const pageNumber = parseInt($(element).text().trim(), 10);
-        if (!isNaN(pageNumber) && pageNumber > maxPage) {
-          maxPage = pageNumber;
-        }
+    $(".flex.items-center.flex-wrap.space-x-1.my-10.justify-center a").each((_, element) => {
+      const pageNumber = parseInt($(element).text().trim(), 10);
+      if (!isNaN(pageNumber) && pageNumber > maxPage) {
+        maxPage = pageNumber;
       }
-    );
+    });
 
     // Check if there's a next page
     hasNextPage = page < maxPage;
@@ -540,10 +547,7 @@ export class BatoToExtension implements BatoToImplementation {
   async getMangaDetails(mangaId: string): Promise<SourceManga> {
     const selectedMirror = "https://" + getSelectedMirror()[0];
     const request = {
-      url: new URLBuilder(selectedMirror)
-        .addPath("title")
-        .addPath(mangaId)
-        .build(),
+      url: new URLBuilder(selectedMirror).addPath("title").addPath(mangaId).build(),
       method: "GET",
     };
 
@@ -570,26 +574,17 @@ export class BatoToExtension implements BatoToImplementation {
 
     // Extract thumbnail URL
     const image =
-      $(".w-24.md\\:w-52.flex-none.justify-start.items-start img").attr(
-        "data-src"
-      ) ||
-      $(".w-24.md\\:w-52.flex-none.justify-start.items-start img").attr(
-        "src"
-      ) ||
+      $(".w-24.md\\:w-52.flex-none.justify-start.items-start img").attr("data-src") ||
+      $(".w-24.md\\:w-52.flex-none.justify-start.items-start img").attr("src") ||
       "";
     const validImage = image.trim();
 
     // Extract description
-    const description = $(".prose.lg\\:prose-lg.limit-html .limit-html-p")
-      .text()
-      .trim();
+    const description = $(".prose.lg\\:prose-lg.limit-html .limit-html-p").text().trim();
 
     // Extract status
     let status = "UNKNOWN";
-    const statusText = $("span.font-bold.uppercase.text-success")
-      .text()
-      .trim()
-      .toLowerCase();
+    const statusText = $("span.font-bold.uppercase.text-success").text().trim().toLowerCase();
     if (statusText.includes("ongoing")) {
       status = "ONGOING";
     } else if (statusText.includes("completed")) {
@@ -611,7 +606,7 @@ export class BatoToExtension implements BatoToImplementation {
     // Extract genres - FIXED
     const mangaGenres: string[] = [];
     $(
-      '.space-y-2 .flex.items-center.flex-wrap span span.font-bold, .space-y-2 .flex.items-center.flex-wrap span span:not([class*="text-base-content"])'
+      '.space-y-2 .flex.items-center.flex-wrap span span.font-bold, .space-y-2 .flex.items-center.flex-wrap span span:not([class*="text-base-content"])',
     ).each((_, element) => {
       const genre = $(element).text().trim();
       // Only add the genre if it's not empty and doesn't contain a comma
@@ -622,15 +617,15 @@ export class BatoToExtension implements BatoToImplementation {
 
     // Extract tags from the Tags section - FIXED
     const tags: string[] = [];
-    $(
-      '.flex.items-center.flex-wrap span span:not([class*="text-base-content"])'
-    ).each((_, element) => {
-      const tag = $(element).text().trim().replace(/^#/, "");
-      // Only add the tag if it's not empty, doesn't contain a comma, and isn't already in the list
-      if (tag && !tag.includes(",") && !tags.includes(tag)) {
-        tags.push(tag);
-      }
-    });
+    $('.flex.items-center.flex-wrap span span:not([class*="text-base-content"])').each(
+      (_, element) => {
+        const tag = $(element).text().trim().replace(/^#/, "");
+        // Only add the tag if it's not empty, doesn't contain a comma, and isn't already in the list
+        if (tag && !tag.includes(",") && !tags.includes(tag)) {
+          tags.push(tag);
+        }
+      },
+    );
 
     // Function to sanitize IDs - IMPROVED
     const sanitizeId = (str: string): string => {
@@ -662,9 +657,7 @@ export class BatoToExtension implements BatoToImplementation {
     }
 
     // Extract language from manga details
-    const langCode = $(
-      ".space-y-2 .whitespace-nowrap.overflow-hidden > span.mr-1"
-    )
+    const langCode = $(".space-y-2 .whitespace-nowrap.overflow-hidden > span.mr-1")
       .first()
       .text()
       .trim();
@@ -692,10 +685,7 @@ export class BatoToExtension implements BatoToImplementation {
     const langCode = sourceManga.mangaInfo.additionalInfo?.langCode || "";
     const selectedMirror = "https://" + getSelectedMirror()[0];
     const request = {
-      url: new URLBuilder(selectedMirror)
-        .addPath("title")
-        .addPath(sourceManga.mangaId)
-        .build(),
+      url: new URLBuilder(selectedMirror).addPath("title").addPath(sourceManga.mangaId).build(),
       method: "GET",
     };
 
@@ -717,15 +707,15 @@ export class BatoToExtension implements BatoToImplementation {
 
       // Extract volume if present
       const volumeMatch = rawChapterText.match(
-        /(?:Volume|Vol\.?)\s*([\d.]+)(?:\s*[:\--]\s*(.*))?/i
+        /(?:Volume|Vol\.?)\s*([\d.]+)(?:\s*[:\--]\s*(.*))?/i,
       );
       const volume = volumeMatch ? parseFloat(volumeMatch[1]) : 0;
       const titleMatch = rawChapterText.split(chapNum.toString()).pop();
       const title = titleMatch
         ? titleMatch.replace(/^[\s:;.,\-–—]+/, "").trim()
         : rawChapterText.includes(chapNum.toString())
-        ? ""
-        : rawChapterText;
+          ? ""
+          : rawChapterText;
 
       // Extract publish date from time attribute
       const rawDate = row.find("time").attr("time") || "";
@@ -771,9 +761,7 @@ export class BatoToExtension implements BatoToImplementation {
 
       // Extract image URLs from the JSON props
       if (props.imageFiles && props.imageFiles.length > 1) {
-        const imageFilesArray = JSON.parse(props.imageFiles[1]) as Array<
-          [number, string]
-        >;
+        const imageFilesArray = JSON.parse(props.imageFiles[1]) as Array<[number, string]>;
         imageFilesArray.forEach(([format, url]) => {
           if (format === 0) {
             // Check the format code
@@ -793,14 +781,10 @@ export class BatoToExtension implements BatoToImplementation {
       };
     } catch (error) {
       console.error(
-        `Failed to load chapter details: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        `Failed to load chapter details: ${error instanceof Error ? error.message : String(error)}`,
       );
       throw new Error(
-        `Failed to load chapter: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        `Failed to load chapter: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }

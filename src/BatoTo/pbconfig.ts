@@ -1,8 +1,4 @@
-import {
-  ContentRating,
-  SourceIntents,
-  type ExtensionInfo,
-} from "@paperback/types";
+import { ContentRating, SourceIntents, type ExtensionInfo } from "@paperback/types";
 
 export default {
   name: "Bato.To",
