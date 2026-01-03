@@ -31,7 +31,7 @@ import {
 import * as cheerio from "cheerio";
 import { URLBuilder } from "../utils/url-builder/base";
 import { BatoToSettingsForm, getLanguages, getSelectedMirror } from "./forms";
-import { AdultGenres, Genres, ImageServers, MatureGenres, type Metadata } from "./models";
+import { AdultGenres, Genres, MatureGenres, type Metadata } from "./models";
 
 // Should match the capabilities which you defined in pbconfig.ts
 type BatoToImplementation = SettingsFormProviding &
@@ -64,26 +64,27 @@ class MainInterceptor extends PaperbackInterceptor {
     response: Response,
     data: ArrayBuffer,
   ): Promise<ArrayBuffer> {
-    const SERVER_PATTERN = /^https:\/\/([a-z]\d{2})\./i;
+    // TODO: Uncomment when App fixes image loading through interceptors
+    // const SERVER_PATTERN = /^https:\/\/([a-z]\d{2})\./i;
 
-    if (response.status !== 503 || !SERVER_PATTERN.test(request.url)) {
-      return data;
-    }
+    // if (response.status !== 503 || !SERVER_PATTERN.test(request.url)) {
+    //   return data;
+    // }
 
-    const originalServer = request.url.match(SERVER_PATTERN)![1];
+    // const originalServer = request.url.match(SERVER_PATTERN)![1];
 
-    for (const server of ImageServers) {
-      if (server === originalServer) continue;
+    // for (const server of ImageServers) {
+    //   if (server === originalServer) continue;
 
-      const [res, buf] = await Application.scheduleRequest({
-        ...request,
-        url: request.url.replace(SERVER_PATTERN, `https://${server}.`),
-      });
+    //   const [res, buf] = await Application.scheduleRequest({
+    //     ...request,
+    //     url: request.url.replace(SERVER_PATTERN, `https://${server}.`),
+    //   });
 
-      if (res.status === 200) {
-        return buf;
-      }
-    }
+    //   if (res.status === 200) {
+    //     return buf;
+    //   }
+    // }
 
     return data;
   }
@@ -765,7 +766,8 @@ export class BatoToExtension implements BatoToImplementation {
         imageFilesArray.forEach(([format, url]) => {
           if (format === 0) {
             // Check the format code
-            pages.push(url);
+            // TODO: Remove image server replacement hack
+            pages.push(url.replace(/\/\/k/g, "//n"));
           }
         });
       }
