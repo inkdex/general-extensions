@@ -35,7 +35,8 @@ export function parseChapterList(
 
 export function parseChapterDetails(html: string, chapter: Chapter): ChapterDetails {
   // match image URLs in the uploads/series path
-  const pageRegex = /https?:\/\/[^"'\\]*?\/uploads?\/series\/[^"'\\]+?\.(?:webp|jpe?g|png)/gi;
+  const pageRegex =
+    /https?:\/\/[^"'\\]*?\/(uploads?|rezo)\/series\/[^"'\\]+?\.(?:webp|jpe?g|png)/gi;
 
   const rawMatches = html.match(pageRegex) ?? [];
 
