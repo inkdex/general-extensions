@@ -30,7 +30,7 @@ import { URLBuilder } from "../utils/url-builder/base";
 import { BatoToSettingsForm, getLanguages } from "./forms";
 import { AdultGenres, Genres, MatureGenres, type Metadata } from "./models";
 
-const DOMAIN_NAME = "https://bato.to";
+const DOMAIN_NAME = "https://dto.to";
 
 // Should match the capabilities which you defined in pbconfig.ts
 type BatoToImplementation = SettingsFormProviding &
