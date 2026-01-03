@@ -1,5 +1,5 @@
 import type { Request } from "@paperback/types";
-import { checkCloudflareStatus } from "../../services/requests";
+import { checkCloudflareStatus } from "../../services/network";
 
 export async function fetchJSON<T>(request: Request): Promise<T> {
   const [response, buffer] = await Application.scheduleRequest(request);
@@ -43,4 +43,17 @@ export async function fetchImage(request: Request): Promise<ArrayBuffer> {
   }
 
   return buffer;
+}
+
+/* eslint-disable */
+export function applyMixins(derivedCtor: any, constructors: any[]) {
+  constructors.forEach((baseCtor) => {
+    Object.getOwnPropertyNames(baseCtor.prototype).forEach((name) => {
+      Object.defineProperty(
+        derivedCtor.prototype,
+        name,
+        Object.getOwnPropertyDescriptor(baseCtor.prototype, name) || Object.create(null),
+      );
+    });
+  });
 }
