@@ -6,7 +6,6 @@ export class QiScansInterceptor extends PaperbackInterceptor {
   async interceptRequest(request: Request): Promise<Request> {
     request.headers = request.headers ?? {};
     request.headers.referer = `${QISCANS_DOMAIN}/`;
-    console.log(`[QiScans] Interceptor adding referer to: ${request.url}`);
     return request;
   }
 
