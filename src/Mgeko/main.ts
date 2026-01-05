@@ -366,14 +366,8 @@ export class MgekoExtension implements MgekoImplementation {
   }
 
   async fetchApi<T>(request: Request): Promise<T> {
-    let response: Response;
-    let data: ArrayBuffer;
-    try {
-      [response, data] = await Application.scheduleRequest(request);
-      this.checkCloudflareStatus(response.status);
-    } catch {
-      throw new Error(`Failed to fetch data from ${request.url} (request error)`);
-    }
+    const [response, data] = await Application.scheduleRequest(request);
+    this.checkCloudflareStatus(response.status);
 
     try {
       return JSON.parse(Application.arrayBufferToUTF8String(data)) as T;
