@@ -74,8 +74,7 @@ export function parseChapterDetails(html: string, chapter: Chapter): ChapterDeta
     throw new Error("No chapter page data could be parsed from QiScans for this chapter.");
   }
 
-  // fix /file/qiscans/ in URLs
-  const pages = bestList.map((url) => url.replace("/file/qiscans/", "/"));
+  const pages = bestList;
 
   return {
     id: chapter.chapterId,

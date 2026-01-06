@@ -18,11 +18,7 @@ export function parseMangaDetails(post: QIScansPost): SourceManga {
             .filter((t) => t.length > 0)
         : [],
 
-      thumbnailUrl: (() => {
-        const url =
-          post.featuredImage || "https://qiscans.org/wp-content/uploads/2023/05/qiscans-logo.png";
-        return url.replace("/file/qiscans/", "/");
-      })(),
+      thumbnailUrl: post.featuredImage || "",
 
       synopsis: Application.decodeHTMLEntities(post.postContent.replace(/<[^>]+>/g, "")),
 

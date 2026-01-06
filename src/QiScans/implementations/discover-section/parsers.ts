@@ -23,11 +23,7 @@ export function parseDiscoverItems(
     })
     .map((post) => {
       const mangaId = post.id.toString();
-
-      let imageUrl = post.featuredImage || "";
-      if (imageUrl.includes("/file/qiscans/")) {
-        imageUrl = imageUrl.replace("/file/qiscans/", "/");
-      }
+      const imageUrl = post.featuredImage || "";
 
       // for chapterUpdates sections
       if (sectionType === "latest") {
