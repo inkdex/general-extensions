@@ -15,11 +15,7 @@ export function parseSearchResults(json: QIScansQueryResponse): SearchResultItem
     })
     .map((post) => {
       const mangaId = post.id.toString();
-
-      let imageUrl = post.featuredImage || "";
-      if (imageUrl.includes("/file/qiscans/")) {
-        imageUrl = imageUrl.replace("/file/qiscans/", "/");
-      }
+      const imageUrl = post.featuredImage || "";
 
       return {
         mangaId: mangaId,
