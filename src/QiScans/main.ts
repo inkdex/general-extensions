@@ -8,7 +8,6 @@ import { applyMixins } from "./implementations/shared/utils";
 import { QiScansInterceptor } from "./services/network";
 
 export const QISCANS_DOMAIN = "https://qiscans.org";
-export const QISCANS_API = "https://api.qiscans.org/api/query";
 export const QISCANS_API_BASE = "https://api.qiscans.org/api";
 
 export interface QiScansImplementation
