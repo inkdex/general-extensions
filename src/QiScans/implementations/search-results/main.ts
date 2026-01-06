@@ -9,7 +9,7 @@ import type {
 import { URL } from "@paperback/types";
 import { QISCANS_API_BASE } from "../../main";
 import type { Metadata, QIScansGenre, QIScansQueryResponse } from "../shared/models";
-import { fetchJSON } from "../shared/utils";
+import { fetchJSON } from "../../services/network";
 import { parseSearchResults } from "./parsers";
 
 const PAGE_SIZE = 20;

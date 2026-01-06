@@ -3,7 +3,7 @@ import { URL } from "@paperback/types";
 import { QISCANS_API_BASE, QISCANS_DOMAIN } from "../../main";
 import { MangaProvider } from "../manga/main";
 import type { QIScansChaptersResponse } from "../shared/models";
-import { fetchJSON, fetchText } from "../shared/utils";
+import { fetchJSON, fetchText } from "../../services/network";
 import { parseChapterDetails, parseChapterList } from "./parsers";
 
 export class ChapterProvider {
