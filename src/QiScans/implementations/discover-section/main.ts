@@ -2,7 +2,7 @@ import type { DiscoverSection, DiscoverSectionItem, PagedResults, Request } from
 import { DiscoverSectionType, URL } from "@paperback/types";
 import { QISCANS_API_BASE } from "../../main";
 import { type Metadata, type QIScansV2Response } from "../shared/models";
-import { fetchJSON } from "../shared/utils";
+import { fetchJSON } from "../../services/network";
 import { parseDiscoverItems } from "./parsers";
 
 export class DiscoverProvider {
