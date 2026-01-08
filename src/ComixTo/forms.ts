@@ -34,6 +34,7 @@ export class Forms extends Form {
   async refreshFilters() {
     Application.invalidateSearchFilters();
     await filter.updateFilters(true);
+    this.reloadForm();
   }
 }
 

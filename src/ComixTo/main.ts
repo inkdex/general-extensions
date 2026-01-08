@@ -34,6 +34,7 @@ export const parse = new JsonParser();
 export const filter = new globalFilters();
 export class ComiToExtension implements ComixToImplementation {
   async getSettingsForm(): Promise<Form> {
+    await filter.checkFilters();
     return new Forms();
   }
 

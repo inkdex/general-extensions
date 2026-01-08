@@ -164,6 +164,7 @@ export class JsonParser {
     const info = await api.getJsonMangaInfoApi(mangaId);
     const manga = info.result;
     const term_ids = manga.term_ids;
+    await filter.checkFilters();
     const genT = filter.genres.filter((i) => term_ids.includes(Number(i.id)));
     const themeT = filter.themes.filter((i) => term_ids.includes(Number(i.id)));
     const genreArray: Tag[] = genT.map((genre) => ({

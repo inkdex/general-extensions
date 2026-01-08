@@ -4,9 +4,20 @@ import type { OptionItem } from "./models";
 
 export class globalFilters {
   genres: OptionItem[] = [];
-
   themes: OptionItem[] = [];
+  demographic: OptionItem[] = [];
+  formats: OptionItem[] = [];
 
+  async checkFilters(): Promise<void> {
+    if (
+      this.demographic.length === 0 ||
+      this.formats.length === 0 ||
+      this.themes.length === 0 ||
+      this.genres.length === 0
+    ) {
+      await this.updateFilters(true);
+    }
+  }
   contentType = [
     { id: "manga", value: "Manga" },
     { id: "manhwa", value: "Manhwa" },
@@ -45,10 +56,6 @@ export class globalFilters {
     { id: "discontinued", value: "Discontinued" },
     { id: "not_yet_released", value: "Not Yet Released" },
   ];
-
-  demographic: OptionItem[] = [];
-
-  formats: OptionItem[] = [];
 
   sectionLimit = [
     { id: "7", value: "Week" },
@@ -190,6 +197,7 @@ export class globalFilters {
       this.setDemographicFilter(JSON.parse(demographic) as OptionItem[]);
       this.setThemesFilter(JSON.parse(themes) as OptionItem[]);
       this.setFormatsFilter(JSON.parse(formats) as OptionItem[]);
+      await this.checkFilters();
     } else {
       this.genres = await parse.parseFilterUpdate("genre");
       this.demographic = await parse.parseFilterUpdate("demographic");
