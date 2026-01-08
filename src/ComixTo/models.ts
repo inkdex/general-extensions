@@ -58,7 +58,14 @@ export interface MangaItem {
   is_nsfw: boolean;
   author?: Author[];
   artist?: Artist[];
-  term_ids: number[];
+  genre: Terms[];
+  theme: Terms[];
+  demographic: Terms[];
+}
+
+export interface Terms {
+  term_id: number;
+  title: string;
 }
 
 export interface Author {

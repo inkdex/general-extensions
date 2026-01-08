@@ -153,7 +153,7 @@ export class ApiMaker {
 
   async getJsonMangaInfoApi(mangaId: string) {
     const url = new URL(BASE_API).addPathComponent("manga");
-    const additionalInfo = ["author", "artist"];
+    const additionalInfo = ["author", "artist", "genre", "theme", "demographic"];
     url.addPathComponent(mangaId);
     url.setQueryItem("includes[]", additionalInfo);
     this.apiLink = url.toString();
