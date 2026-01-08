@@ -11,7 +11,6 @@ import {
   type Tag,
   type TagSection,
 } from "@paperback/types";
-import { filter } from "./main";
 import type { ChapterItem, Metadata } from "./models";
 import { ApiMaker } from "./network";
 
@@ -163,19 +162,25 @@ export class JsonParser {
   async parseMangaDetails(mangaId: string): Promise<SourceManga> {
     const info = await api.getJsonMangaInfoApi(mangaId);
     const manga = info.result;
-    const term_ids = manga.term_ids;
-    await filter.checkFilters();
-    const genT = filter.genres.filter((i) => term_ids.includes(Number(i.id)));
-    const themeT = filter.themes.filter((i) => term_ids.includes(Number(i.id)));
-    const genreArray: Tag[] = genT.map((genre) => ({
-      id: genre.id,
-      title: genre.value,
+    const demographicArray: Tag[] = manga.demographic.map((demographic) => ({
+      id: demographic.term_id.toString(),
+      title: demographic.title,
     }));
-    const themeArray: Tag[] = themeT.map((theme) => ({
-      id: theme.id,
-      title: theme.value,
+    const genreArray: Tag[] = manga.genre.map((genre) => ({
+      id: genre.term_id.toString(),
+      title: genre.title,
     }));
+    const themeArray: Tag[] = manga.theme.map((theme) => ({
+      id: theme.term_id.toString(),
+      title: theme.title,
+    }));
+
     const tags: TagSection[] = [
+      {
+        title: "demographic",
+        tags: demographicArray,
+        id: "demographic",
+      },
       {
         title: "genres",
         tags: genreArray,
