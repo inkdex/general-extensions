@@ -85,6 +85,7 @@ export interface Poster {
 export interface ChapterItem {
   chapter_id: number;
   manga_id: number;
+  is_official: number;
   number: number;
   name: string;
   language: string;
