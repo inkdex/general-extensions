@@ -142,7 +142,8 @@ export class JsonParser {
         chapNum: chapter.number,
         title: chapter.name,
         volume: chapter.volume,
-        version: chapter.scanlation_group?.name ?? "",
+        version:
+          chapter.is_official === 1 ? "Official" : (chapter.scanlation_group?.name ?? "Unknown"),
         sortingIndex: chapter.number,
         publishDate: new Date(chapter.updated_at * 1000),
         creationDate: new Date(chapter.created_at * 1000),
