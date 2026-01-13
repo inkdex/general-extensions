@@ -1,10 +1,13 @@
 import {
   BasicRateLimiter,
+  CookieStorageInterceptor,
   DiscoverSectionType,
   Form,
   type Chapter,
   type ChapterDetails,
   type ChapterProviding,
+  type CloudflareBypassRequestProviding,
+  type Cookie,
   type DiscoverSection,
   type DiscoverSectionItem,
   type DiscoverSectionProviding,
@@ -61,7 +64,8 @@ export class WeebCentralExtension
     MangaProviding,
     ChapterProviding,
     DiscoverSectionProviding,
-    SettingsFormProviding
+    SettingsFormProviding,
+    CloudflareBypassRequestProviding
 {
   globalRateLimiter = new BasicRateLimiter("ratelimiter", {
     numberOfRequests: 10,
@@ -69,10 +73,15 @@ export class WeebCentralExtension
     ignoreImages: true,
   });
 
+  cookieStorageInterceptor = new CookieStorageInterceptor({
+    storage: "stateManager",
+  });
+
   requestManager = new WeebCentralInterceptor("main");
 
   async initialise(): Promise<void> {
     this.globalRateLimiter.registerInterceptor();
+    this.cookieStorageInterceptor.registerInterceptor();
     this.requestManager.registerInterceptor();
     if (Application.isResourceLimited) return;
   }
@@ -328,6 +337,18 @@ export class WeebCentralExtension
 
   async getSettingsForm(): Promise<Form> {
     return new SettingsForm();
+  }
+
+  async saveCloudflareBypassCookies(cookies: Cookie[]): Promise<void> {
+    for (const cookie of cookies) {
+      if (
+        cookie.name.startsWith("cf") ||
+        cookie.name.startsWith("_cf") ||
+        cookie.name.startsWith("__cf")
+      ) {
+        this.cookieStorageInterceptor.setCookie(cookie);
+      }
+    }
   }
 }
 
