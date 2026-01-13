@@ -1,4 +1,9 @@
-import { PaperbackInterceptor, type Request, type Response } from "@paperback/types";
+import {
+  CloudflareError,
+  PaperbackInterceptor,
+  type Request,
+  type Response,
+} from "@paperback/types";
 import { WC_DOMAIN } from "./models";
 
 export class WeebCentralInterceptor extends PaperbackInterceptor {
@@ -15,6 +20,10 @@ export class WeebCentralInterceptor extends PaperbackInterceptor {
     response: Response,
     data: ArrayBuffer,
   ): Promise<ArrayBuffer> {
+    if (response.status === 503 || response.status === 403) {
+      throw new CloudflareError({ url: request.url, method: "GET" });
+    }
+
     return data;
   }
 }
