@@ -1,0 +1,38 @@
+name: Delete Branch Extensions
+
+on:
+  delete:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  delete-branch-ext:
+    if: |
+      github.ref_type == 'branch' &&
+      github.ref_name matches '^[0-9]+\.[0-9]+/.+'
+    name: Delete Branch Extensions
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Branch
+        uses: actions/checkout@v4
+        with:
+          ref: "gh-pages"
+      - name: Git Configuration
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+      - name: Delete Branch Extensions
+        run: rm -rf "./${{ github.event.ref }}"
+      - name: Commit Changes
+        run: |
+          git add --all
+          git commit -m "Delete branch extensions"
+      - name: Pull from Remote
+        run: git pull --rebase
+      - name: Push to Remote
+        run: git push origin gh-pages
