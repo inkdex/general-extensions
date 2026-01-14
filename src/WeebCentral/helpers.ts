@@ -1,6 +1,6 @@
 import { ContentRating, type SearchQuery, type Tag, type TagSection } from "@paperback/types";
 import { TagSectionId, WC_DOMAIN } from "./models";
-import { type Query } from "./requests";
+import { type Query } from "./network";
 
 export function getFilterTagsBySection(
   section: TagSectionId,
