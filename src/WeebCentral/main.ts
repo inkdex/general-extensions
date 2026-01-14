@@ -33,7 +33,7 @@ import {
   isInvalidTags,
   newQuery,
 } from "./helpers";
-import { WeebCentralInterceptor } from "./interceptors";
+import { WeebCentralInterceptor } from "./network";
 import { TagSectionId, type Metadata } from "./models";
 import {
   isLastPage,
@@ -55,7 +55,7 @@ import {
   fetchMangaDetailsPage,
   fetchRecentViewMorePage,
   fetchSearchPage,
-} from "./requests";
+} from "./network";
 
 export class WeebCentralExtension
   implements
