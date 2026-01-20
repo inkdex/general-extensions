@@ -74,7 +74,11 @@ export function parseChapterDetails(html: string, chapter: Chapter): ChapterDeta
     throw new Error("No chapter page data could be parsed from QiScans for this chapter.");
   }
 
-  const pages = bestList;
+  const pages = bestList.sort((a, b) => {
+    const numA = parseInt(a.match(/(\d+)(?=\.[^.]*$)/)?.[1] ?? "0");
+    const numB = parseInt(b.match(/(\d+)(?=\.[^.]*$)/)?.[1] ?? "0");
+    return numA - numB;
+  });
 
   return {
     id: chapter.chapterId,
