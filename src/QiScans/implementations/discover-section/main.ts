@@ -81,7 +81,7 @@ export class DiscoverProvider {
         break;
 
       case "new":
-        urlBuilder.setQueryItem("sortBy", "createdAt").setQueryItem("sortOrder", "desc");
+        urlBuilder.setQueryItem("sortBy", "updatedAt").setQueryItem("sortOrder", "desc");
         break;
 
       default:
