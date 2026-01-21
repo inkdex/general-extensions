@@ -14,28 +14,20 @@ export class AtsuInterceptor extends PaperbackInterceptor {
     response: Response,
     data: ArrayBuffer,
   ): Promise<ArrayBuffer> {
-    return data;
-  }
-}
+    const cfMitigated = response.headers?.["cf-mitigated"];
+    if (cfMitigated === "challenge") {
+      throw new CloudflareError({
+        url: request.url,
+        method: request.method ?? "GET",
+      });
+    }
 
-export function checkCloudflareStatus(request: Request, status: number): void {
-  if (status === 503) {
-    throw new CloudflareError({
-      url: request.url,
-      method: request.method ?? "GET",
-    });
-  }
-  if (status === 403) {
-    throw new Error(
-      "Server returned 403 Forbidden. This title may have been removed due to a DMCA request or is otherwise unavailable.",
-    );
+    return data;
   }
 }
 
 export async function fetchJSON<T>(request: Request): Promise<T> {
   const [response, buffer] = await Application.scheduleRequest(request);
-
-  checkCloudflareStatus(request, response.status);
 
   if (response.status !== 200) {
     throw new Error(`Request failed with status ${response.status}: ${request.url}`);
@@ -53,8 +45,6 @@ export async function fetchJSON<T>(request: Request): Promise<T> {
 
 export async function fetchText(request: Request): Promise<string> {
   const [response, buffer] = await Application.scheduleRequest(request);
-
-  checkCloudflareStatus(request, response.status);
 
   if (response.status !== 200) {
     throw new Error(`Request failed with status ${response.status}: ${request.url}`);
