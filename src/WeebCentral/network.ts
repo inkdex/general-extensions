@@ -12,6 +12,7 @@ export class WeebCentralInterceptor extends PaperbackInterceptor {
     request.headers = {
       ...request.headers,
       referer: `${WC_DOMAIN}/`,
+      "user-agent": await Application.getDefaultUserAgent(),
     };
     return request;
   }
@@ -21,8 +22,12 @@ export class WeebCentralInterceptor extends PaperbackInterceptor {
     response: Response,
     data: ArrayBuffer,
   ): Promise<ArrayBuffer> {
-    if (response.status === 503 || response.status === 403) {
-      throw new CloudflareError({ url: request.url, method: "GET" });
+    const cfMitigated = response.headers?.["cf-mitigated"];
+    if (cfMitigated === "challenge") {
+      throw new CloudflareError({
+        url: request.url,
+        method: request.method ?? "GET",
+      });
     }
 
     return data;
