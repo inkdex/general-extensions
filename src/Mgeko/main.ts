@@ -63,6 +63,14 @@ class MgekoInterceptor extends PaperbackInterceptor {
     response: Response,
     data: ArrayBuffer,
   ): Promise<ArrayBuffer> {
+    const cfMitigated = response.headers?.["cf-mitigated"];
+    if (cfMitigated === "challenge") {
+      throw new CloudflareError({
+        url: request.url,
+        method: request.method ?? "GET",
+      });
+    }
+
     return data;
   }
 }
@@ -348,15 +356,8 @@ export class MgekoExtension implements MgekoImplementation {
     };
   }
 
-  checkCloudflareStatus(status: number): void {
-    if (status == 503 || status == 403) {
-      throw new CloudflareError({ url: MGEKO_DOMAIN, method: "GET" });
-    }
-  }
-
   async fetchCheerio(request: Request): Promise<cheerio.CheerioAPI> {
-    const [response, data] = await Application.scheduleRequest(request);
-    this.checkCloudflareStatus(response.status);
+    const [, data] = await Application.scheduleRequest(request);
     return cheerio.load(Application.arrayBufferToUTF8String(data), {
       xml: {
         xmlMode: false,
@@ -366,8 +367,7 @@ export class MgekoExtension implements MgekoImplementation {
   }
 
   async fetchApi<T>(request: Request): Promise<T> {
-    const [response, data] = await Application.scheduleRequest(request);
-    this.checkCloudflareStatus(response.status);
+    const [, data] = await Application.scheduleRequest(request);
 
     try {
       return JSON.parse(Application.arrayBufferToUTF8String(data)) as T;
