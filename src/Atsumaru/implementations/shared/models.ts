@@ -101,8 +101,8 @@ export interface AtsuSearchHit {
 export interface AtsuFilteredViewRequest {
   filter: {
     search: string;
-    tags: string[];
-    excludeTags: string[];
+    genres: string[];
+    excludeGenres: string[];
     types: string[];
     status: string[];
     years: number[];
