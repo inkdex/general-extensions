@@ -24,14 +24,14 @@ export function parseMangaDetails(html: string, mangaId: string): SourceManga {
       status: manga.status,
       contentRating: ContentRating.EVERYONE,
       tagGroups:
-        manga.tags.length > 0
+        manga.genres?.length > 0
           ? [
               {
                 id: "tags",
                 title: "Tags",
-                tags: manga.tags.map((tag) => ({
-                  id: tag.id,
-                  title: tag.name,
+                tags: manga.genres.map((genre) => ({
+                  id: genre.id,
+                  title: genre.name,
                 })),
               },
             ]

@@ -31,7 +31,7 @@ export interface AtsuMangaDetails {
   id: string;
   authors: Array<{ id: string; name: string }>;
   banner: string | null;
-  tags: AtsuTag[];
+  genres: AtsuTag[];
   englishTitle: string;
   poster: {
     id: string;
@@ -120,7 +120,7 @@ export interface AtsuFilteredViewResponse {
 }
 
 export interface AtsuAvailableFiltersResponse {
-  tags: Array<{ id: string; name: string }>;
+  genres: Array<{ id: string; name: string }>;
   types: Array<{ id: string; name: string }>;
   statuses: Array<{ id: string; name: string }>;
 }
