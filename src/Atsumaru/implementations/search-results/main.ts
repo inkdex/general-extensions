@@ -151,8 +151,8 @@ export class SearchProvider {
     const requestBody: AtsuFilteredViewRequest = {
       filter: {
         search: "",
-        tags: [],
-        excludeTags: [],
+        genres: [],
+        excludeGenres: [],
         types: [],
         status: [],
         years: [],
@@ -213,8 +213,8 @@ export class SearchProvider {
     const requestBody: AtsuFilteredViewRequest = {
       filter: {
         search: query.title?.trim() || "",
-        tags: filters.includedTags,
-        excludeTags: filters.excludedTags,
+        genres: filters.includedTags,
+        excludeGenres: filters.excludedTags,
         types: filters.selectedTypes,
         status: statusList,
         years: [],
