@@ -30,35 +30,40 @@ export class SearchProvider {
     const request: Request = { url, method: "GET" };
     const filters = await fetchJSON<AtsuAvailableFiltersResponse>(request);
 
-    const tagsFilter: SearchFilter = {
-      type: "multiselect",
-      id: "tags",
-      title: "Tags",
-      options: filters.tags.map((tag) => ({
-        id: tag.id,
-        value: tag.name,
-      })),
-      value: {},
-      allowExclusion: true,
-      allowEmptySelection: true,
-      maximum: undefined,
-    };
+    const searchFilters: SearchFilter[] = [];
+    if (filters.genres && filters.genres.length > 0) {
+      searchFilters.push({
+        type: "multiselect",
+        id: "tags",
+        title: "Tags",
+        options: filters.genres.map((genre) => ({
+          id: genre.id,
+          value: genre.name,
+        })),
+        value: {},
+        allowExclusion: true,
+        allowEmptySelection: true,
+        maximum: undefined,
+      });
+    }
 
-    const typesFilter: SearchFilter = {
-      type: "multiselect",
-      id: "types",
-      title: "Types",
-      options: filters.types.map((type) => ({
-        id: type.id,
-        value: type.name,
-      })),
-      value: {},
-      allowExclusion: false,
-      allowEmptySelection: true,
-      maximum: undefined,
-    };
+    if (filters.types && filters.types.length > 0) {
+      searchFilters.push({
+        type: "multiselect",
+        id: "types",
+        title: "Types",
+        options: filters.types.map((type) => ({
+          id: type.id,
+          value: type.name,
+        })),
+        value: {},
+        allowExclusion: false,
+        allowEmptySelection: true,
+        maximum: undefined,
+      });
+    }
 
-    return [tagsFilter, typesFilter];
+    return searchFilters;
   }
 
   async getSortingOptions(): Promise<SortingOption[]> {
