@@ -1,10 +1,4 @@
-// MangaDemon Extension for Paperback
-// -----------------------------------
-// This extension enables Paperback to search, browse, and read manga from demonicscans.org.
-// It implements all required interfaces for search, discovery, manga details, chapter listing, and chapter page retrieval.
-
 import {
-  CloudflareError,
   ContentRating,
   CookieStorageInterceptor,
   DiscoverSectionType,
@@ -12,13 +6,13 @@ import {
   type ChapterDetails,
   type ChapterProviding,
   type CloudflareBypassRequestProviding,
+  type Cookie,
   type DiscoverSection,
   type DiscoverSectionItem,
   type DiscoverSectionProviding,
   type Extension,
   type MangaProviding,
   type PagedResults,
-  type Response,
   type SearchFilter,
   type SearchQuery,
   type SearchResultsProviding,
@@ -41,6 +35,7 @@ import {
   type SearchResultItem,
 } from "./models";
 import { MangaDemonParser } from "./parsers";
+import { MangaDemonInterceptor } from "./network";
 
 class MangaDemonExtension
   implements
@@ -51,7 +46,6 @@ class MangaDemonExtension
     ChapterProviding,
     CloudflareBypassRequestProviding
 {
-  readonly domain: string = DOMAIN;
   parser: MangaDemonParser = new MangaDemonParser();
 
   // Maps sanitized manga IDs to real IDs for session consistency
@@ -65,11 +59,12 @@ class MangaDemonExtension
   cookieStorageInterceptor = new CookieStorageInterceptor({
     storage: "stateManager",
   });
+  mangaDemonInterceptor = new MangaDemonInterceptor("main");
 
   // Fetches and caches filter/sort options from the advanced search page
   private async fetchAndCacheFiltersAndSorts(): Promise<void> {
-    const [_response, buffer] = await this.request({
-      url: `${this.domain}/advanced.php`,
+    const [_response, buffer] = await Application.scheduleRequest({
+      url: `${DOMAIN}/advanced.php`,
       method: "GET",
     });
     const html = Application.arrayBufferToUTF8String(buffer);
@@ -128,8 +123,8 @@ class MangaDemonExtension
   }
 
   async initialise(): Promise<void> {
-    // Register the Cloudflare cookie interceptor (required by Paperback for bypass flow)
     this.cookieStorageInterceptor.registerInterceptor();
+    this.mangaDemonInterceptor.registerInterceptor();
   }
 
   // Returns the discover sections (e.g., Most Viewed, Latest Updates) for the app's home screen
@@ -169,7 +164,7 @@ class MangaDemonExtension
     metadata: { page?: number } | undefined,
   ): Promise<PagedResults<DiscoverSectionItem>> {
     if (section.id === MOST_VIEWED_SECTION_ID) {
-      const [_response, buffer] = await this.request({
+      const [_response, buffer] = await Application.scheduleRequest({
         url: `${DOMAIN}/index.php`,
         method: "GET",
       });
@@ -191,7 +186,7 @@ class MangaDemonExtension
     if (section.id === LATEST_TRANSLATION_SECTION_ID) {
       const page = metadata?.page ?? 1;
       const url = `${DOMAIN}/translationlist.php${page > 1 ? `?list=${page}` : ""}`;
-      const [_response, buffer] = await this.request({
+      const [_response, buffer] = await Application.scheduleRequest({
         url,
         method: "GET",
       });
@@ -217,7 +212,7 @@ class MangaDemonExtension
     if (section.id === LATEST_UPDATES_SECTION_ID) {
       const page = metadata?.page ?? 1;
       const url = `${DOMAIN}/lastupdates.php${page > 1 ? `?list=${page}` : ""}`;
-      const [_response, buffer] = await this.request({
+      const [_response, buffer] = await Application.scheduleRequest({
         url,
         method: "GET",
       });
@@ -242,7 +237,7 @@ class MangaDemonExtension
     if (section.id === NEW_TITLES_SECTION_ID) {
       const page = metadata?.page ?? 1;
       const url = `${DOMAIN}/newmangalist.php${page > 1 ? `?list=${page}` : ""}`;
-      const [_response, buffer] = await this.request({
+      const [_response, buffer] = await Application.scheduleRequest({
         url,
         method: "GET",
       });
@@ -267,7 +262,7 @@ class MangaDemonExtension
     if (section.id === LATEST_NOVEL_SECTION_ID) {
       const page = metadata?.page ?? 1;
       const url = `${DOMAIN}/lastnvupdates.php${page > 1 ? `?list=${page}` : ""}`;
-      const [_response, buffer] = await this.request({
+      const [_response, buffer] = await Application.scheduleRequest({
         url,
         method: "GET",
       });
@@ -300,8 +295,8 @@ class MangaDemonExtension
   ): Promise<PagedResults<SearchResultItem>> {
     // If searching by title, use quick search endpoint
     if (query.title && query.title.trim().length > 0) {
-      const url = `${this.domain}/search.php?manga=${encodeURIComponent(query.title.trim())}`;
-      const [_response, buffer] = await this.request({
+      const url = `${DOMAIN}/search.php?manga=${encodeURIComponent(query.title.trim())}`;
+      const [_response, buffer] = await Application.scheduleRequest({
         url,
         method: "GET",
       });
@@ -351,9 +346,9 @@ class MangaDemonExtension
 
     // If no filters/sort, use GET as before
     if (!hasGenre && !statusNotAll && isDefaultSort) {
-      const url = `${this.domain}/advanced.php${page > 1 ? `?list=${page}` : ""}`;
+      const url = `${DOMAIN}/advanced.php${page > 1 ? `?list=${page}` : ""}`;
 
-      const [_response, buffer] = await this.request({
+      const [_response, buffer] = await Application.scheduleRequest({
         url,
         method: "GET",
       });
@@ -407,9 +402,9 @@ class MangaDemonExtension
         formData.push(`orderby=${encodeURIComponent(sortingOption.id)}`);
       }
       formData.push("submit=Search");
-      const url = `${this.domain}/advanced.php`;
+      const url = `${DOMAIN}/advanced.php`;
 
-      const [_response, buffer] = await this.request({
+      const [_response, buffer] = await Application.scheduleRequest({
         url,
         method: "POST",
         headers: {
@@ -457,9 +452,9 @@ class MangaDemonExtension
         params.push(`list=${page}`);
       }
       // Do NOT include 'submit=Search' in GET requests
-      const url = `${this.domain}/advanced.php?${params.join("&")}`;
+      const url = `${DOMAIN}/advanced.php?${params.join("&")}`;
 
-      const [_response, buffer] = await this.request({
+      const [_response, buffer] = await Application.scheduleRequest({
         url,
         method: "GET",
       });
@@ -513,7 +508,7 @@ class MangaDemonExtension
   }
 
   // Fetches and parses manga details (title, author, genres, etc.)
-  async getMangaDetails(mangaId: string): Promise<import("@paperback/types").SourceManga> {
+  async getMangaDetails(mangaId: string): Promise<SourceManga> {
     // Defensive: Check for valid mangaId
     if (!mangaId) {
       throw new Error("[MangaDemon][getMangaDetails] mangaId is required but was not provided");
@@ -526,21 +521,21 @@ class MangaDemonExtension
     let isNovel = false;
     // Novel support: use /novel/{slug} for novels
     if (cleanId.startsWith("/novel/")) {
-      url = `${this.domain}${cleanId}`;
+      url = `${DOMAIN}${cleanId}`;
       cleanId = cleanId.replace("/novel/", "");
       isNovel = true;
     } else if (cleanId.startsWith("http")) {
       const match = cleanId.match(/\/manga\/([^/]+)/);
       if (match) cleanId = match[1];
-      url = `${this.domain}/manga/${encodeURIComponent(cleanId)}`;
+      url = `${DOMAIN}/manga/${encodeURIComponent(cleanId)}`;
     } else if (cleanId.startsWith("/manga/")) {
       cleanId = cleanId.replace("/manga/", "");
-      url = `${this.domain}/manga/${encodeURIComponent(cleanId)}`;
+      url = `${DOMAIN}/manga/${encodeURIComponent(cleanId)}`;
     } else {
-      url = `${this.domain}/manga/${encodeURIComponent(cleanId)}`;
+      url = `${DOMAIN}/manga/${encodeURIComponent(cleanId)}`;
     }
     try {
-      const [_response, buffer] = await this.request({
+      const [_response, buffer] = await Application.scheduleRequest({
         url,
         method: "GET",
       });
@@ -596,20 +591,20 @@ class MangaDemonExtension
     // Novel support: use /novel/{slug} for novels
     let url = "";
     if (cleanMangaId.startsWith("/novel/")) {
-      url = `${this.domain}${cleanMangaId}`;
+      url = `${DOMAIN}${cleanMangaId}`;
       cleanMangaId = cleanMangaId.replace("/novel/", "");
     } else if (cleanMangaId.startsWith("http")) {
       const match = cleanMangaId.match(/\/manga\/([^/]+)/);
       if (match) cleanMangaId = match[1];
-      url = `${this.domain}/manga/${encodeURIComponent(cleanMangaId)}`;
+      url = `${DOMAIN}/manga/${encodeURIComponent(cleanMangaId)}`;
     } else if (cleanMangaId.startsWith("/manga/")) {
       cleanMangaId = cleanMangaId.replace("/manga/", "");
-      url = `${this.domain}/manga/${encodeURIComponent(cleanMangaId)}`;
+      url = `${DOMAIN}/manga/${encodeURIComponent(cleanMangaId)}`;
     } else {
-      url = `${this.domain}/manga/${encodeURIComponent(cleanMangaId)}`;
+      url = `${DOMAIN}/manga/${encodeURIComponent(cleanMangaId)}`;
     }
     try {
-      const [_response, buffer] = await this.request({
+      const [_response, buffer] = await Application.scheduleRequest({
         url,
         method: "GET",
       });
@@ -629,9 +624,9 @@ class MangaDemonExtension
     try {
       // The chapterId should be in the format /title/{manga-title}/chapter/{chapter-number}/1
       // We need to construct the full URL
-      const chapterUrl = `${this.domain}${chapter.chapterId}`;
+      const chapterUrl = `${DOMAIN}${chapter.chapterId}`;
 
-      const [_response, buffer] = await this.request({
+      const [_response, buffer] = await Application.scheduleRequest({
         url: chapterUrl,
         method: "GET",
       });
@@ -655,44 +650,16 @@ class MangaDemonExtension
     }
   }
 
-  async saveCloudflareBypassCookies(cookies: import("@paperback/types").Cookie[]): Promise<void> {
-    // Clear all the cookies first (like Madara)
+  async saveCloudflareBypassCookies(cookies: Cookie[]): Promise<void> {
     for (const cookie of cookies) {
-      this.cookieStorageInterceptor.deleteCookie(cookie);
+      if (
+        cookie.name.startsWith("cf") ||
+        cookie.name.startsWith("_cf") ||
+        cookie.name.startsWith("__cf")
+      ) {
+        this.cookieStorageInterceptor.setCookie(cookie);
+      }
     }
-
-    // Then set all the cookies
-    for (const cookie of cookies) {
-      this.cookieStorageInterceptor.setCookie(cookie);
-    }
-
-    // Nothing else to reset; Paperback should resume requests after cookies are saved
-  }
-
-  async request(
-    options: Parameters<typeof Application.scheduleRequest>[0],
-  ): Promise<[Response, ArrayBuffer]> {
-    const [response, buffer] = await Application.scheduleRequest(options);
-    const status = response.status;
-    switch (status) {
-      case 403:
-      case 503:
-        throw new CloudflareError(
-          {
-            url: this.domain,
-            method: "GET",
-            headers: {
-              referer: `${this.domain}/`,
-              origin: `${this.domain}/`,
-              "user-agent": await Application.getDefaultUserAgent(),
-            },
-          },
-          "Cloudflare detected!\nPlease do the Cloudflare bypass to continue!",
-        );
-      case 404:
-        throw new Error(`The requested page ${response.url} was not found!`);
-    }
-    return [response, buffer];
   }
 }
 
