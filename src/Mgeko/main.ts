@@ -1,10 +1,8 @@
 import {
   BasicRateLimiter,
-  CloudflareError,
   CookieStorageInterceptor,
   DiscoverSectionType,
   EndOfPageResults,
-  PaperbackInterceptor,
   type Chapter,
   type ChapterDetails,
   type ChapterProviding,
@@ -17,7 +15,6 @@ import {
   type MangaProviding,
   type PagedResults,
   type Request,
-  type Response,
   type SearchFilter,
   type SearchQuery,
   type SearchResultItem,
@@ -28,7 +25,7 @@ import {
 } from "@paperback/types";
 import * as cheerio from "cheerio";
 import { URLBuilder } from "../utils/url-builder/base";
-import type { BrowseResult, Metadata } from "./models";
+import { DOMAIN, type BrowseResult, type Metadata } from "./models";
 import {
   parseChapterDetails,
   parseChapters,
@@ -38,8 +35,7 @@ import {
   parseSearch,
   parseViewMore,
 } from "./parsers";
-
-const MGEKO_DOMAIN = "https://www.mgeko.cc";
+import { MgekoInterceptor } from "./network";
 
 type MgekoImplementation = Extension &
   SearchResultsProviding &
@@ -47,33 +43,6 @@ type MgekoImplementation = Extension &
   ChapterProviding &
   DiscoverSectionProviding &
   CloudflareBypassRequestProviding;
-
-class MgekoInterceptor extends PaperbackInterceptor {
-  async interceptRequest(request: Request): Promise<Request> {
-    request.headers = {
-      ...request.headers,
-      referer: `${MGEKO_DOMAIN}/`,
-      "user-agent": await Application.getDefaultUserAgent(),
-    };
-    return request;
-  }
-
-  override async interceptResponse(
-    request: Request,
-    response: Response,
-    data: ArrayBuffer,
-  ): Promise<ArrayBuffer> {
-    const cfMitigated = response.headers?.["cf-mitigated"];
-    if (cfMitigated === "challenge") {
-      throw new CloudflareError({
-        url: request.url,
-        method: request.method ?? "GET",
-      });
-    }
-
-    return data;
-  }
-}
 
 export class MgekoExtension implements MgekoImplementation {
   globalRateLimiter = new BasicRateLimiter("rateLimiter", {
@@ -153,7 +122,7 @@ export class MgekoExtension implements MgekoImplementation {
 
   async getGenreTags(): Promise<TagSection[]> {
     const request: Request = {
-      url: new URLBuilder(MGEKO_DOMAIN).addPath("browse-comics").build(),
+      url: new URLBuilder(DOMAIN).addPath("browse-comics").build(),
       method: "GET",
     };
 
@@ -163,16 +132,16 @@ export class MgekoExtension implements MgekoImplementation {
 
   async getMangaDetails(mangaId: string): Promise<SourceManga> {
     const request: Request = {
-      url: new URLBuilder(MGEKO_DOMAIN).addPath("manga").addPath(mangaId).build(),
+      url: new URLBuilder(DOMAIN).addPath("manga").addPath(mangaId).build(),
       method: "GET",
     };
     const $ = await this.fetchCheerio(request);
-    return parseMangaDetails($, mangaId, MGEKO_DOMAIN);
+    return parseMangaDetails($, mangaId, DOMAIN);
   }
 
   async getChapters(sourceManga: SourceManga): Promise<Chapter[]> {
     const request: Request = {
-      url: new URLBuilder(MGEKO_DOMAIN)
+      url: new URLBuilder(DOMAIN)
         .addPath("manga")
         .addPath(sourceManga.mangaId)
         .addPath("all-chapters")
@@ -186,7 +155,7 @@ export class MgekoExtension implements MgekoImplementation {
 
   async getChapterDetails(chapter: Chapter): Promise<ChapterDetails> {
     const request: Request = {
-      url: new URLBuilder(MGEKO_DOMAIN)
+      url: new URLBuilder(DOMAIN)
         .addPath("reader")
         .addPath("en")
         .addPath(chapter.chapterId)
@@ -242,7 +211,7 @@ export class MgekoExtension implements MgekoImplementation {
     // Regular search
     if (isQuerySearch) {
       const request = {
-        url: new URLBuilder(MGEKO_DOMAIN)
+        url: new URLBuilder(DOMAIN)
           .addPath("autocomplete")
           .addQuery("term", encodeURI(query.title.trim()))
           .build(),
@@ -251,13 +220,13 @@ export class MgekoExtension implements MgekoImplementation {
 
       const $ = await this.fetchCheerio(request);
 
-      const manga = parseOldSearch($, MGEKO_DOMAIN);
+      const manga = parseOldSearch($, DOMAIN);
 
       return {
         items: manga,
       };
     } else {
-      const urlBuilder = new URLBuilder(MGEKO_DOMAIN).addPath("browse-comics").addPath("data");
+      const urlBuilder = new URLBuilder(DOMAIN).addPath("browse-comics").addPath("data");
 
       urlBuilder.addQuery("page", page);
 
@@ -296,7 +265,7 @@ export class MgekoExtension implements MgekoImplementation {
         },
       });
 
-      const manga = parseSearch($, MGEKO_DOMAIN);
+      const manga = parseSearch($, DOMAIN);
 
       metadata = parsedData.page < parsedData.num_pages ? { page: page + 1 } : undefined;
       return {
@@ -315,7 +284,7 @@ export class MgekoExtension implements MgekoImplementation {
     const page: number = metadata?.page ?? 1;
 
     const request: Request = {
-      url: new URLBuilder(MGEKO_DOMAIN)
+      url: new URLBuilder(DOMAIN)
         .addPath("browse-comics")
         .addPath("data")
         .addQuery("page", page)

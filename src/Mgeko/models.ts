@@ -8,3 +8,5 @@ export type BrowseResult = {
   page: number;
   num_pages: number;
 };
+
+export const DOMAIN = "https://www.mgeko.cc";
