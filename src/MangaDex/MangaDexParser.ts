@@ -8,15 +8,18 @@ import {
 import { MDImageQuality } from "./MangaDexHelper";
 import {
   getCustomCoversEnabled,
+  getLanguagePriority,
   getMangaThumbnail,
+  getNativeTitleDisplay,
   getRelevanceScoringEnabled,
+  getRomanizedPriorityEnabled,
   getSelectedCover,
   getShowChapter,
   getShowRatingIcons,
   getShowSearchRatingInSubtitle,
   getShowStatusIcons,
   getShowVolume,
-  getLanguages,
+  getTitleLanguages,
 } from "./MangaDexSettings";
 import { COVER_BASE_URL, MANGADEX_DOMAIN } from "./utils/CommonUtil";
 import { relevanceScore } from "./utils/titleRelevanceScore";
@@ -32,6 +35,7 @@ type MangaItemWithAdditionalInfo = MangaDex.MangaItem & {
 
 type MangaItemDetails = {
   primaryTitle: string;
+  preferredLanguageTitle?: string;
   secondaryTitles: string[];
   synopsis: string;
   status: MangaDex.Status;
@@ -109,7 +113,7 @@ export const parseMangaList = async (
 
   const thumbnailQuality = thumbnailSelector();
   const useCustomCovers = getCustomCoversEnabled();
-  const languages = getLanguages();
+  const languages = getTitleLanguages();
 
   for (const manga of object) {
     const mangaId = manga.id;
@@ -235,17 +239,37 @@ export const parseMangaDetails = (
 
   const mangaItemDetails = parseMangaItemDetails(mangaId, mangaDetails);
 
-  const author = json.data.relationships
-    .filter((x): x is MangaDex.Relationship => x.type.valueOf() === "author")
-    .map((x) => x.attributes?.name)
-    .filter(Boolean)
-    .join(", ");
+  let author: string | undefined =
+    json.data.relationships
+      .filter((x): x is MangaDex.Relationship => x.type.valueOf() === "author")
+      .map((x) => x.attributes?.name)
+      .filter(Boolean)
+      .join(", ") || undefined;
 
-  const artist = json.data.relationships
-    .filter((x): x is MangaDex.Relationship => x.type.valueOf() === "artist")
-    .map((x) => x.attributes?.name)
-    .filter(Boolean)
-    .join(", ");
+  let artist: string | undefined =
+    json.data.relationships
+      .filter((x): x is MangaDex.Relationship => x.type.valueOf() === "artist")
+      .map((x) => x.attributes?.name)
+      .filter(Boolean)
+      .join(", ") || undefined;
+
+  let synopsis = mangaItemDetails.synopsis ?? "No Description";
+
+  const nativeTitleDisplay = getNativeTitleDisplay();
+  const preferredTitle = mangaItemDetails.preferredLanguageTitle;
+  if (preferredTitle && preferredTitle !== mangaItemDetails.primaryTitle) {
+    if (nativeTitleDisplay === "author") {
+      author = preferredTitle;
+      artist = undefined;
+    } else if (nativeTitleDisplay === "author_desc") {
+      const credits: string[] = [];
+      if (author) credits.push(author);
+      if (artist && artist !== author) credits.push(artist);
+      const suffix = credits.length > 0 ? ` (${credits.join(", ")})` : "";
+      author = `${preferredTitle}${suffix}`;
+      artist = undefined;
+    }
+  }
 
   let image = "";
 
@@ -285,7 +309,7 @@ export const parseMangaDetails = (
       thumbnailUrl: image,
       author,
       artist,
-      synopsis: mangaItemDetails.synopsis ?? "No Description",
+      synopsis,
       status: mangaItemDetails.status,
       tagGroups: mangaItemDetails.tagGroups,
       contentRating: mangaItemDetails.contentRating,
@@ -300,7 +324,7 @@ export function parseMangaItemDetails(
   mangaId: string,
   mangaDetails: MangaDex.DatumAttributes,
 ): MangaItemDetails {
-  const languages = getLanguages();
+  const languages = getTitleLanguages();
 
   const primaryTitleMatch =
     getFirstLanguageMatch(mangaDetails.title as Record<string, string | undefined>, languages) ??
@@ -309,6 +333,17 @@ export function parseMangaItemDetails(
     "";
 
   const primaryTitle: string = Application.decodeHTMLEntities(primaryTitleMatch);
+
+  let preferredLanguageTitle: string | undefined;
+  if (getRomanizedPriorityEnabled()) {
+    const priority = getLanguagePriority();
+    const preferredMatch =
+      getFirstLanguageMatch(mangaDetails.title as Record<string, string | undefined>, priority) ??
+      getFirstLanguageMatchFromAlt(mangaDetails.altTitles, priority);
+    if (preferredMatch) {
+      preferredLanguageTitle = Application.decodeHTMLEntities(preferredMatch);
+    }
+  }
 
   const secondaryTitles: string[] = mangaDetails.altTitles.flatMap(
     (x: MangaDex.AltTitle) => Object.values(x) as string[],
@@ -338,6 +373,14 @@ export function parseMangaItemDetails(
     synopsis = synopsis ? `${synopsis}\n\n${trackingLine}` : trackingLine;
   }
 
+  if (
+    getNativeTitleDisplay() === "description" &&
+    preferredLanguageTitle &&
+    preferredLanguageTitle !== primaryTitle
+  ) {
+    synopsis = synopsis ? `${preferredLanguageTitle}\n\n${synopsis}` : preferredLanguageTitle;
+  }
+
   const status = mangaDetails.status;
 
   const tags: Tag[] = mangaDetails.tags
@@ -349,6 +392,7 @@ export function parseMangaItemDetails(
 
   return {
     primaryTitle,
+    preferredLanguageTitle,
     secondaryTitles,
     synopsis,
     status,

@@ -415,3 +415,5 @@ class MDImageQualityClass {
 }
 
 export const MDImageQuality = new MDImageQualityClass();
+
+export const ROMANIZED_CODES = ["ja-ro", "ko-ro", "zh-ro"] as const;

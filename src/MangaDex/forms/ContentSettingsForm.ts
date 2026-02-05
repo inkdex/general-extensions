@@ -1,4 +1,11 @@
-import { Form, Section, SelectRow, ToggleRow, type FormSectionElement } from "@paperback/types";
+import {
+  Form,
+  NavigationRow,
+  Section,
+  SelectRow,
+  ToggleRow,
+  type FormSectionElement,
+} from "@paperback/types";
 import { MDImageQuality, MDLanguages, MDRatings } from "../MangaDexHelper";
 import {
   getCoverArtworkEnabled,
@@ -7,23 +14,22 @@ import {
   getDataSaver,
   getDiscoverThumbnail,
   getForcePort443,
+  getLanguagePriority,
   getLanguages,
   getMangaThumbnail,
+  getNativeTitleDisplay,
   getRatings,
+  getRomanizedPriorityEnabled,
   getSearchThumbnail,
   getSkipSameChapter,
+  setLanguagePriority,
+  setNativeTitleDisplay,
+  setRomanizedPriorityEnabled,
 } from "../MangaDexSettings";
 import { State } from "../utils/StateUtil";
+import { LanguagePriorityForm } from "./LanguagePriorityForm";
 
-/**
- * Form for configuring content settings including:
- * - Languages for content display
- * - Content ratings filter
- * - Data saver mode
- * - Thumbnail quality settings
- */
 export class ContentSettingsForm extends Form {
-  // State objects for all configurable settings
   private languagesState: State<string[]>;
   private ratingsState: State<string[]>;
   private dataSaverState: State<boolean>;
@@ -35,6 +41,9 @@ export class ContentSettingsForm extends Form {
   private searchThumbState: State<string>;
   private mangaThumbState: State<string>;
   private cropImagesState: State<boolean>;
+
+  private romanizedPriorityEnabled: boolean;
+  private nativeTitleDisplay: string;
 
   constructor() {
     super();
@@ -57,9 +66,15 @@ export class ContentSettingsForm extends Form {
     this.searchThumbState = new State<string>(this, "search_thumbnail", getSearchThumbnail());
     this.mangaThumbState = new State<string>(this, "manga_thumbnail", getMangaThumbnail());
     this.cropImagesState = new State<boolean>(this, "crop_images_enabled", getCropImagesEnabled());
+
+    this.romanizedPriorityEnabled = getRomanizedPriorityEnabled();
+    this.nativeTitleDisplay = getNativeTitleDisplay();
   }
 
   override getSections(): FormSectionElement[] {
+    const priorityOrder = getLanguagePriority();
+    const prioritySubtitle = priorityOrder.map((code) => MDLanguages.getName(code)).join(" → ");
+
     return [
       Section("generalContent", [
         SelectRow("languages", {
@@ -78,8 +93,53 @@ export class ContentSettingsForm extends Form {
             id: x,
             title: MDLanguages.getName(x),
           })),
-          onValueChange: this.languagesState.selector,
+          onValueChange: Application.Selector(this as ContentSettingsForm, "handleLanguageChange"),
         }),
+        ToggleRow("romanized_priority", {
+          title: "Prefer Romanized Titles",
+          subtitle: "Prioritize romanized titles (ja-ro, ko-ro, zh-ro) for better tracker matching",
+          value: this.romanizedPriorityEnabled,
+          onValueChange: Application.Selector(
+            this as ContentSettingsForm,
+            "handleRomanizedPriorityChange",
+          ),
+        }),
+        ...(this.romanizedPriorityEnabled
+          ? [
+              SelectRow("native_title_display", {
+                title: "Show Preferred Title In",
+                subtitle:
+                  {
+                    none: "None",
+                    author: "Author Field",
+                    author_desc: "Author Field (Keep Author)",
+                    description: "Description",
+                  }[this.nativeTitleDisplay] ?? "None",
+                value: [this.nativeTitleDisplay],
+                minItemCount: 1,
+                maxItemCount: 1,
+                options: [
+                  { id: "none", title: "None" },
+                  { id: "author", title: "Author Field" },
+                  { id: "author_desc", title: "Author Field (Keep Author)" },
+                  { id: "description", title: "Description" },
+                ],
+                onValueChange: Application.Selector(
+                  this as ContentSettingsForm,
+                  "handleNativeTitleDisplayChange",
+                ),
+              }),
+            ]
+          : []),
+        ...(priorityOrder.length > 1
+          ? [
+              NavigationRow("language_priority", {
+                title: "Language Priority",
+                subtitle: prioritySubtitle,
+                form: new LanguagePriorityForm(),
+              }),
+            ]
+          : []),
         SelectRow("ratings", {
           title: "Content Rating",
           subtitle: (() => {
@@ -184,6 +244,33 @@ export class ContentSettingsForm extends Form {
         }),
       ]),
     ];
+  }
+
+  async handleLanguageChange(value: string[]): Promise<void> {
+    const currentPriority = getLanguagePriority();
+    const selectedSet = new Set(value);
+
+    const reconciled = currentPriority.filter((code) => selectedSet.has(code));
+    for (const code of value) {
+      if (!reconciled.includes(code)) {
+        reconciled.push(code);
+      }
+    }
+
+    setLanguagePriority(reconciled);
+    await this.languagesState.updateValue(value);
+  }
+
+  async handleRomanizedPriorityChange(value: boolean): Promise<void> {
+    this.romanizedPriorityEnabled = value;
+    setRomanizedPriorityEnabled(value);
+    this.reloadForm();
+  }
+
+  async handleNativeTitleDisplayChange(value: string[]): Promise<void> {
+    this.nativeTitleDisplay = value[0] ?? "none";
+    setNativeTitleDisplay(this.nativeTitleDisplay);
+    this.reloadForm();
   }
 
   // Handlers for thumbnail quality changes
