@@ -5,7 +5,7 @@ import {
   type Tag,
   type TagSection,
 } from "@paperback/types";
-import { MDImageQuality } from "./MangaDexHelper";
+import { MDImageQuality, ROMANIZED_CODES } from "./MangaDexHelper";
 import {
   getCustomCoversEnabled,
   getLanguagePriority,
@@ -118,7 +118,14 @@ export const parseMangaList = async (
   for (const manga of object) {
     const mangaId = manga.id;
     const mangaDetails = manga.attributes;
+    const romanizedListMatch = getRomanizedPriorityEnabled()
+      ? (getFirstLanguageMatch(mangaDetails.title as Record<string, string | undefined>, [
+          ...ROMANIZED_CODES,
+        ]) ?? getFirstLanguageMatchFromAlt(mangaDetails.altTitles, [...ROMANIZED_CODES]))
+      : undefined;
+
     const titleMatch =
+      romanizedListMatch ??
       getFirstLanguageMatch(mangaDetails.title as Record<string, string | undefined>, languages) ??
       getFirstLanguageMatchFromAlt(mangaDetails.altTitles, languages) ??
       getFirstValue(mangaDetails.title as Record<string, string | undefined>) ??
@@ -326,7 +333,14 @@ export function parseMangaItemDetails(
 ): MangaItemDetails {
   const languages = getTitleLanguages();
 
+  const romanizedMatch = getRomanizedPriorityEnabled()
+    ? (getFirstLanguageMatch(mangaDetails.title as Record<string, string | undefined>, [
+        ...ROMANIZED_CODES,
+      ]) ?? getFirstLanguageMatchFromAlt(mangaDetails.altTitles, [...ROMANIZED_CODES]))
+    : undefined;
+
   const primaryTitleMatch =
+    romanizedMatch ??
     getFirstLanguageMatch(mangaDetails.title as Record<string, string | undefined>, languages) ??
     getFirstLanguageMatchFromAlt(mangaDetails.altTitles, languages) ??
     getFirstValue(mangaDetails.title as Record<string, string | undefined>) ??
