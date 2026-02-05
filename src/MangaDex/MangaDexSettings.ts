@@ -17,7 +17,7 @@ import { TrackingSettingsForm } from "./forms/TrackingSettingsForm";
 import { UpdateFilterSettingsForm } from "./forms/UpdateFilterSettingsForm";
 import { WebsiteSettingsForm } from "./forms/WebsiteSettingsForm";
 import { WebsiteStatusForm } from "./forms/WebsiteStatusForm";
-import { MDImageQuality, MDLanguages, MDRatings } from "./MangaDexHelper";
+import { MDImageQuality, MDLanguages, MDRatings, ROMANIZED_CODES } from "./MangaDexHelper";
 import { MangaProvider } from "./providers/MangaProvider";
 import { State } from "./utils/StateUtil";
 
@@ -109,6 +109,50 @@ export function setTagSectionsEnabled(enabled: boolean): void {
 // ============================
 export function getLanguages(): string[] {
   return (Application.getState("languages") as string[] | undefined) ?? MDLanguages.getDefault();
+}
+
+// ============================
+// Language Priority Settings
+// ============================
+export function getLanguagePriority(): string[] {
+  return (Application.getState("language_priority") as string[] | undefined) ?? getLanguages();
+}
+
+export function setLanguagePriority(priority: string[]): void {
+  Application.setState(priority, "language_priority");
+}
+
+export function getRomanizedPriorityEnabled(): boolean {
+  return (Application.getState("romanized_priority_enabled") as boolean | undefined) ?? false;
+}
+
+export function setRomanizedPriorityEnabled(enabled: boolean): void {
+  Application.setState(enabled, "romanized_priority_enabled");
+}
+
+/**
+ * Returns the effective language list for title/description resolution.
+ * If romanized priority is enabled, prepends romanized codes (ja-ro, ko-ro, zh-ro).
+ * Uses language_priority order (or falls back to getLanguages()).
+ */
+export function getTitleLanguages(): string[] {
+  const priority = getLanguagePriority();
+  if (!getRomanizedPriorityEnabled()) return priority;
+
+  const romanized: string[] = [...ROMANIZED_CODES];
+  const deduped = [...romanized, ...priority.filter((code) => !romanized.includes(code))];
+  return deduped;
+}
+
+// ============================
+// Native Title Display Settings
+// ============================
+export function getNativeTitleDisplay(): string {
+  return (Application.getState("native_title_display") as string | undefined) ?? "none";
+}
+
+export function setNativeTitleDisplay(display: string): void {
+  Application.setState(display, "native_title_display");
 }
 
 export function getRatings(): string[] {
@@ -645,6 +689,10 @@ export class MangaDexSettingsForm extends Form {
   }
 
   async handleResetSettings(): Promise<void> {
+    setLanguagePriority(MDLanguages.getDefault());
+    setRomanizedPriorityEnabled(false);
+    setNativeTitleDisplay("none");
+
     await Promise.all([
       this.languagesState.updateValue(MDLanguages.getDefault()),
       this.ratingsState.updateValue(MDRatings.getDefault()),
