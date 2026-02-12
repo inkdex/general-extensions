@@ -193,7 +193,7 @@ export class ApiMaker {
     this.apiLink = url.toString();
     const html = await this.getDataFromRequest();
     try {
-      return JSON.parse(html) as ApiResponseMangaInfo;
+      return JSON.parse(html) as ApiResponse<MangaItem>;
     } catch {
       throw new Error("Json parse failed");
     }
@@ -209,7 +209,7 @@ export class ApiMaker {
     this.apiLink = url.toString();
     const html = await this.getDataFromRequest();
     try {
-      return JSON.parse(html) as ApiResponseChapter;
+      return JSON.parse(html) as ApiResponse<ResultChapter>;
     } catch {
       throw new Error("Json parse failed");
     }
@@ -241,7 +241,7 @@ export class ApiMaker {
     this.apiLink = url.toString();
     const html = await this.getDataFromRequest();
     try {
-      return JSON.parse(html) as ApiResponseManga;
+      return JSON.parse(html) as ApiResponse<ResultManga>;
     } catch {
       throw new Error("Json parse failed");
     }
@@ -253,7 +253,7 @@ export class ApiMaker {
     this.apiLink = url.toString();
     const html = await this.getDataFromRequest();
     try {
-      return JSON.parse(html) as ApiResponseChapterPages;
+      return JSON.parse(html) as ApiResponse<ChapterPages>;
     } catch {
       throw new Error("Json parse failed");
     }
@@ -266,7 +266,7 @@ export class ApiMaker {
     this.apiLink = url.toString();
     const html = await this.getDataFromRequest();
     try {
-      return JSON.parse(html) as ApiResponseFilter;
+      return JSON.parse(html) as ApiResponse<ResultFilter>;
     } catch {
       throw new Error("Json parse failed");
     }
