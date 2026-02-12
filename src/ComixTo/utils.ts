@@ -58,6 +58,7 @@ export class globalFilters {
   ];
 
   sectionLimit = [
+    { id: "1", value: "Day" },
     { id: "7", value: "Week" },
     { id: "30", value: "1 Month" },
     { id: "90", value: "3 Month" },

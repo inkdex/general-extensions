@@ -22,49 +22,33 @@ export class Forms extends Form {
           onSelect: Application.Selector(this as Forms, "refreshFilters"),
         }),
       ]),
-      Section("limit", [
-        NavigationRow("Limit", {
-          title: "Limit",
-          subtitle: "Limit Settings",
-          form: new LimitSettings(),
+      Section({ id: "limit_settings" }, [
+        SelectRow("limit", {
+          title: "Time Range",
+          subtitle: "Defines the time range for retrieving top-ranked content on Sections",
+          value: filter.getLimitSettings(),
+          options: this.limitMap,
+          minItemCount: 1,
+          maxItemCount: 1,
+          onValueChange: Application.Selector(this as Forms, "handleLimitStatusChange"),
         }),
       ]),
     ];
   }
+  limitMap = filter.sectionLimit.map(({ value, id }) => ({
+    title: value,
+    id: id,
+  }));
   async refreshFilters() {
     Application.invalidateSearchFilters();
     await filter.updateFilters(true);
     this.reloadForm();
   }
-}
-
-class LimitSettings extends Form {
-  limitMap = filter.sectionLimit.map(({ value, id }) => ({
-    title: value,
-    id: id,
-  }));
-
   public async updateValue(value: string[], filter: string): Promise<void> {
     Application.setState(value, filter);
     Application.invalidateDiscoverSections();
     this.reloadForm();
   }
-  override getSections(): FormSectionElement[] {
-    return [
-      Section({ id: "limit_settings", footer: "Limit Settings" }, [
-        SelectRow("limit", {
-          title: "Content Time Limit",
-          subtitle: "Show this time limit of content in sections",
-          value: filter.getLimitSettings(),
-          options: this.limitMap,
-          minItemCount: 1,
-          maxItemCount: 1,
-          onValueChange: Application.Selector(this as LimitSettings, "handleLimitStatusChange"),
-        }),
-      ]),
-    ];
-  }
-
   async handleLimitStatusChange(id: string[]): Promise<void> {
     await this.updateValue(id, "limit");
   }

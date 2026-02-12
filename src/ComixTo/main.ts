@@ -18,7 +18,7 @@ import {
   type SortingOption,
   type SourceManga,
 } from "@paperback/types";
-import { Forms } from "./forms";
+import { MainSettings } from "./forms";
 import type { Metadata } from "./models";
 import { MainInterceptor, mainRateLimiter } from "./network";
 import { JsonParser } from "./parsers";
@@ -35,7 +35,7 @@ export const filter = new globalFilters();
 export class ComiToExtension implements ComixToImplementation {
   async getSettingsForm(): Promise<Form> {
     await filter.checkFilters();
-    return new Forms();
+    return new MainSettings();
   }
 
   mainInterceptor = new MainInterceptor("main");
@@ -46,6 +46,7 @@ export class ComiToExtension implements ComixToImplementation {
   }
 
   async getDiscoverSections(): Promise<DiscoverSection[]> {
+    const sections: DiscoverSection[] = [];
     const get_popular: DiscoverSection = {
       id: "popular",
       title: "Popular",
@@ -61,20 +62,46 @@ export class ComiToExtension implements ComixToImplementation {
       title: "Recently Added",
       type: DiscoverSectionType.simpleCarousel,
     };
-
+    const get_trending_manga: DiscoverSection = {
+      id: "trending_manga",
+      title: "Trending Manga",
+      type: DiscoverSectionType.simpleCarousel,
+    };
+    const get_trending_wt: DiscoverSection = {
+      id: "trending_wt",
+      title: "Trending WebToons",
+      type: DiscoverSectionType.simpleCarousel,
+    };
+    const get_completed: DiscoverSection = {
+      id: "completed",
+      title: "Completed",
+      type: DiscoverSectionType.simpleCarousel,
+    };
     const get_updatesHot: DiscoverSection = {
       id: "updatesHot",
       title: "Latest Updates (HOT)",
       type: DiscoverSectionType.chapterUpdates,
     };
-
     const get_updatesNew: DiscoverSection = {
       id: "updatesNew",
       title: "Latest Updates (NEW)",
       type: DiscoverSectionType.chapterUpdates,
     };
-
-    return [get_popular, get_follow, get_recent, get_updatesHot, get_updatesNew];
+    type Pair<T, K> = [T, K];
+    const names: Pair<string, DiscoverSection>[] = [
+      ["popular", get_popular],
+      ["recent", get_recent],
+      ["follow", get_follow],
+      ["trending_manga", get_trending_manga],
+      ["trending_wt", get_trending_wt],
+      ["completed", get_completed],
+      ["updatesHot", get_updatesHot],
+      ["updatesNew", get_updatesNew],
+    ];
+    names.forEach(([_, section]) => {
+      sections.push(section);
+    });
+    return sections;
   }
 
   async getDiscoverSectionItems(
@@ -83,11 +110,17 @@ export class ComiToExtension implements ComixToImplementation {
   ): Promise<PagedResults<DiscoverSectionItem>> {
     switch (section.id) {
       case "popular":
-        return await parse.parseSectionPopular("popular");
+        return await parse.parseSection("popular", undefined);
       case "follow":
-        return await parse.parseSectionFollow("follow");
+        return await parse.parseSection("follow", undefined);
       case "recent":
-        return await parse.parseSectionRecent("recent", metadata);
+        return await parse.parseSection("recent", metadata);
+      case "trending_manga":
+        return await parse.parseSection("trending_manga", metadata);
+      case "trending_wt":
+        return await parse.parseSection("trending_wt", metadata);
+      case "completed":
+        return await parse.parseSection("completed", metadata);
       case "updatesNew":
         return await parse.parseSectionChUp("updatesNew", metadata);
       case "updatesHot":

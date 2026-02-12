@@ -16,14 +16,19 @@ import { ApiMaker } from "./network";
 
 const api = new ApiMaker();
 export class JsonParser {
-  async parseSectionRecent(section: string, metadata: Metadata) {
+  async parseSection(section: string, metadata: Metadata | undefined) {
     const latest: DiscoverSectionItem[] = [];
     const page = metadata?.page ?? 1;
     const json = await api.getJsonMangaApi(section, page);
     if (json.status === 200) {
       for (const item of json.result.items) {
         latest.push({
-          type: "simpleCarouselItem",
+          type:
+            section === "follow"
+              ? "prominentCarouselItem"
+              : section === "popular"
+                ? "featuredCarouselItem"
+                : "simpleCarouselItem",
           contentRating: item.is_nsfw ? ContentRating.ADULT : ContentRating.EVERYONE,
           imageUrl:
             item.poster.large.length > 0
@@ -37,55 +42,7 @@ export class JsonParser {
     }
     return {
       items: latest,
-      metadata: { page: page + 1 },
-    };
-  }
-
-  async parseSectionFollow(section: string) {
-    const latest: DiscoverSectionItem[] = [];
-    const json = await api.getJsonMangaApi(section, 1);
-    if (json.status === 200) {
-      for (const item of json.result.items) {
-        latest.push({
-          type: "prominentCarouselItem",
-          contentRating: item.is_nsfw ? ContentRating.ADULT : ContentRating.EVERYONE,
-          imageUrl:
-            item.poster.large.length > 0
-              ? item.poster.large
-              : "https://comix.to/images/no-poster.png",
-          mangaId: item.hash_id,
-          title: item.title,
-          subtitle: item.author?.[0]?.title ?? "",
-        });
-      }
-    }
-    return {
-      items: latest,
-      metadata: undefined,
-    };
-  }
-
-  async parseSectionPopular(section: string) {
-    const latest: DiscoverSectionItem[] = [];
-    const json = await api.getJsonMangaApi(section, 1);
-    if (json.status === 200) {
-      for (const item of json.result.items) {
-        latest.push({
-          type: "featuredCarouselItem",
-          contentRating: item.is_nsfw ? ContentRating.ADULT : ContentRating.EVERYONE,
-          imageUrl:
-            item.poster.large.length > 0
-              ? item.poster.large
-              : "https://comix.to/images/no-poster.png",
-          mangaId: item.hash_id,
-          title: item.title,
-          supertitle: item.author?.[0]?.title ?? "",
-        });
-      }
-    }
-    return {
-      items: latest,
-      metadata: undefined,
+      metadata: section === "follow" || section === "popular" ? undefined : { page: page + 1 },
     };
   }
 
@@ -143,10 +100,11 @@ export class JsonParser {
         title: chapter.name,
         volume: chapter.volume,
         version:
-          chapter.is_official === 1 ? "Official" : (chapter.scanlation_group?.name ?? "Unknown"),
+          chapter.is_official === 1 ? "⭐Official" : (chapter.scanlation_group?.name ?? "Unknown"),
         sortingIndex: chapter.number,
         publishDate: new Date(chapter.updated_at * 1000),
         creationDate: new Date(chapter.created_at * 1000),
+        additionalInfo: { vote: chapter.votes.toString() },
       };
     });
   }
