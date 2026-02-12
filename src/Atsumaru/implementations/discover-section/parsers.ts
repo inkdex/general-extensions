@@ -8,7 +8,7 @@ export function parseDiscoverSections(json: AtsuHomePageResponse): DiscoverSecti
 
   // filter for carousel sections only and map
   return sections
-    .filter((section) => section.type === "carousel" && section.key !== "hot-updates")
+    .filter((section) => section.layout === "carousel" && section.key !== "hot-updates")
     .map((section) => ({
       id: section.key,
       title: section.title || "Unknown",
