@@ -85,8 +85,29 @@ export class ApiMaker {
         url.setQueryItem("limit", "15");
         url.setQueryItem("includes[]", additionalInfo);
         if (show_only.length > 0) url.setQueryItem("types[]", show_only);
-        if (hidden_gen.length > 0) url.setQueryItem("exclude_genres[]", hidden_gen);
-        if (hidden_them.length > 0) url.setQueryItem("exclude_genres[]", hidden_gen);
+        if (allGenres.length > 0) url.setQueryItem("exclude_genres[]", allGenres);
+        return url.toString();
+      }
+      case "trending_manga": {
+        const url = new URL(BASE_API).addPathComponent("manga");
+        url.setQueryItem("order[views_30d]", "desc");
+        url.setQueryItem("types[]", "manga");
+        url.setQueryItem("limit", "28");
+        url.setQueryItem("release_year[from]", (new Date().getFullYear() - 1).toString());
+        url.setQueryItem("includes[]", additionalInfo);
+        url.setQueryItem("page", page.toString());
+        if (allGenres.length > 0) url.setQueryItem("exclude_genres[]", allGenres);
+        return url.toString();
+      }
+      case "trending_wt": {
+        const url = new URL(BASE_API).addPathComponent("manga");
+        url.setQueryItem("order[views_30d]", "desc");
+        url.setQueryItem("types[]", ["manhwa", "manhua"]);
+        url.setQueryItem("limit", "28");
+        url.setQueryItem("release_year[from]", (new Date().getFullYear() - 1).toString());
+        url.setQueryItem("includes[]", additionalInfo);
+        url.setQueryItem("page", page.toString());
+        if (allGenres.length > 0) url.setQueryItem("exclude_genres[]", allGenres);
         return url.toString();
       }
       case "follow": {
@@ -106,7 +127,17 @@ export class ApiMaker {
         url.setQueryItem("limit", "20");
         url.setQueryItem("includes[]", additionalInfo);
         if (show_only.length > 0) url.setQueryItem("types[]", show_only);
-        if (hidden_gen.length > 0) url.setQueryItem("exclude_genres[]", hidden_gen);
+        if (allGenres.length > 0) url.setQueryItem("exclude_genres[]", allGenres);
+        return url.toString();
+      }
+      case "completed": {
+        const url = new URL(BASE_API).addPathComponent("manga");
+        url.setQueryItem("statuses[]", "finished");
+        url.setQueryItem("order[chapter_updated_at]", "desc");
+        url.setQueryItem("page", page.toString());
+        url.setQueryItem("limit", "20");
+        if (show_only.length > 0) url.setQueryItem("types[]", show_only);
+        if (allGenres.length > 0) url.setQueryItem("exclude_genres[]", allGenres);
         return url.toString();
       }
       case "updatesHot": {
