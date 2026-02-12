@@ -36,7 +36,7 @@ export class JsonParser {
               : "https://comix.to/images/no-poster.png",
           mangaId: item.hash_id,
           title: item.title,
-          subtitle: item.author?.[0]?.title ?? "",
+          subtitle: item.author?.map((author) => author.title).join(" ") ?? "",
         });
       }
     }
@@ -165,8 +165,8 @@ export class JsonParser {
         manga.poster.medium.length > 0
           ? manga.poster.medium
           : "https://comix.to/images/no-poster.png",
-      artist: manga.artist?.[0]?.title ?? "",
-      author: manga.author?.[0]?.title ?? "",
+      artist: manga.artist?.map((artist) => artist.title).join(" ") ?? "",
+      author: manga.author?.map((author) => author.title).join(" ") ?? "",
       rating: manga.rated_avg / 10,
       tagGroups: tags,
       shareUrl: `https://comix.to/title/${manga.hash_id}`,

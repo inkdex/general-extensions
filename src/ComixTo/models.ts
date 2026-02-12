@@ -1,20 +1,6 @@
-export interface ApiResponseMangaInfo {
+export interface ApiResponse<T> {
   status: number;
-  result: MangaItem;
-}
-
-export interface ApiResponseManga {
-  status: number;
-  result: ResultManga;
-}
-
-export interface ApiResponseChapter {
-  status: number;
-  result: ResultChapter;
-}
-
-interface pagination {
-  last_page: number;
+  result: T;
 }
 
 export interface ResultManga {
@@ -23,21 +9,12 @@ export interface ResultManga {
 
 export interface ResultChapter {
   items: ChapterItem[];
-  pagination: pagination;
-}
-
-export interface ApiResponseChapterPages {
-  status: number;
-  result: ChapterPages;
+  pagination: { last_page: number };
 }
 
 export interface ChapterPages {
   manga_id: number;
-  images: Images[];
-}
-
-export interface Images {
-  url: string;
+  images: { url: string }[];
 }
 
 export interface MangaItem {
@@ -56,8 +33,8 @@ export interface MangaItem {
   updated_at: number;
   rated_avg: number;
   is_nsfw: boolean;
-  author?: Author[];
-  artist?: Artist[];
+  author?: { title: string }[];
+  artist?: { title: string }[];
   genre: Terms[];
   theme: Terms[];
   demographic: Terms[];
@@ -65,14 +42,6 @@ export interface MangaItem {
 
 export interface Terms {
   term_id: number;
-  title: string;
-}
-
-export interface Author {
-  title: string;
-}
-
-export interface Artist {
   title: string;
 }
 
@@ -90,27 +59,19 @@ export interface ChapterItem {
   name: string;
   language: string;
   volume: number;
+  votes: number;
   created_at: number;
   updated_at: number;
-  scanlation_group?: ScanlationGroup | null;
-}
-
-export interface ScanlationGroup {
-  name: string;
+  scanlation_group?: { name: string } | null;
 }
 
 export interface Metadata {
   page: number;
 }
 
-export interface ApiResponseFilter {
-  status: number;
-  result: ResultFilter;
-}
-
 export interface ResultFilter {
   items: Filter[];
-  pagination: pagination;
+  pagination: { last_page: number };
 }
 
 export interface Filter {
