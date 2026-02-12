@@ -8,11 +8,12 @@ import {
 } from "@paperback/types";
 import { filter } from "./main";
 import type {
-  ApiResponseChapter,
-  ApiResponseChapterPages,
-  ApiResponseFilter,
-  ApiResponseManga,
-  ApiResponseMangaInfo,
+  ApiResponse,
+  ResultManga,
+  MangaItem,
+  ResultChapter,
+  ResultFilter,
+  ChapterPages,
 } from "./models";
 
 const BASE_API = "https://comix.to/api/v2";
@@ -72,6 +73,7 @@ export class ApiMaker {
   private build(section: string, page: number): string {
     const hidden_gen = filter.getHiddenGenresSettings();
     const hidden_them = filter.getHiddenThemesSettings();
+    const allGenres = [...hidden_gen, ...hidden_them];
     const show_only = filter.getShowOnlySettings();
     const limit = filter.getLimitSettings();
     const additionalInfo = ["author"];
@@ -94,7 +96,7 @@ export class ApiMaker {
         url.setQueryItem("limit", "50");
         url.setQueryItem("includes[]", additionalInfo);
         if (show_only.length > 0) url.setQueryItem("types[]", show_only);
-        if (hidden_gen.length > 0) url.setQueryItem("exclude_genres[]", hidden_gen);
+        if (allGenres.length > 0) url.setQueryItem("exclude_genres[]", allGenres);
         return url.toString();
       }
       case "recent": {
@@ -114,7 +116,7 @@ export class ApiMaker {
         url.setQueryItem("limit", "20");
         url.setQueryItem("scope", "hot");
         if (show_only.length > 0) url.setQueryItem("types[]", show_only);
-        if (hidden_gen.length > 0) url.setQueryItem("exclude_genres[]", hidden_gen);
+        if (allGenres.length > 0) url.setQueryItem("exclude_genres[]", allGenres);
         return url.toString();
       }
       case "updatesNew": {
@@ -124,7 +126,7 @@ export class ApiMaker {
         url.setQueryItem("limit", "20");
         url.setQueryItem("scope", "new");
         if (show_only.length > 0) url.setQueryItem("types[]", show_only);
-        if (hidden_gen.length > 0) url.setQueryItem("exclude_genres[]", hidden_gen);
+        if (allGenres.length > 0) url.setQueryItem("exclude_genres[]", allGenres);
         return url.toString();
       }
       default:
@@ -146,7 +148,7 @@ export class ApiMaker {
     this.apiLink = this.build(section, page);
     const html = await this.getDataFromRequest();
     try {
-      return JSON.parse(html) as ApiResponseManga;
+      return JSON.parse(html) as ApiResponse<ResultManga>;
     } catch {
       throw new Error("Json parse failed");
     }
@@ -197,9 +199,8 @@ export class ApiMaker {
   ) {
     const url = new URL(BASE_API).addPathComponent("manga");
     if (keyword.length > 0) url.setQueryItem("keyword", keyword);
-    if (genres.length > 0) url.setQueryItem("genres[]", genres);
-    if (themes.length > 0) url.setQueryItem("genres[]", themes);
-    if (formats.length > 0) url.setQueryItem("genres[]", formats);
+    const allGenres = [...genres, ...themes, ...formats];
+    if (allGenres.length > 0) url.setQueryItem("genres[]", allGenres);
     if (types.length > 0) url.setQueryItem("types[]", types);
     if (demographic.length > 0) url.setQueryItem("demographics[]", demographic);
     if (status.length > 0) url.setQueryItem("statuses[]", status);
