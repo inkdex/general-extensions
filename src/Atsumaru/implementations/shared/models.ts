@@ -6,7 +6,7 @@ export interface AtsuHomePageResponse {
 
 export interface AtsuSection {
   key: string;
-  type: string;
+  layout: string;
   title?: string;
   seeMoreHref?: string;
   items?: AtsuMangaItem[];
