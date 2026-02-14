@@ -5,6 +5,7 @@ Paperback extensions for websites with unique, non-generic themes.
 ## Available Extensions
 
 - [Asura Scans](https://asuracomic.net)
+- [Atsumaru](https://atsu.moe)
 - [Comix.To](https://comix.to)
 - [MangaDemon](https://demonicscans.org)
 - [MangaDex](https://mangadex.org)
@@ -16,6 +17,7 @@ Paperback extensions for websites with unique, non-generic themes.
 - [QiScans](https://qiscans.org)
 - [Webtoon](https://webtoons.com)
 - [Weeb Central](https://weebcentral.com)
+- [WeebDex](https://weebdex.org)
 - [Mangapill](https://mangapill.com)
 
 ## Installation
