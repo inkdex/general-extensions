@@ -7,11 +7,7 @@ import {
 } from "@paperback/types";
 import { WEEBDEX_API_DOMAIN } from "../../main";
 import { fetchJSON } from "../../services/network";
-import {
-  getChapterLanguages,
-  getDataSaver,
-  getHideBonusChapters,
-} from "../settings-form/forms/main";
+import { getChapterLanguages, getHideBonusChapters } from "../settings-form/forms/main";
 import type { WeebDexChapter, WeebDexChapterFeedResponse } from "../shared/models";
 import { parseChapterDetails, parseChapterList } from "./parsers";
 
@@ -70,7 +66,6 @@ export class ChapterProvider {
     const request: Request = { url, method: "GET" };
     const json = await fetchJSON<WeebDexChapter>(request);
 
-    const dataSaver = getDataSaver();
-    return parseChapterDetails(json, chapter, dataSaver);
+    return parseChapterDetails(json, chapter);
   }
 }
