@@ -1,5 +1,6 @@
 import type { Chapter, ChapterDetails, SourceManga } from "@paperback/types";
 import { WEEBDEX_API_DOMAIN } from "../../main";
+import { getDataSaver } from "../settings-form/forms/main";
 import type { WeebDexChapter, WeebDexChapterFeedResponse } from "../shared/models";
 
 export function parseChapterList(
@@ -34,15 +35,12 @@ export function parseChapterList(
     });
 }
 
-export function parseChapterDetails(
-  chapter: WeebDexChapter,
-  chapterObj: Chapter,
-  dataSaver: boolean,
-): ChapterDetails {
+export function parseChapterDetails(chapter: WeebDexChapter, chapterObj: Chapter): ChapterDetails {
   const node = chapter.node || WEEBDEX_API_DOMAIN;
   const chapterId = chapter.id;
 
   // data saver prioritizes optimized, full quality prioritizes original
+  const dataSaver = getDataSaver();
   const pageData = dataSaver
     ? chapter.data_optimized || chapter.data || []
     : chapter.data || chapter.data_optimized || [];
