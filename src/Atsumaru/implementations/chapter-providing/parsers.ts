@@ -1,29 +1,28 @@
 import type { Chapter, SourceManga } from "@paperback/types";
 import type { AtsuChaptersResponse } from "../shared/models";
 
-export function parseChapterList(json: AtsuChaptersResponse, sourceManga: SourceManga): Chapter[] {
-  return json.chapters.map((ch) => {
-    // look for chapter/episode
-    const episodeMatch = ch.title.match(/Episode\s+([\d.]+)/i);
-    const chapterMatch = ch.title.match(/Ch(?:apter)?\.?\s+([\d.]+)/i);
-    const chapterNumber = episodeMatch?.[1]
-      ? parseFloat(episodeMatch[1])
-      : chapterMatch?.[1]
-        ? parseFloat(chapterMatch[1])
-        : ch.number;
+export function parseChapterList(
+  json: AtsuChaptersResponse,
+  sourceManga: SourceManga,
+  scanlatorMap: Map<string, string>,
+): Chapter[] {
+  const maxIndex = json.chapters.length - 1;
+  return json.chapters.map((ch, index) => {
+    const groupName = ch.scanlationMangaId
+      ? (scanlatorMap.get(ch.scanlationMangaId) ?? "No Group")
+      : "No Group";
 
-    // look for season number
-    const seasonMatch = ch.title.match(/S(?:eason)?\s*(\d+)/i);
-    const volumeNumber = seasonMatch ? parseInt(seasonMatch[1]) : 0;
+    const title = ch.title.replace(/^((Chapter|Episode|Ch\.?)\s*[\d.]+|#\s*[\d.]+)\s*/i, "").trim();
 
     return {
       chapterId: ch.id,
       sourceManga,
-      title: "",
-      chapNum: chapterNumber,
-      volume: volumeNumber,
+      title,
+      chapNum: ch.number,
+      volume: 0,
       langCode: "en",
-      sortingIndex: ch.index,
+      version: groupName,
+      sortingIndex: maxIndex - index,
       publishDate: new Date(ch.createdAt),
     };
   });

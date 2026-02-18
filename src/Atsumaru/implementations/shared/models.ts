@@ -30,6 +30,7 @@ export interface AtsuMangaPageResponse {
 export interface AtsuMangaDetails {
   id: string;
   authors: Array<{ id: string; name: string }>;
+  scanlators: Array<{ id: string; name: string }>;
   banner: string | null;
   genres: AtsuTag[];
   englishTitle: string;
@@ -43,7 +44,6 @@ export interface AtsuMangaDetails {
   synopsis: string;
   status: string;
   totalChapterCount: number;
-  chapters: AtsuChapter[];
 }
 
 export interface AtsuTag {
@@ -55,9 +55,10 @@ export interface AtsuChapter {
   id: string;
   number: number;
   title: string;
-  createdAt: string;
+  createdAt: number;
   index: number;
   pageCount: number;
+  scanlationMangaId: string | null;
 }
 
 export interface AtsuChaptersResponse {

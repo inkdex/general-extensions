@@ -1,38 +1,43 @@
 import type { Chapter, ChapterDetails, Request, SourceManga } from "@paperback/types";
 import { URL } from "@paperback/types";
 import { ATSUMARU_DOMAIN } from "../../main";
-import { fetchJSON } from "../../services/network";
-import type { AtsuChaptersResponse, AtsuReadChapterResponse } from "../shared/models";
+import { fetchJSON, fetchText } from "../../services/network";
+import type {
+  AtsuChaptersResponse,
+  AtsuMangaPageResponse,
+  AtsuReadChapterResponse,
+} from "../shared/models";
 import { parseChapterList } from "./parsers";
 
 export class ChapterProvider {
   async getChapters(sourceManga: SourceManga): Promise<Chapter[]> {
     const mangaId = sourceManga.mangaId;
-    const allChapters: Chapter[] = [];
-    let currentPage = 0;
-    let totalPages = 1;
 
-    // fetch all pages
-    while (currentPage < totalPages) {
-      const url = new URL(ATSUMARU_DOMAIN)
-        .addPathComponent("api")
-        .addPathComponent("manga")
-        .addPathComponent("chapters")
-        .setQueryItem("id", mangaId)
-        .setQueryItem("filter", "all")
-        .setQueryItem("sort", "desc")
-        .setQueryItem("page", currentPage.toString())
-        .toString();
+    const pageUrl = new URL(ATSUMARU_DOMAIN)
+      .addPathComponent("manga")
+      .addPathComponent(mangaId)
+      .toString();
+    const pageRequest: Request = { url: pageUrl, method: "GET" };
+    const html = await fetchText(pageRequest);
+    const mangaPageMatch = html.match(/window\.mangaPage\s*=\s*({[\s\S]*?});/);
+    const mangaPage = mangaPageMatch
+      ? (JSON.parse(mangaPageMatch[1]) as AtsuMangaPageResponse).mangaPage
+      : null;
+    const scanlatorMap = new Map((mangaPage?.scanlators ?? []).map((s) => [s.id, s.name]));
 
-      const request: Request = { url, method: "GET" };
-      const json = await fetchJSON<AtsuChaptersResponse>(request);
+    const url = new URL(ATSUMARU_DOMAIN)
+      .addPathComponent("api")
+      .addPathComponent("manga")
+      .addPathComponent("allChapters")
+      .setQueryItem("mangaId", mangaId)
+      .toString();
 
-      totalPages = json.pages;
-      allChapters.push(...parseChapterList(json, sourceManga));
-      currentPage++;
-    }
+    const request: Request = { url, method: "GET" };
+    const json = await fetchJSON<AtsuChaptersResponse>(request);
 
-    return allChapters;
+    json.chapters.sort((a, b) => b.number - a.number || b.createdAt - a.createdAt);
+
+    return parseChapterList(json, sourceManga, scanlatorMap);
   }
 
   async getChapterDetails(chapter: Chapter): Promise<ChapterDetails> {
