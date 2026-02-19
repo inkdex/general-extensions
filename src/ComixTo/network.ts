@@ -18,6 +18,7 @@ import type {
 const BASE_API = "https://comix.to/api/v2";
 export class MainInterceptor extends PaperbackInterceptor {
   override async interceptRequest(request: Request): Promise<Request> {
+    request.headers = { ...request.headers, referer: `${BASE_API}/` };
     return request;
   }
 
