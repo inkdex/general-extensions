@@ -19,7 +19,11 @@ import type {
 const BASE_API = "https://comix.to/api/v2";
 export class MainInterceptor extends PaperbackInterceptor {
   override async interceptRequest(request: Request): Promise<Request> {
-    request.headers = { ...request.headers, referer: `${BASE_API}/` };
+    request.headers = {
+      ...request.headers,
+      referer: `${BASE_API}/`,
+      "user-agent": await Application.getDefaultUserAgent(),
+    };
     return request;
   }
 
@@ -28,9 +32,13 @@ export class MainInterceptor extends PaperbackInterceptor {
     response: Response,
     data: ArrayBuffer,
   ): Promise<ArrayBuffer> {
-    void request;
-    void response;
-
+    const cfMitigated = response.headers?.["cf-mitigated"];
+    if (cfMitigated === "challenge") {
+      throw new CloudflareError({
+        url: request.url,
+        method: request.method ?? "GET",
+      });
+    }
     return data;
   }
 }

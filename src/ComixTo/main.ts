@@ -4,6 +4,9 @@ import {
   type Chapter,
   type ChapterDetails,
   type ChapterProviding,
+  type CloudflareBypassRequestProviding,
+  type Cookie,
+  CookieStorageInterceptor,
   type DiscoverSection,
   type DiscoverSectionItem,
   type DiscoverSectionProviding,
@@ -29,7 +32,8 @@ type ComixToImplementation = SettingsFormProviding &
   DiscoverSectionProviding &
   SearchResultsProviding &
   MangaProviding &
-  ChapterProviding;
+  ChapterProviding &
+  CloudflareBypassRequestProviding;
 export const parse = new JsonParser();
 export const filter = new globalFilters();
 export class ComiToExtension implements ComixToImplementation {
@@ -39,12 +43,21 @@ export class ComiToExtension implements ComixToImplementation {
   }
 
   mainInterceptor = new MainInterceptor("main");
-
+  cookieStorageInterceptor = new CookieStorageInterceptor({
+    storage: "stateManager",
+  });
   async initialise(): Promise<void> {
     mainRateLimiter.registerInterceptor();
+    this.cookieStorageInterceptor.registerInterceptor();
     this.mainInterceptor.registerInterceptor();
   }
-
+  async saveCloudflareBypassCookies(cookies: Cookie[]): Promise<void> {
+    for (const cookie of cookies) {
+      if (cookie.name == "cf_clearance") {
+        this.cookieStorageInterceptor.setCookie(cookie);
+      }
+    }
+  }
   async getDiscoverSections(): Promise<DiscoverSection[]> {
     const sections: DiscoverSection[] = [];
     const get_popular: DiscoverSection = {
