@@ -57,7 +57,9 @@ export class ChapterProvider {
 
     const pages = json.readChapter.pages
       .sort((a, b) => a.number - b.number)
-      .map((page) => `${ATSUMARU_DOMAIN}${page.image}`);
+      .map((page) =>
+        page.image.startsWith("http") ? page.image : `${ATSUMARU_DOMAIN}${page.image}`,
+      );
 
     return {
       id: chapterId,
