@@ -4,7 +4,7 @@ import { ContentRating, SourceIntents } from "@paperback/types";
 export default {
   name: "Atsumaru",
   description: "Extension that pulls content from atsu.moe.",
-  version: "1.0.0-alpha.6",
+  version: "1.0.0-alpha.7",
   icon: "icon.png",
   language: "en",
   contentRating: ContentRating.EVERYONE,
