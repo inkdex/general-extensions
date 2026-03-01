@@ -28,6 +28,9 @@ export class MgekoInterceptor extends PaperbackInterceptor {
       throw new CloudflareError({
         url: `${DOMAIN}/`,
         method: request.method ?? "GET",
+        headers: {
+          "user-agent": await Application.getDefaultUserAgent(),
+        },
       });
     }
 

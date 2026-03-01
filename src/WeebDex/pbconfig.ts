@@ -3,7 +3,7 @@ import { ContentRating, SourceIntents, type ExtensionInfo } from "@paperback/typ
 export default {
   name: "WeebDex",
   description: "Extension that pulls content from weebdex.org.",
-  version: "1.0.0-alpha.3",
+  version: "1.0.0-alpha.4",
   icon: "icon.png",
   language: "en",
   contentRating: ContentRating.MATURE,
