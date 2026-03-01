@@ -8,12 +8,14 @@ import { DOMAIN } from "./models";
 
 export class MgekoInterceptor extends PaperbackInterceptor {
   async interceptRequest(request: Request): Promise<Request> {
-    request.headers = {
-      ...request.headers,
-      referer: `${DOMAIN}/`,
-      "user-agent": await Application.getDefaultUserAgent(),
+    return {
+      ...request,
+      headers: {
+        ...request.headers,
+        referer: `${DOMAIN}/`,
+        "user-agent": await Application.getDefaultUserAgent(),
+      },
     };
-    return request;
   }
 
   override async interceptResponse(
@@ -24,7 +26,7 @@ export class MgekoInterceptor extends PaperbackInterceptor {
     const cfMitigated = response.headers?.["cf-mitigated"];
     if (cfMitigated === "challenge") {
       throw new CloudflareError({
-        url: request.url,
+        url: `${DOMAIN}/`,
         method: request.method ?? "GET",
       });
     }
