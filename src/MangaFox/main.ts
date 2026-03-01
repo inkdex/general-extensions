@@ -6,13 +6,14 @@
 
 import {
   BasicRateLimiter,
-  CloudflareError,
   ContentRating,
+  CookieStorageInterceptor,
   DiscoverSectionType,
-  PaperbackInterceptor,
   type Chapter,
   type ChapterDetails,
   type ChapterProviding,
+  type CloudflareBypassRequestProviding,
+  type Cookie,
   type DiscoverSection,
   type DiscoverSectionItem,
   type DiscoverSectionProviding,
@@ -20,7 +21,6 @@ import {
   type MangaProviding,
   type PagedResults,
   type Request,
-  type Response,
   type SearchFilter,
   type SearchQuery,
   type SearchResultItem,
@@ -35,6 +35,7 @@ import { type CheerioAPI } from "cheerio";
 import { URLBuilder } from "../utils/url-builder/base";
 import { genreOptions } from "./genreOptions";
 import { genres } from "./genres";
+import { MangaFoxInterceptor } from "./network";
 
 const DOMAIN_NAME = "https://fanfox.net";
 
@@ -45,30 +46,8 @@ type MangaFoxImplementation = Extension &
   DiscoverSectionProviding &
   SearchResultsProviding &
   MangaProviding &
-  ChapterProviding;
-
-// Intercepts all the requests and responses and allows you to make changes to them
-class MainInterceptor extends PaperbackInterceptor {
-  override async interceptRequest(request: Request): Promise<Request> {
-    request.headers = {
-      ...request.headers,
-      referer: `${DOMAIN_NAME}/`,
-      "user-agent": await Application.getDefaultUserAgent(),
-    };
-
-    request.cookies = { name: "isAdult", value: "1", domain: "fanfox.net" };
-
-    return request;
-  }
-
-  override async interceptResponse(
-    request: Request,
-    response: Response,
-    data: ArrayBuffer,
-  ): Promise<ArrayBuffer> {
-    return data;
-  }
-}
+  ChapterProviding &
+  CloudflareBypassRequestProviding;
 
 // Main extension class
 export class MangaFoxExtension implements MangaFoxImplementation {
@@ -80,12 +59,17 @@ export class MangaFoxExtension implements MangaFoxImplementation {
   });
 
   // Implementation of the main interceptor
-  mainInterceptor = new MainInterceptor("main");
+  mainInterceptor = new MangaFoxInterceptor("main");
+
+  cookieStorageInterceptor = new CookieStorageInterceptor({
+    storage: "stateManager",
+  });
 
   // Method from the Extension interface which we implement, initializes the rate limiter, interceptor, discover sections and search filters
   async initialise(): Promise<void> {
     this.mainRateLimiter.registerInterceptor();
     this.mainInterceptor.registerInterceptor();
+    this.cookieStorageInterceptor.registerInterceptor();
   }
 
   async getDiscoverSections(): Promise<DiscoverSection[]> {
@@ -132,6 +116,18 @@ export class MangaFoxExtension implements MangaFoxImplementation {
         return this.getGenresSectionItems();
       default:
         return { items: [] };
+    }
+  }
+
+  async saveCloudflareBypassCookies(cookies: Cookie[]): Promise<void> {
+    for (const cookie of cookies) {
+      if (
+        cookie.name.startsWith("cf") ||
+        cookie.name.startsWith("_cf") ||
+        cookie.name.startsWith("__cf")
+      ) {
+        this.cookieStorageInterceptor.setCookie(cookie);
+      }
     }
   }
 
@@ -831,15 +827,8 @@ export class MangaFoxExtension implements MangaFoxImplementation {
   }
 
   async fetchCheerio(request: Request): Promise<CheerioAPI> {
-    const [response, data] = await Application.scheduleRequest(request);
-    this.checkCloudflareStatus(response.status);
+    const [_, data] = await Application.scheduleRequest(request);
     return cheerio.load(Application.arrayBufferToUTF8String(data));
-  }
-
-  checkCloudflareStatus(status: number): void {
-    if (status === 503 || status === 403) {
-      throw new CloudflareError({ url: DOMAIN_NAME, method: "GET" });
-    }
   }
 }
 
