@@ -4,9 +4,14 @@ import { QISCANS_DOMAIN } from "../main";
 
 export class QiScansInterceptor extends PaperbackInterceptor {
   async interceptRequest(request: Request): Promise<Request> {
-    request.headers = request.headers ?? {};
-    request.headers.referer = `${QISCANS_DOMAIN}/`;
-    return request;
+    return {
+      ...request,
+      headers: {
+        ...request.headers,
+        referrer: `${QISCANS_DOMAIN}/`,
+        "user-agent": await Application.getDefaultUserAgent(),
+      },
+    };
   }
 
   override async interceptResponse(

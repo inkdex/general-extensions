@@ -4,9 +4,14 @@ import { ATSUMARU_DOMAIN } from "../main";
 
 export class AtsuInterceptor extends PaperbackInterceptor {
   async interceptRequest(request: Request): Promise<Request> {
-    request.headers = request.headers ?? {};
-    request.headers.referer = `${ATSUMARU_DOMAIN}/`;
-    return request;
+    return {
+      ...request,
+      headers: {
+        ...request.headers,
+        referrer: `${ATSUMARU_DOMAIN}/`,
+        "user-agent": await Application.getDefaultUserAgent(),
+      },
+    };
   }
 
   override async interceptResponse(
