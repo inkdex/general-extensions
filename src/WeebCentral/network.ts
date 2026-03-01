@@ -9,12 +9,14 @@ import { WC_DOMAIN } from "./models";
 
 export class WeebCentralInterceptor extends PaperbackInterceptor {
   override async interceptRequest(request: Request): Promise<Request> {
-    request.headers = {
-      ...request.headers,
-      referer: `${WC_DOMAIN}/`,
-      "user-agent": await Application.getDefaultUserAgent(),
+    return {
+      ...request,
+      headers: {
+        ...request.headers,
+        referrer: `${WC_DOMAIN}/`,
+        "user-agent": await Application.getDefaultUserAgent(),
+      },
     };
-    return request;
   }
 
   override async interceptResponse(

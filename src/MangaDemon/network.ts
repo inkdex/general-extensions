@@ -8,7 +8,14 @@ import { DOMAIN } from "./models";
 
 export class MangaDemonInterceptor extends PaperbackInterceptor {
   async interceptRequest(request: Request): Promise<Request> {
-    return { ...request, headers: { ...request.headers, referrer: `${DOMAIN}/` } };
+    return {
+      ...request,
+      headers: {
+        ...request.headers,
+        referrer: `${DOMAIN}/`,
+        "user-agent": await Application.getDefaultUserAgent(),
+      },
+    };
   }
 
   override async interceptResponse(

@@ -8,9 +8,14 @@ import { WEEBDEX_DOMAIN } from "../main";
 
 export class WeebInterceptor extends PaperbackInterceptor {
   async interceptRequest(request: Request): Promise<Request> {
-    request.headers = request.headers ?? {};
-    request.headers.referer = `${WEEBDEX_DOMAIN}/`;
-    return request;
+    return {
+      ...request,
+      headers: {
+        ...request.headers,
+        referrer: `${WEEBDEX_DOMAIN}/`,
+        "user-agent": await Application.getDefaultUserAgent(),
+      },
+    };
   }
 
   override async interceptResponse(
