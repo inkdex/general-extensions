@@ -20,7 +20,7 @@
     "@paperback/toolchain": "^1.0.0-alpha.57",
     "@paperback/types": "^1.0.0-alpha.57",
     "@types/upng-js": "^2.1.5",
-    "cheerio": "^1.2.0",
+    "cheerio": "1.1.2",
     "fastest-levenshtein": "^1.0.16",
     "husky": "^9.1.7",
     "jpeg-js": "^0.4.4",
