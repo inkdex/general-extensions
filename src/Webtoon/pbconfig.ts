@@ -3,7 +3,7 @@ import { ContentRating, SourceIntents, type SourceInfo } from "@paperback/types"
 export default {
   name: "Webtoon",
   description: `Extension that pulls content from webtoons.com`,
-  version: "1.0.0-alpha.9",
+  version: "1.0.0-alpha.10",
   icon: "icon.png",
   languages: "multi",
   contentRating: ContentRating.MATURE,
