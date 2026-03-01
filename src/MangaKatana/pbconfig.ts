@@ -1,16 +1,17 @@
-import { ContentRating, SourceIntents, type SourceInfo } from "@paperback/types";
+import { ContentRating, SourceIntents, type ExtensionInfo } from "@paperback/types";
 
 export default {
   name: "MangaKatana",
   description: "Extension that pulls content from mangakatana.com.",
-  version: "1.0.0-alpha.5",
+  version: "1.0.0-alpha.6",
   icon: "icon.png",
   language: "en",
   contentRating: ContentRating.MATURE,
   capabilities: [
-    SourceIntents.DISCOVER_SECIONS,
-    SourceIntents.MANGA_SEARCH,
-    SourceIntents.MANGA_CHAPTERS,
+    SourceIntents.DISCOVER_SECIONS_PROVIDING,
+    SourceIntents.SEARCH_RESULTS_PROVIDING,
+    SourceIntents.CHAPTER_PROVIDING,
+    SourceIntents.CLOUDFLARE_BYPASS_PROVIDING,
   ],
   badges: [],
   developers: [
@@ -18,4 +19,4 @@ export default {
       name: "Egwau",
     },
   ],
-} satisfies SourceInfo;
+} satisfies ExtensionInfo;
