@@ -565,7 +565,7 @@ export class MangaFireExtension implements MangaFireImplementation {
       try {
         // Find chapterId mapping first
         const [readResponse, readBuffer] = await Application.scheduleRequest(readRequest);
-        this.checkCloudflareStatus(readResponse.status);
+        await this.checkCloudflareStatus(readResponse.status);
         const readJson = JSON.parse(Application.arrayBufferToUTF8String(readBuffer)) as Result;
         const readHtml =
           typeof readJson?.result === "string" ? readJson.result : readJson?.result?.html || "";
@@ -597,7 +597,7 @@ export class MangaFireExtension implements MangaFireImplementation {
         };
 
         const [mangaResponse, mangaBuffer] = await Application.scheduleRequest(mangaRequest);
-        this.checkCloudflareStatus(mangaResponse.status);
+        await this.checkCloudflareStatus(mangaResponse.status);
 
         const mangaJson = JSON.parse(Application.arrayBufferToUTF8String(mangaBuffer)) as Result;
 
@@ -901,15 +901,21 @@ export class MangaFireExtension implements MangaFireImplementation {
     };
   }
 
-  checkCloudflareStatus(status: number): void {
+  async checkCloudflareStatus(status: number): Promise<void> {
     if (status == 503 || status == 403) {
-      throw new CloudflareError({ url: baseUrl, method: "GET" });
+      throw new CloudflareError({
+        url: baseUrl,
+        method: "GET",
+        headers: {
+          "user-agent": await Application.getDefaultUserAgent(),
+        },
+      });
     }
   }
 
   async fetchCheerio(request: Request): Promise<cheerio.CheerioAPI> {
     const [response, data] = await Application.scheduleRequest(request);
-    this.checkCloudflareStatus(response.status);
+    await this.checkCloudflareStatus(response.status);
     return cheerio.load(Application.arrayBufferToUTF8String(data), {
       xml: {
         xmlMode: false,
