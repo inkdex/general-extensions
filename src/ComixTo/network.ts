@@ -23,7 +23,7 @@ export class MainInterceptor extends PaperbackInterceptor {
       ...request,
       headers: {
         ...request.headers,
-        referrer: `${BASE_API}/`,
+        referer: `${BASE_API}/`,
         "user-agent": await Application.getDefaultUserAgent(),
       },
     };
@@ -39,6 +39,9 @@ export class MainInterceptor extends PaperbackInterceptor {
       throw new CloudflareError({
         url: request.url,
         method: request.method ?? "GET",
+        headers: {
+          "user-agent": await Application.getDefaultUserAgent(),
+        },
       });
     }
     return data;
