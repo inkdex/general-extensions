@@ -8,7 +8,7 @@ export class AtsuInterceptor extends PaperbackInterceptor {
       ...request,
       headers: {
         ...request.headers,
-        referrer: `${ATSUMARU_DOMAIN}/`,
+        referer: `${ATSUMARU_DOMAIN}/`,
         "user-agent": await Application.getDefaultUserAgent(),
       },
     };

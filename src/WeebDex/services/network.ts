@@ -12,7 +12,7 @@ export class WeebInterceptor extends PaperbackInterceptor {
       ...request,
       headers: {
         ...request.headers,
-        referrer: `${WEEBDEX_DOMAIN}/`,
+        referer: `${WEEBDEX_DOMAIN}/`,
         "user-agent": await Application.getDefaultUserAgent(),
       },
     };

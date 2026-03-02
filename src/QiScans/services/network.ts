@@ -8,7 +8,7 @@ export class QiScansInterceptor extends PaperbackInterceptor {
       ...request,
       headers: {
         ...request.headers,
-        referrer: `${QISCANS_DOMAIN}/`,
+        referer: `${QISCANS_DOMAIN}/`,
         "user-agent": await Application.getDefaultUserAgent(),
       },
     };
