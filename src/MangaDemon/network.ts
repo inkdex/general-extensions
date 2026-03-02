@@ -12,7 +12,7 @@ export class MangaDemonInterceptor extends PaperbackInterceptor {
       ...request,
       headers: {
         ...request.headers,
-        referrer: `${DOMAIN}/`,
+        referer: `${DOMAIN}/`,
         "user-agent": await Application.getDefaultUserAgent(),
       },
     };
