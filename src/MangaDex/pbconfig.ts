@@ -10,10 +10,10 @@ export default {
   capabilities: [
     SourceIntents.MANAGED_COLLECTION_PROVIDING,
     SourceIntents.CHAPTER_PROVIDING,
-    SourceIntents.DISCOVER_SECIONS_PROVIDING,
-    SourceIntents.SEARCH_RESULTS_PROVIDING,
+    SourceIntents.DISCOVER_SECTION_PROVIDING,
+    SourceIntents.SEARCH_RESULT_PROVIDING,
     SourceIntents.SETTINGS_FORM_PROVIDING,
-    SourceIntents.MANGA_PROGRESS_PROVIDING,
+    SourceIntents.PROGRESS_PROVIDING,
   ],
   badges: [],
   developers: [
