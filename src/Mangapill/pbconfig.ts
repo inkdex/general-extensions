@@ -3,7 +3,7 @@ import { ContentRating, SourceIntents, type SourceInfo } from "@paperback/types"
 export default {
   name: "Mangapill",
   description: "Extension that pulls content from mangapill.com.",
-  version: "1.0.0-alpha.5",
+  version: "1.0.0-alpha.6",
   icon: "icon.png",
   language: "en",
   contentRating: ContentRating.EVERYONE,
