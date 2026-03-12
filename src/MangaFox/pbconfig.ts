@@ -3,7 +3,7 @@ import { ContentRating, SourceIntents, type ExtensionInfo } from "@paperback/typ
 export default {
   name: "MangaFox",
   description: "Extension that pulls content from fanfox.net.",
-  version: "1.0.0-alpha.8",
+  version: "1.0.0-alpha.9",
   icon: "icon.png",
   language: "en",
   contentRating: ContentRating.MATURE,
