@@ -1,4 +1,4 @@
-import { ContentRating, SourceIntents, type SourceInfo } from "@paperback/types";
+import { ContentRating, SourceIntents, type ExtensionInfo } from "@paperback/types";
 
 export default {
   name: "Asura Scans",
@@ -8,10 +8,10 @@ export default {
   language: "en",
   contentRating: ContentRating.EVERYONE,
   capabilities: [
-    SourceIntents.MANGA_CHAPTERS,
-    SourceIntents.DISCOVER_SECIONS,
-    SourceIntents.SETTINGS_UI,
-    SourceIntents.MANGA_SEARCH,
+    SourceIntents.CHAPTER_PROVIDING,
+    SourceIntents.DISCOVER_SECTION_PROVIDING,
+    SourceIntents.SETTINGS_FORM_PROVIDING,
+    SourceIntents.SEARCH_RESULT_PROVIDING,
   ],
   badges: [],
   developers: [
@@ -20,4 +20,4 @@ export default {
       github: "https://github.com/nyzzik",
     },
   ],
-} satisfies SourceInfo;
+} satisfies ExtensionInfo;
