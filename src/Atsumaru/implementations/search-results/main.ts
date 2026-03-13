@@ -9,6 +9,7 @@ import type {
 import { ContentRating, URL } from "@paperback/types";
 import { ATSUMARU_DOMAIN } from "../../main";
 import { fetchJSON } from "../../services/network";
+import { getShowAdult } from "../settings-form/main";
 import type {
   AtsuAvailableFiltersResponse,
   AtsuFilteredViewRequest,
@@ -112,6 +113,7 @@ export class SearchProvider {
       return { items: [], metadata: undefined };
     }
 
+    const showAdult = getShowAdult();
     const url = new URL(ATSUMARU_DOMAIN)
       .addPathComponent("collections")
       .addPathComponent("manga")
@@ -123,10 +125,10 @@ export class SearchProvider {
       .setQueryItem("query_by_weights", "3,2,1")
       .setQueryItem("include_fields", "id,title,englishTitle,poster,type")
       .setQueryItem("num_typos", "4,3,2")
-      .setQueryItem("page", (page + 1).toString())
-      .toString();
+      .setQueryItem("page", (page + 1).toString());
+    if (showAdult) url.setQueryItem("adult", "1");
 
-    const request: Request = { url, method: "GET" };
+    const request: Request = { url: url.toString(), method: "GET" };
     const json = await fetchJSON<AtsuSearchResponse>(request);
 
     const items: SearchResultItem[] = json.hits.map((hit) => ({
@@ -134,7 +136,7 @@ export class SearchProvider {
       title: hit.document.title || hit.document.englishTitle,
       imageUrl: `${ATSUMARU_DOMAIN}${hit.document.poster}`,
       subtitle: hit.document.type,
-      contentRating: ContentRating.EVERYONE,
+      contentRating: showAdult ? ContentRating.ADULT : ContentRating.EVERYONE,
     }));
 
     const hasMore = json.found > (page + 1) * PAGE_SIZE;
@@ -147,6 +149,7 @@ export class SearchProvider {
 
   private async getDefaultBrowseResults(page: number): Promise<PagedResults<SearchResultItem>> {
     const safePage = typeof page === "number" && !isNaN(page) ? page : 0;
+    const showAdult = getShowAdult();
 
     const requestBody: AtsuFilteredViewRequest = {
       filter: {
@@ -159,7 +162,7 @@ export class SearchProvider {
         minChapters: null,
         hideBookmarked: false,
         officialTranslation: false,
-        showAdult: false,
+        showAdult,
         sortBy: "popularity",
       },
       page: safePage,
@@ -185,7 +188,7 @@ export class SearchProvider {
       title: item.title,
       imageUrl: `${ATSUMARU_DOMAIN}/static/${item.image}`,
       subtitle: item.type,
-      contentRating: ContentRating.EVERYONE,
+      contentRating: showAdult ? ContentRating.ADULT : ContentRating.EVERYONE,
     }));
 
     return {
@@ -201,6 +204,7 @@ export class SearchProvider {
   ): Promise<PagedResults<SearchResultItem>> {
     // force page to be a valid number, in case it's a string again
     const safePage = typeof page === "number" && !isNaN(page) ? page : 0;
+    const showAdult = getShowAdult();
 
     const filters = extractSearchFilters(query);
 
@@ -221,7 +225,7 @@ export class SearchProvider {
         minChapters: null,
         hideBookmarked: false,
         officialTranslation: false,
-        showAdult: false,
+        showAdult,
         sortBy: "popularity",
       },
       page: safePage,
@@ -247,7 +251,7 @@ export class SearchProvider {
       title: item.title,
       imageUrl: `${ATSUMARU_DOMAIN}/static/${item.image}`,
       subtitle: item.type,
-      contentRating: ContentRating.EVERYONE,
+      contentRating: showAdult ? ContentRating.ADULT : ContentRating.EVERYONE,
     }));
 
     return {

@@ -4,13 +4,14 @@ import { ChapterProvider } from "./implementations/chapter-providing/main";
 import { DiscoverProvider } from "./implementations/discover-section/main";
 import { MangaProvider } from "./implementations/manga/main";
 import { SearchProvider } from "./implementations/search-results/main";
+import { SettingsFormProvider } from "./implementations/settings-form/main";
 import { applyMixins } from "./implementations/shared/utils";
 import { AtsuInterceptor } from "./services/network";
 
 export const ATSUMARU_DOMAIN = "https://atsu.moe";
 
 export interface AtsumaruImplementation
-  extends SearchProvider, MangaProvider, ChapterProvider, DiscoverProvider {}
+  extends SearchProvider, MangaProvider, ChapterProvider, DiscoverProvider, SettingsFormProvider {}
 
 export class AtsumaruExtension implements Omit<Extension, keyof MangaProviding> {
   cookieStorageInterceptor = new CookieStorageInterceptor({
@@ -46,6 +47,12 @@ export class AtsumaruExtension implements Omit<Extension, keyof MangaProviding> 
   }
 }
 
-applyMixins(AtsumaruExtension, [SearchProvider, MangaProvider, ChapterProvider, DiscoverProvider]);
+applyMixins(AtsumaruExtension, [
+  SearchProvider,
+  MangaProvider,
+  ChapterProvider,
+  DiscoverProvider,
+  SettingsFormProvider,
+]);
 
 export const Atsumaru = new AtsumaruExtension();

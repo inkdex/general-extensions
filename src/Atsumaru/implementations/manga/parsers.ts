@@ -1,6 +1,7 @@
 import type { SourceManga } from "@paperback/types";
 import { ContentRating } from "@paperback/types";
 import { ATSUMARU_DOMAIN } from "../../main";
+import { getShowAdult } from "../settings-form/main";
 import type { AtsuMangaPageResponse } from "../shared/models";
 
 export function parseMangaDetails(html: string, mangaId: string): SourceManga {
@@ -22,7 +23,7 @@ export function parseMangaDetails(html: string, mangaId: string): SourceManga {
       synopsis: manga.synopsis,
       author: manga.authors.length > 0 ? manga.authors.map((a) => a.name).join(", ") : undefined,
       status: manga.status,
-      contentRating: ContentRating.EVERYONE,
+      contentRating: getShowAdult() ? ContentRating.ADULT : ContentRating.EVERYONE,
       tagGroups:
         manga.genres?.length > 0
           ? [
