@@ -1,6 +1,7 @@
 import type { DiscoverSection, DiscoverSectionItem } from "@paperback/types";
-import { DiscoverSectionType } from "@paperback/types";
+import { ContentRating, DiscoverSectionType } from "@paperback/types";
 import { ATSUMARU_DOMAIN } from "../../main";
+import { getShowAdult } from "../settings-form/main";
 import type { AtsuHomePageResponse } from "../shared/models";
 
 export function parseDiscoverSections(json: AtsuHomePageResponse): DiscoverSection[] {
@@ -29,11 +30,13 @@ export function parseDiscoverItems(
     return [];
   }
 
+  const showAdult = getShowAdult();
   return section.items.map((item) => ({
     type: "simpleCarouselItem" as const,
     mangaId: item.id,
     title: item.title,
     imageUrl: `${ATSUMARU_DOMAIN}/static/${item.image}`,
     subtitle: item.type,
+    contentRating: showAdult ? ContentRating.ADULT : ContentRating.EVERYONE,
   }));
 }
