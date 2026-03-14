@@ -1,5 +1,5 @@
 import type { SourceManga } from "@paperback/types";
-import { ATSUMARU_DOMAIN } from "../../main";
+import { DOMAIN } from "../../main";
 import { buildThumbnailUrl, getContentRating, parseMangaPage } from "../shared/utils";
 
 export function parseMangaDetails(html: string, mangaId: string): SourceManga {
@@ -28,7 +28,7 @@ export function parseMangaDetails(html: string, mangaId: string): SourceManga {
               },
             ]
           : [],
-      shareUrl: `${ATSUMARU_DOMAIN}/manga/${mangaId}`,
+      shareUrl: `${DOMAIN}/manga/${mangaId}`,
     },
   };
 }

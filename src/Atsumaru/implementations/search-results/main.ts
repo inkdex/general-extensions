@@ -7,7 +7,7 @@ import type {
   SortingOption,
 } from "@paperback/types";
 import { URL } from "@paperback/types";
-import { ATSUMARU_DOMAIN } from "../../main";
+import { DOMAIN } from "../../main";
 import { fetchJSON } from "../../services/network";
 import { getShowAdult } from "../settings-form/main";
 import type {
@@ -22,7 +22,7 @@ const PAGE_SIZE = 20;
 
 export class SearchProvider {
   async getSearchFilters(): Promise<SearchFilter[]> {
-    const url = new URL(ATSUMARU_DOMAIN)
+    const url = new URL(DOMAIN)
       .addPathComponent("api")
       .addPathComponent("explore")
       .addPathComponent("availableFilters")
@@ -116,7 +116,7 @@ export class SearchProvider {
       page,
     };
 
-    const url = new URL(ATSUMARU_DOMAIN)
+    const url = new URL(DOMAIN)
       .addPathComponent("api")
       .addPathComponent("explore")
       .addPathComponent("filteredView")
