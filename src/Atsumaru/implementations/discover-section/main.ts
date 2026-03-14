@@ -1,6 +1,6 @@
 import type { DiscoverSection, DiscoverSectionItem, PagedResults, Request } from "@paperback/types";
 import { URL } from "@paperback/types";
-import { ATSUMARU_DOMAIN } from "../../main";
+import { DOMAIN } from "../../main";
 import { fetchJSON } from "../../services/network";
 import { getShowAdult } from "../settings-form/main";
 import type { AtsuHomePageResponse, AtsuInfiniteResponse } from "../shared/models";
@@ -10,7 +10,7 @@ import { parseDiscoverItems, parseDiscoverSections } from "./parsers";
 export class DiscoverProvider {
   async getDiscoverSections(): Promise<DiscoverSection[]> {
     const showAdult = getShowAdult();
-    const url = new URL(ATSUMARU_DOMAIN)
+    const url = new URL(DOMAIN)
       .addPathComponent("api")
       .addPathComponent("home")
       .addPathComponent("page");
@@ -30,7 +30,7 @@ export class DiscoverProvider {
 
     // top-rated uses home page, no pagination
     if (section.id === "top-rated") {
-      const url = new URL(ATSUMARU_DOMAIN)
+      const url = new URL(DOMAIN)
         .addPathComponent("api")
         .addPathComponent("home")
         .addPathComponent("page");
@@ -59,7 +59,7 @@ export class DiscoverProvider {
       throw new Error(`Unknown section: ${section.id}`);
     }
 
-    const url = new URL(ATSUMARU_DOMAIN)
+    const url = new URL(DOMAIN)
       .addPathComponent("api")
       .addPathComponent("infinite")
       .addPathComponent(endpoint)

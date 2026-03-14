@@ -1,5 +1,5 @@
 import { ContentRating } from "@paperback/types";
-import { ATSUMARU_DOMAIN } from "../../main";
+import { DOMAIN } from "../../main";
 import { getShowAdult } from "../settings-form/main";
 import type { AtsuMangaPageResponse } from "./models";
 
@@ -16,7 +16,7 @@ export function applyMixins(derivedCtor: any, constructors: any[]) {
 }
 
 export function buildThumbnailUrl(path: string): string {
-  return `${ATSUMARU_DOMAIN}/static/${path}`;
+  return `${DOMAIN}/static/${path}`;
 }
 
 export function getContentRating(): ContentRating {

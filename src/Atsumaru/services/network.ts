@@ -1,6 +1,6 @@
 import type { Request, Response } from "@paperback/types";
 import { CloudflareError, PaperbackInterceptor } from "@paperback/types";
-import { ATSUMARU_DOMAIN } from "../main";
+import { DOMAIN } from "../main";
 
 export class AtsuInterceptor extends PaperbackInterceptor {
   async interceptRequest(request: Request): Promise<Request> {
@@ -8,7 +8,7 @@ export class AtsuInterceptor extends PaperbackInterceptor {
       ...request,
       headers: {
         ...request.headers,
-        referer: `${ATSUMARU_DOMAIN}/`,
+        referer: `${DOMAIN}/`,
         "user-agent": await Application.getDefaultUserAgent(),
       },
     };
