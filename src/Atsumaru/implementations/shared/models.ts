@@ -84,21 +84,6 @@ export interface AtsuPage {
   aspectRatio: number;
 }
 
-export interface AtsuSearchResponse {
-  found: number;
-  hits: AtsuSearchHit[];
-}
-
-export interface AtsuSearchHit {
-  document: {
-    id: string;
-    title: string;
-    englishTitle: string;
-    poster: string;
-    type: string;
-  };
-}
-
 export interface AtsuFilteredViewRequest {
   filter: {
     search: string;
