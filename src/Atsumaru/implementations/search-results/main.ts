@@ -6,7 +6,7 @@ import type {
   SearchResultItem,
   SortingOption,
 } from "@paperback/types";
-import { ContentRating, URL } from "@paperback/types";
+import { URL } from "@paperback/types";
 import { ATSUMARU_DOMAIN } from "../../main";
 import { fetchJSON } from "../../services/network";
 import { getShowAdult } from "../settings-form/main";
@@ -15,6 +15,7 @@ import type {
   AtsuFilteredViewRequest,
   AtsuFilteredViewResponse,
 } from "../shared/models";
+import { buildThumbnailUrl, getContentRating } from "../shared/utils";
 import { extractSearchFilters } from "./parsers";
 
 const PAGE_SIZE = 20;
@@ -133,9 +134,9 @@ export class SearchProvider {
     const items: SearchResultItem[] = json.items.map((item) => ({
       mangaId: item.id,
       title: item.title,
-      imageUrl: `${ATSUMARU_DOMAIN}/static/${item.image}`,
+      imageUrl: buildThumbnailUrl(item.image),
       subtitle: item.type,
-      contentRating: showAdult ? ContentRating.ADULT : ContentRating.EVERYONE,
+      contentRating: getContentRating(),
     }));
 
     return {
