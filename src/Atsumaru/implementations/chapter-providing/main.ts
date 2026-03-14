@@ -2,11 +2,8 @@ import type { Chapter, ChapterDetails, Request, SourceManga } from "@paperback/t
 import { URL } from "@paperback/types";
 import { ATSUMARU_DOMAIN } from "../../main";
 import { fetchJSON, fetchText } from "../../services/network";
-import type {
-  AtsuChaptersResponse,
-  AtsuMangaPageResponse,
-  AtsuReadChapterResponse,
-} from "../shared/models";
+import type { AtsuChaptersResponse, AtsuReadChapterResponse } from "../shared/models";
+import { parseMangaPage } from "../shared/utils";
 import { parseChapterList } from "./parsers";
 
 export class ChapterProvider {
@@ -19,10 +16,7 @@ export class ChapterProvider {
       .toString();
     const pageRequest: Request = { url: pageUrl, method: "GET" };
     const html = await fetchText(pageRequest);
-    const mangaPageMatch = html.match(/window\.mangaPage\s*=\s*({[\s\S]*?});/);
-    const mangaPage = mangaPageMatch
-      ? (JSON.parse(mangaPageMatch[1]) as AtsuMangaPageResponse).mangaPage
-      : null;
+    const mangaPage = parseMangaPage(html);
     const scanlatorMap = new Map((mangaPage?.scanlators ?? []).map((s) => [s.id, s.name]));
 
     const url = new URL(ATSUMARU_DOMAIN)

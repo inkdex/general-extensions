@@ -1,9 +1,10 @@
 import type { DiscoverSection, DiscoverSectionItem, PagedResults, Request } from "@paperback/types";
-import { ContentRating, URL } from "@paperback/types";
+import { URL } from "@paperback/types";
 import { ATSUMARU_DOMAIN } from "../../main";
 import { fetchJSON } from "../../services/network";
 import { getShowAdult } from "../settings-form/main";
 import type { AtsuHomePageResponse, AtsuInfiniteResponse } from "../shared/models";
+import { buildThumbnailUrl, getContentRating } from "../shared/utils";
 import { parseDiscoverItems, parseDiscoverSections } from "./parsers";
 
 export class DiscoverProvider {
@@ -73,9 +74,9 @@ export class DiscoverProvider {
       type: "simpleCarouselItem" as const,
       mangaId: item.id,
       title: item.title,
-      imageUrl: `${ATSUMARU_DOMAIN}/static/${item.image}`,
+      imageUrl: buildThumbnailUrl(item.image),
       subtitle: item.type,
-      contentRating: showAdult ? ContentRating.ADULT : ContentRating.EVERYONE,
+      contentRating: getContentRating(),
     }));
 
     return {
