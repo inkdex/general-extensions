@@ -13,6 +13,7 @@ Paperback extensions for websites with unique, non-generic themes.
 - [MangaFox](https://fanfox.net)
 - [MangaKatana](https://mangakatana.com)
 - [Manga Plus](https://mangaplus.shueisha.co.jp)
+- [MangaTaro](https://mangataro.org)
 - [Mgeko](https://mgeko.cc)
 - [QiScans](https://qiscans.org)
 - [Webtoon](https://webtoons.com)
