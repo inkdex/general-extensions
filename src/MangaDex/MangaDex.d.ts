@@ -433,4 +433,24 @@ declare namespace MangaDex {
     updatedAt: string;
     version: number;
   }
+
+  interface LegacyMappingItem {
+    id: string;
+    type: string;
+    attributes: {
+      type: string;
+      legacyId: number;
+      newId: string;
+    };
+    relationships: [];
+  }
+
+  interface LegacyMappingResponse {
+    result: string;
+    response: string;
+    data: LegacyMappingItem[];
+    limit: number;
+    offset: number;
+    total: number;
+  }
 }

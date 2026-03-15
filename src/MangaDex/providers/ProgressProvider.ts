@@ -15,7 +15,7 @@ import {
   getTrackingContentRatings,
   getTrackingEnabled,
 } from "../MangaDexSettings";
-import { fetchJSON, MANGADEX_API } from "../utils/CommonUtil";
+import { fetchJSON, isLegacyId, MANGADEX_API, resolveLegacyId } from "../utils/CommonUtil";
 import { ChapterProvider } from "./ChapterProvider";
 
 /**
@@ -36,9 +36,21 @@ export class ProgressProvider {
       throw new Error("You need to be logged in to manage manga progress");
     }
 
+    let apiManga = sourceManga;
+    if (isLegacyId(sourceManga.mangaId)) {
+      const resolvedId = await resolveLegacyId(sourceManga.mangaId);
+      if (resolvedId) {
+        apiManga = { ...sourceManga, mangaId: resolvedId };
+      } else {
+        throw new Error(
+          "This manga uses a legacy ID that could not be resolved. Please remove it and re-add it by searching.",
+        );
+      }
+    }
+
     const statusUrl = new URL(MANGADEX_API)
       .addPathComponent("manga")
-      .addPathComponent(sourceManga.mangaId)
+      .addPathComponent(apiManga.mangaId)
       .addPathComponent("status")
       .toString();
 
@@ -66,7 +78,7 @@ export class ProgressProvider {
       try {
         const ratingUrl = new URL(MANGADEX_API)
           .addPathComponent("rating")
-          .setQueryItem("manga[]", [sourceManga.mangaId])
+          .setQueryItem("manga[]", [apiManga.mangaId])
           .toString();
 
         const ratingResponse = await fetchJSON<MangaDex.MangaRatingResponse>({
@@ -75,7 +87,7 @@ export class ProgressProvider {
         });
 
         if (ratingResponse.result === "ok" && ratingResponse.ratings) {
-          const userRating = ratingResponse.ratings[sourceManga.mangaId];
+          const userRating = ratingResponse.ratings[apiManga.mangaId];
           if (userRating) {
             currentRating = userRating.rating;
           }
@@ -87,7 +99,7 @@ export class ProgressProvider {
       if (chapterPreloadingEnabled) {
         const readUrl = new URL(MANGADEX_API)
           .addPathComponent("manga")
-          .addPathComponent(sourceManga.mangaId)
+          .addPathComponent(apiManga.mangaId)
           .addPathComponent("read")
           .toString();
 
@@ -107,14 +119,14 @@ export class ProgressProvider {
 
     if (chapterPreloadingEnabled) {
       try {
-        chapters = await this.chapterProvider.getChapters(sourceManga, undefined, true);
+        chapters = await this.chapterProvider.getChapters(apiManga, undefined, true);
       } catch (error) {
         console.log(`Error fetching chapters: ${String(error)}`);
       }
     }
 
     return new MangaProgressForm(
-      sourceManga,
+      apiManga,
       readingStatus,
       readChapterIds,
       chapters,
@@ -136,10 +148,20 @@ export class ProgressProvider {
       return undefined;
     }
 
+    let apiManga = sourceManga;
+    if (isLegacyId(sourceManga.mangaId)) {
+      const resolvedId = await resolveLegacyId(sourceManga.mangaId);
+      if (resolvedId) {
+        apiManga = { ...sourceManga, mangaId: resolvedId };
+      } else {
+        return undefined;
+      }
+    }
+
     try {
       const url = new URL(MANGADEX_API)
         .addPathComponent("manga")
-        .addPathComponent(sourceManga.mangaId)
+        .addPathComponent(apiManga.mangaId)
         .addPathComponent("read")
         .toString();
 
@@ -153,7 +175,7 @@ export class ProgressProvider {
         return undefined;
       }
 
-      const chapters = await this.chapterProvider.getChapters(sourceManga);
+      const chapters = await this.chapterProvider.getChapters(apiManga);
 
       if (chapters.length === 0) {
         return undefined;
@@ -276,12 +298,23 @@ export class ProgressProvider {
 
     for (const mangaGroup of Object.values(chaptersByManga)) {
       try {
+        let apiMangaId = mangaGroup.mangaId;
+        if (isLegacyId(apiMangaId)) {
+          const resolvedId = await resolveLegacyId(apiMangaId);
+          if (resolvedId) {
+            apiMangaId = resolvedId;
+          } else {
+            failedItems.push(...mangaGroup.actions.map((a) => a.id));
+            continue;
+          }
+        }
+
         const chapterIds = mangaGroup.actions.map((a) => a.chapterId);
         const actionIds = mangaGroup.actions.map((a) => a.id);
 
         const statusUrl = new URL(MANGADEX_API)
           .addPathComponent("manga")
-          .addPathComponent(mangaGroup.mangaId)
+          .addPathComponent(apiMangaId)
           .addPathComponent("status")
           .toString();
 

@@ -25,7 +25,7 @@ import {
   getSkipUnreadChapters,
   getUpdateBatchSize,
 } from "../MangaDexSettings";
-import { checkId, fetchJSON, MANGADEX_API } from "../utils/CommonUtil";
+import { fetchJSON, isLegacyId, MANGADEX_API, resolveLegacyId } from "../utils/CommonUtil";
 import { relevanceScore } from "../utils/titleRelevanceScore";
 import { MangaProvider } from "./MangaProvider";
 
@@ -48,7 +48,20 @@ export class ChapterProvider {
     skipMetadataUpdate: boolean = false,
   ): Promise<Chapter[]> {
     const mangaId = sourceManga.mangaId;
-    checkId(mangaId);
+
+    if (isLegacyId(mangaId)) {
+      const resolvedId = await resolveLegacyId(mangaId);
+      if (resolvedId) {
+        console.log(`getChapters: resolved legacy ID "${mangaId}" to "${resolvedId}"`);
+        sourceManga.mangaId = resolvedId;
+        const chapters = await this.getChapters(sourceManga, sinceDate, skipMetadataUpdate);
+        sourceManga.mangaId = mangaId;
+        return chapters;
+      }
+
+      console.warn(`getChapters: could not resolve legacy ID "${mangaId}"`);
+      return [];
+    }
 
     if (!sourceManga.mangaInfo) {
       sourceManga.mangaInfo = {} as MangaInfo;
@@ -309,7 +322,10 @@ export class ChapterProvider {
     const chapterId = chapter.chapterId;
     const mangaId = chapter.sourceManga.mangaId;
 
-    checkId(chapterId);
+    if (isLegacyId(chapterId)) {
+      console.warn(`getChapterDetails: skipping legacy numeric chapter ID "${chapterId}"`);
+      return { id: chapterId, mangaId, pages: [] };
+    }
 
     const dataSaver = getDataSaver();
     const forcePort = getForcePort443();
@@ -349,7 +365,22 @@ export class ChapterProvider {
     const mangaMap = new Map<string, SourceManga>();
     const mangaIds: string[] = [];
     for (const manga of sourceManga) {
-      checkId(manga.mangaId);
+      if (isLegacyId(manga.mangaId)) {
+        const resolvedId = await resolveLegacyId(manga.mangaId);
+        if (resolvedId) {
+          console.log(
+            `processTitlesForUpdates: resolved legacy ID "${manga.mangaId}" to "${resolvedId}"`,
+          );
+          mangaIds.push(resolvedId);
+          mangaMap.set(resolvedId, manga);
+        } else {
+          console.warn(
+            `processTitlesForUpdates: skipping unresolvable legacy ID "${manga.mangaId}"`,
+          );
+          await updateManager.setNewChapters(manga.mangaId, []);
+        }
+        continue;
+      }
       mangaIds.push(manga.mangaId);
       mangaMap.set(manga.mangaId, manga);
     }
@@ -490,7 +521,8 @@ export class ChapterProvider {
         }
 
         for (const mangaId of skipUpdate) {
-          await updateManager.setNewChapters(mangaId, []);
+          const originalManga = mangaMap.get(mangaId);
+          await updateManager.setNewChapters(originalManga?.mangaId ?? mangaId, []);
         }
       }
     }

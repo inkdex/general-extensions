@@ -7,7 +7,7 @@ import {
 } from "@paperback/types";
 import { parseMangaDetails } from "../MangaDexParser";
 import { getAccessToken } from "../MangaDexSettings";
-import { MANGADEX_API } from "../utils/CommonUtil";
+import { isLegacyId, MANGADEX_API, resolveLegacyId } from "../utils/CommonUtil";
 
 /**
  * Manages MangaDex reading lists and library collections
@@ -41,10 +41,23 @@ export class CollectionProvider {
 
     if (changeset.additions && changeset.additions.length > 0) {
       for (const addition of changeset.additions) {
+        let apiId = addition.mangaId;
+        if (isLegacyId(apiId)) {
+          const resolvedId = await resolveLegacyId(apiId);
+          if (resolvedId) {
+            apiId = resolvedId;
+          } else {
+            console.warn(
+              `commitManagedCollectionChanges: skipping unresolvable legacy ID "${apiId}"`,
+            );
+            continue;
+          }
+        }
+
         await Application.scheduleRequest({
           url: new URL(MANGADEX_API)
             .addPathComponent("manga")
-            .addPathComponent(addition.mangaId)
+            .addPathComponent(apiId)
             .addPathComponent("status")
             .toString(),
           method: "post",
@@ -56,10 +69,23 @@ export class CollectionProvider {
 
     if (changeset.deletions && changeset.deletions.length > 0) {
       for (const deletion of changeset.deletions) {
+        let apiId = deletion.mangaId;
+        if (isLegacyId(apiId)) {
+          const resolvedId = await resolveLegacyId(apiId);
+          if (resolvedId) {
+            apiId = resolvedId;
+          } else {
+            console.warn(
+              `commitManagedCollectionChanges: skipping unresolvable legacy ID "${apiId}"`,
+            );
+            continue;
+          }
+        }
+
         await Application.scheduleRequest({
           url: new URL(MANGADEX_API)
             .addPathComponent("manga")
-            .addPathComponent(deletion.mangaId)
+            .addPathComponent(apiId)
             .addPathComponent("status")
             .toString(),
           method: "post",
