@@ -16,6 +16,7 @@ Paperback extensions for websites with unique, non-generic themes.
 - [MangaTaro](https://mangataro.org)
 - [Mgeko](https://mgeko.cc)
 - [QiScans](https://qiscans.org)
+- [QToon](https://qtoon.com)
 - [Webtoon](https://webtoons.com)
 - [Weeb Central](https://weebcentral.com)
 - [WeebDex](https://weebdex.org)
