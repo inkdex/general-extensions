@@ -24,9 +24,9 @@
     "fastest-levenshtein": "^1.0.16",
     "husky": "^9.1.7",
     "jpeg-js": "^0.4.4",
-    "oxfmt": "^0.40.0",
-    "oxlint": "^1.55.0",
-    "oxlint-tsgolint": "^0.16.0",
+    "oxfmt": "^0.41.0",
+    "oxlint": "^1.56.0",
+    "oxlint-tsgolint": "^0.17.0",
     "stemmer": "^2.0.1",
     "typescript": "^5.9.3",
     "upng-js": "^2.1.0"
