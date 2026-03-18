@@ -43,11 +43,11 @@ export class DiscoverProvider {
           .setQueryItem("period", "today")
           .setQueryItem("limit", "15")
           .toString();
-        const json = await fetchJSON<MangaTaroPopularChaptersResponse>({
+        const data = await fetchJSON<MangaTaroPopularChaptersResponse>({
           url,
           method: "GET",
         } as Request);
-        items = parsePopularChapters(json.chapters);
+        items = parsePopularChapters(data.chapters);
         break;
       }
 
@@ -58,11 +58,11 @@ export class DiscoverProvider {
           .setQueryItem("status", "completed")
           .setQueryItem("limit", "15")
           .toString();
-        const json = await fetchJSON<MangaTaroStatusSliderResponse>({
+        const data = await fetchJSON<MangaTaroStatusSliderResponse>({
           url,
           method: "GET",
         } as Request);
-        items = parseStatusManga(json.manga);
+        items = parseStatusManga(data.manga);
         break;
       }
 
@@ -73,11 +73,11 @@ export class DiscoverProvider {
           .setQueryItem("period", "7d")
           .setQueryItem("limit", "15")
           .toString();
-        const json = await fetchJSON<MangaTaroFollowedMangaResponse>({
+        const data = await fetchJSON<MangaTaroFollowedMangaResponse>({
           url,
           method: "GET",
         } as Request);
-        items = parseFollowedManga(json.manga);
+        items = parseFollowedManga(data.manga);
         break;
       }
 
@@ -88,11 +88,11 @@ export class DiscoverProvider {
           .setQueryItem("period", "month")
           .setQueryItem("limit", "15")
           .toString();
-        const json = await fetchJSON<MangaTaroFollowedMangaResponse>({
+        const data = await fetchJSON<MangaTaroFollowedMangaResponse>({
           url,
           method: "GET",
         } as Request);
-        items = parseFollowedManga(json.manga);
+        items = parseFollowedManga(data.manga);
         break;
       }
 
@@ -105,11 +105,11 @@ export class DiscoverProvider {
           .setQueryItem("period", "week")
           .setQueryItem("number", "15")
           .toString();
-        const json = await fetchJSON<MangaTaroPopularMangaItem[]>({
+        const data = await fetchJSON<MangaTaroPopularMangaItem[]>({
           url,
           method: "GET",
         } as Request);
-        items = parsePopularManga(json);
+        items = parsePopularManga(data);
         break;
       }
 
@@ -122,11 +122,11 @@ export class DiscoverProvider {
           .setQueryItem("type", "all")
           .setQueryItem("number", "15")
           .toString();
-        const json = await fetchJSON<MangaTaroPopularMangaItem[]>({
+        const data = await fetchJSON<MangaTaroPopularMangaItem[]>({
           url,
           method: "GET",
         } as Request);
-        items = parsePopularManga(json);
+        items = parsePopularManga(data);
         break;
       }
 

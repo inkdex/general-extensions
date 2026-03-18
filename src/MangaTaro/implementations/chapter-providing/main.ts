@@ -43,10 +43,10 @@ export class ChapterProvider {
         .toString();
 
       const request: Request = { url, method: "GET" };
-      const json = await fetchJSON<MangaTaroChaptersResponse>(request);
-      allChapters.push(...json.chapters);
+      const data = await fetchJSON<MangaTaroChaptersResponse>(request);
+      allChapters.push(...data.chapters);
 
-      hasMore = json.has_more;
+      hasMore = data.has_more;
       offset += LIMIT;
     }
 
@@ -63,12 +63,12 @@ export class ChapterProvider {
       .toString();
 
     const request: Request = { url, method: "GET" };
-    const json = await fetchJSON<MangaTaroChapterContentResponse>(request);
+    const data = await fetchJSON<MangaTaroChapterContentResponse>(request);
 
     return {
       id: chapterId,
       mangaId: chapter.sourceManga.mangaId,
-      pages: json.images,
+      pages: data.images,
     };
   }
 }
