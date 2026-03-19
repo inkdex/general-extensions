@@ -1,6 +1,6 @@
 import type { Request, SearchFilter, SortingOption } from "@paperback/types";
 import { URL } from "@paperback/types";
-import { DOMAIN } from "../../main";
+import { DOMAIN } from "../shared/models";
 import { fetchJSON } from "../../services/network";
 import type { WPTag } from "../shared/models";
 

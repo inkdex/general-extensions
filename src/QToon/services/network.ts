@@ -1,7 +1,8 @@
 import type { Request, Response } from "@paperback/types";
 import { CloudflareError, PaperbackInterceptor } from "@paperback/types";
-import { DOMAIN, DOMAIN_API, requestToken } from "../main";
+import { DOMAIN, DOMAIN_API } from "../implementations/shared/models";
 import type { QToonEncryptedResponse } from "../implementations/shared/models";
+import { requestToken } from "../main";
 import { getLanguage } from "../implementations/settings-form/main";
 import { decryptResponse } from "../implementations/shared/utils";
 

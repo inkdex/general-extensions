@@ -1,6 +1,7 @@
 import type { Chapter, ChapterDetails, Request, SourceManga } from "@paperback/types";
 import { URL } from "@paperback/types";
-import { DOMAIN_API, requestToken } from "../../main";
+import { DOMAIN_API } from "../shared/models";
+import { requestToken } from "../../main";
 import { fetchEncryptedJSON } from "../../services/network";
 import { decryptImageUrl } from "../shared/utils";
 import type {
