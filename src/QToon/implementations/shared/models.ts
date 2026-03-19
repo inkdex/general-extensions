@@ -1,3 +1,6 @@
+export const DOMAIN = "https://qtoon.com";
+export const DOMAIN_API = "https://api.qtoon.com";
+
 export interface QToonEncryptedResponse {
   code: number;
   ts: number;

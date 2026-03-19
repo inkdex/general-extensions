@@ -7,8 +7,6 @@ import { SearchProvider } from "./implementations/search-results/main";
 import { applyMixins } from "./implementations/shared/utils";
 import { MangaTaroInterceptor } from "./services/network";
 
-export const DOMAIN = "https://mangataro.org";
-
 export interface MangaTaroImplementation
   extends SearchProvider, MangaProvider, ChapterProvider, DiscoverProvider {}
 

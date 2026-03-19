@@ -1,3 +1,5 @@
+export const DOMAIN = "https://mangataro.org";
+
 // years, genres, types, statuses are JSON-stringified arrays, not real arrays
 export interface MangaTaroLoadRequest {
   page: number;

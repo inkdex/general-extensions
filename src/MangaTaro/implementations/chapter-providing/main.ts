@@ -1,6 +1,6 @@
 import type { Chapter, ChapterDetails, Request, SourceManga } from "@paperback/types";
 import { URL } from "@paperback/types";
-import { DOMAIN } from "../../main";
+import { DOMAIN } from "../shared/models";
 import { fetchJSON, fetchText } from "../../services/network";
 import { extractNumericId, generateToken, parseMangaId } from "../shared/utils";
 import type {

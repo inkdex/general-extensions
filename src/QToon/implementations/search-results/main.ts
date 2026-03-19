@@ -7,7 +7,7 @@ import type {
   SortingOption,
 } from "@paperback/types";
 import { URL } from "@paperback/types";
-import { DOMAIN_API } from "../../main";
+import { DOMAIN_API } from "../shared/models";
 import { fetchEncryptedJSON } from "../../services/network";
 import type { FilterEntry, QToonComicsList, SearchMetadata } from "../shared/models";
 import {

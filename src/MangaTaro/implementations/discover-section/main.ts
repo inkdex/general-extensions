@@ -1,6 +1,6 @@
 import type { DiscoverSection, DiscoverSectionItem, PagedResults, Request } from "@paperback/types";
 import { DiscoverSectionType, URL } from "@paperback/types";
-import { DOMAIN } from "../../main";
+import { DOMAIN } from "../shared/models";
 import { fetchJSON } from "../../services/network";
 import type {
   MangaTaroFollowedMangaResponse,

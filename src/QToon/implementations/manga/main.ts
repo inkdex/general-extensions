@@ -1,6 +1,6 @@
 import type { Request, SourceManga } from "@paperback/types";
 import { URL } from "@paperback/types";
-import { DOMAIN_API } from "../../main";
+import { DOMAIN_API } from "../shared/models";
 import { fetchEncryptedJSON } from "../../services/network";
 import type { QToonComicDetailsResponse } from "../shared/models";
 import { parseQToonMangaDetails } from "./parsers";

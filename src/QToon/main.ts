@@ -8,9 +8,6 @@ import { SettingsFormProvider } from "./implementations/settings-form/main";
 import { applyMixins, generateDid } from "./implementations/shared/utils";
 import { QToonInterceptor } from "./services/network";
 
-export const DOMAIN = "https://qtoon.com";
-export const DOMAIN_API = "https://api.qtoon.com";
-
 // random device ID sent as `did` header, also used as the seed for AES decryption
 export const requestToken = generateDid();
 
