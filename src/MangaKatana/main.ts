@@ -3,6 +3,7 @@ import {
   ContentRating,
   CookieStorageInterceptor,
   DiscoverSectionType,
+  URL,
   type Chapter,
   type ChapterDetails,
   type ChapterProviding,
@@ -24,7 +25,6 @@ import {
 } from "@paperback/types";
 import * as cheerio from "cheerio";
 import { type CheerioAPI } from "cheerio";
-import { URLBuilder } from "../utils/url-builder/base";
 import { genreOptions } from "./genreOptions";
 import { genres } from "./genres";
 import { isLastPage, parseSearch, parseTags } from "./MangaKatanaParser";
@@ -128,7 +128,7 @@ export class MangaKatanaExtension implements MangaKatanaImplementation {
   // Populates the hot updates section
   async getHotUpdatesSectionItems(): Promise<PagedResults<DiscoverSectionItem>> {
     const request = {
-      url: new URLBuilder(DOMAIN).build(),
+      url: DOMAIN,
       method: "GET",
     };
     const $ = await this.fetchCheerio(request);
@@ -178,7 +178,7 @@ export class MangaKatanaExtension implements MangaKatanaImplementation {
     const collectedIds = metadata?.collectedIds ?? [];
 
     const request = {
-      url: new URLBuilder(DOMAIN).addPath("page").addPath(page.toString()).build(),
+      url: new URL(DOMAIN).addPathComponent("page").addPathComponent(page.toString()).toString(),
       method: "GET",
     };
     const $ = await this.fetchCheerio(request);
@@ -245,11 +245,11 @@ export class MangaKatanaExtension implements MangaKatanaImplementation {
     const collectedIds = metadata?.collectedIds ?? [];
 
     const request = {
-      url: new URLBuilder(DOMAIN)
-        .addPath("new-manga")
-        .addPath("page")
-        .addPath(page.toString())
-        .build(),
+      url: new URL(DOMAIN)
+        .addPathComponent("new-manga")
+        .addPathComponent("page")
+        .addPathComponent(page.toString())
+        .toString(),
       method: "GET",
     };
 
@@ -373,12 +373,12 @@ export class MangaKatanaExtension implements MangaKatanaImplementation {
     let request;
     if (query.title) {
       request = {
-        url: new URLBuilder(DOMAIN)
-          .addPath("page")
-          .addPath(String(page))
-          .addQuery("search", encodeURIComponent(query.title))
-          .addQuery("search_by", "book_name")
-          .build(),
+        url: new URL(DOMAIN)
+          .addPathComponent("page")
+          .addPathComponent(page.toString())
+          .setQueryItem("search", query.title)
+          .setQueryItem("search_by", "book_name")
+          .toString(),
         method: "GET",
       };
     } else {
@@ -403,16 +403,16 @@ export class MangaKatanaExtension implements MangaKatanaImplementation {
       const includeValue = includedGenreValues.join("_");
 
       request = {
-        url: new URLBuilder(DOMAIN)
-          .addPath("genres")
-          .addPath("page")
-          .addPath(String(page))
-          .addQuery("filter", "1")
-          .addQuery("include", includeValue)
-          .addQuery("include_mode", "and")
-          .addQuery("bookmark_opts", "off")
-          .addQuery("chapters", "1")
-          .build(),
+        url: new URL(DOMAIN)
+          .addPathComponent("genres")
+          .addPathComponent("page")
+          .addPathComponent(page.toString())
+          .setQueryItem("filter", "1")
+          .setQueryItem("include", includeValue)
+          .setQueryItem("include_mode", "and")
+          .setQueryItem("bookmark_opts", "off")
+          .setQueryItem("chapters", "1")
+          .toString(),
         method: "GET",
       };
     }
@@ -445,7 +445,10 @@ export class MangaKatanaExtension implements MangaKatanaImplementation {
   // Populates the chapter list
   async getChapters(sourceManga: SourceManga): Promise<Chapter[]> {
     const request = {
-      url: new URLBuilder(DOMAIN).addPath("manga").addPath(sourceManga.mangaId).build(),
+      url: new URL(DOMAIN)
+        .addPathComponent("manga")
+        .addPathComponent(sourceManga.mangaId)
+        .toString(),
       method: "GET",
     };
     const $ = await this.fetchCheerio(request);
@@ -487,11 +490,11 @@ export class MangaKatanaExtension implements MangaKatanaImplementation {
 
   // Populates a chapter with images
   async getChapterDetails(chapter: Chapter): Promise<ChapterDetails> {
-    const url = new URLBuilder(DOMAIN)
-      .addPath("manga")
-      .addPath(chapter.sourceManga.mangaId)
-      .addPath(chapter.chapterId)
-      .build();
+    const url = new URL(DOMAIN)
+      .addPathComponent("manga")
+      .addPathComponent(chapter.sourceManga.mangaId)
+      .addPathComponent(chapter.chapterId)
+      .toString();
 
     const request = {
       url: url,
@@ -577,7 +580,7 @@ export class MangaKatanaExtension implements MangaKatanaImplementation {
 
   async getMangaDetails(mangaId: string): Promise<SourceManga> {
     const request = {
-      url: new URLBuilder(DOMAIN).addPath("manga").addPath(mangaId).build(),
+      url: new URL(DOMAIN).addPathComponent("manga").addPathComponent(mangaId).toString(),
       method: "GET",
     };
 
