@@ -8,7 +8,6 @@ Paperback extensions for websites with unique, non-generic themes.
 - [Comix.To](https://comix.to)
 - [MangaDemon](https://demonicscans.org)
 - [MangaDex](https://mangadex.org)
-- [MangaFire](https://mangafire.to)
 - [MangaFox](https://fanfox.net)
 - [MangaKatana](https://mangakatana.com)
 - [Manga Plus](https://mangaplus.shueisha.co.jp)
