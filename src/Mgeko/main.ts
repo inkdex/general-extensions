@@ -3,6 +3,7 @@ import {
   CookieStorageInterceptor,
   DiscoverSectionType,
   EndOfPageResults,
+  URL,
   type Chapter,
   type ChapterDetails,
   type ChapterProviding,
@@ -24,7 +25,6 @@ import {
   type TagSection,
 } from "@paperback/types";
 import * as cheerio from "cheerio";
-import { URLBuilder } from "../utils/url-builder/base";
 import { DOMAIN, type BrowseResult, type Metadata } from "./models";
 import {
   parseChapterDetails,
@@ -122,7 +122,7 @@ export class MgekoExtension implements MgekoImplementation {
 
   async getGenreTags(): Promise<TagSection[]> {
     const request: Request = {
-      url: new URLBuilder(DOMAIN).addPath("browse-comics").build(),
+      url: new URL(DOMAIN).addPathComponent("browse-comics").toString(),
       method: "GET",
     };
 
@@ -132,7 +132,7 @@ export class MgekoExtension implements MgekoImplementation {
 
   async getMangaDetails(mangaId: string): Promise<SourceManga> {
     const request: Request = {
-      url: new URLBuilder(DOMAIN).addPath("manga").addPath(mangaId).build(),
+      url: new URL(DOMAIN).addPathComponent("manga").addPathComponent(mangaId).toString(),
       method: "GET",
     };
     const $ = await this.fetchCheerio(request);
@@ -141,11 +141,11 @@ export class MgekoExtension implements MgekoImplementation {
 
   async getChapters(sourceManga: SourceManga): Promise<Chapter[]> {
     const request: Request = {
-      url: new URLBuilder(DOMAIN)
-        .addPath("manga")
-        .addPath(sourceManga.mangaId)
-        .addPath("all-chapters")
-        .build(),
+      url: new URL(DOMAIN)
+        .addPathComponent("manga")
+        .addPathComponent(sourceManga.mangaId)
+        .addPathComponent("all-chapters")
+        .toString(),
       method: "GET",
     };
 
@@ -155,11 +155,11 @@ export class MgekoExtension implements MgekoImplementation {
 
   async getChapterDetails(chapter: Chapter): Promise<ChapterDetails> {
     const request: Request = {
-      url: new URLBuilder(DOMAIN)
-        .addPath("reader")
-        .addPath("en")
-        .addPath(chapter.chapterId)
-        .build(),
+      url: new URL(DOMAIN)
+        .addPathComponent("reader")
+        .addPathComponent("en")
+        .addPathComponent(chapter.chapterId)
+        .toString(),
       method: "GET",
     };
     const $ = await this.fetchCheerio(request);
@@ -211,10 +211,10 @@ export class MgekoExtension implements MgekoImplementation {
     // Regular search
     if (isQuerySearch) {
       const request = {
-        url: new URLBuilder(DOMAIN)
-          .addPath("autocomplete")
-          .addQuery("term", encodeURI(query.title.trim()))
-          .build(),
+        url: new URL(DOMAIN)
+          .addPathComponent("autocomplete")
+          .setQueryItem("term", query.title.trim())
+          .toString(),
         method: "GET",
       };
 
@@ -226,11 +226,11 @@ export class MgekoExtension implements MgekoImplementation {
         items: manga,
       };
     } else {
-      const urlBuilder = new URLBuilder(DOMAIN).addPath("browse-comics").addPath("data");
+      const urlBuilder = new URL(DOMAIN).addPathComponent("browse-comics").addPathComponent("data");
 
-      urlBuilder.addQuery("page", page);
+      urlBuilder.setQueryItem("page", page.toString());
 
-      urlBuilder.addQuery("sort", sortingOption?.id ?? "rating");
+      urlBuilder.setQueryItem("sort", sortingOption?.id ?? "rating");
 
       // Tag/Filter Search
       const getFilterValue = (id: string) =>
@@ -243,17 +243,17 @@ export class MgekoExtension implements MgekoImplementation {
         .map(([key]) => key)
         .join(",");
 
-      urlBuilder.addQuery("genre_included", genreIncluded);
+      urlBuilder.setQueryItem("genre_included", genreIncluded);
 
       const genreExcluded = Object.entries(genres)
         .filter(([, value]) => value === "excluded")
         .map(([key]) => key)
         .join(",");
 
-      urlBuilder.addQuery("genre_excluded", genreExcluded);
+      urlBuilder.setQueryItem("genre_excluded", genreExcluded);
 
       const request = {
-        url: urlBuilder.build(),
+        url: urlBuilder.toString(),
         method: "GET",
       };
 
@@ -284,12 +284,12 @@ export class MgekoExtension implements MgekoImplementation {
     const page: number = metadata?.page ?? 1;
 
     const request: Request = {
-      url: new URLBuilder(DOMAIN)
-        .addPath("browse-comics")
-        .addPath("data")
-        .addQuery("page", page)
-        .addQuery("sort", sort)
-        .build(),
+      url: new URL(DOMAIN)
+        .addPathComponent("browse-comics")
+        .addPathComponent("data")
+        .setQueryItem("page", page.toString())
+        .setQueryItem("sort", sort)
+        .toString(),
       method: "GET",
     };
     const parsedData = await this.fetchApi<BrowseResult>(request);

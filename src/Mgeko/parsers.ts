@@ -1,5 +1,6 @@
 import {
   ContentRating,
+  URL,
   type Chapter,
   type ChapterDetails,
   type DiscoverSectionItem,
@@ -10,7 +11,6 @@ import {
   type TagSection,
 } from "@paperback/types";
 import { type CheerioAPI } from "cheerio";
-import { URLBuilder } from "../utils/url-builder/base";
 
 export const parseMangaDetails = (
   $: CheerioAPI,
@@ -70,7 +70,7 @@ export const parseMangaDetails = (
       status: status,
       author: author,
       tagGroups: tagSections,
-      shareUrl: new URLBuilder(sourceUrl).addPath("manga").addPath(mangaId).build(),
+      shareUrl: new URL(sourceUrl).addPathComponent("manga").addPathComponent(mangaId).toString(),
     } as MangaInfo,
   } as SourceManga;
 };
