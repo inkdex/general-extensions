@@ -1,3 +1,5 @@
+export const DOMAIN = "https://comix.to";
+
 export interface ApiResponse<T> {
   status: number;
   result: T;

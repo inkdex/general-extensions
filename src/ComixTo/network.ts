@@ -7,23 +7,23 @@ import {
   type Response,
 } from "@paperback/types";
 import { filter } from "./main";
-import type {
-  ApiResponse,
-  ResultManga,
-  MangaItem,
-  ResultChapter,
-  ResultFilter,
-  ChapterPages,
+import {
+  type ApiResponse,
+  type ResultManga,
+  type MangaItem,
+  type ResultChapter,
+  type ResultFilter,
+  type ChapterPages,
+  DOMAIN,
 } from "./models";
 
-const BASE_API = "https://comix.to/api/v2";
 export class MainInterceptor extends PaperbackInterceptor {
   override async interceptRequest(request: Request): Promise<Request> {
     return {
       ...request,
       headers: {
         ...request.headers,
-        referer: `${BASE_API}/`,
+        referer: `${DOMAIN}/`,
         "user-agent": await Application.getDefaultUserAgent(),
       },
     };
@@ -37,7 +37,7 @@ export class MainInterceptor extends PaperbackInterceptor {
     const cfMitigated = response.headers?.["cf-mitigated"];
     if (cfMitigated === "challenge") {
       throw new CloudflareError({
-        url: request.url,
+        url: DOMAIN,
         method: request.method ?? "GET",
         headers: {
           "user-agent": await Application.getDefaultUserAgent(),
@@ -56,33 +56,7 @@ export const mainRateLimiter = new BasicRateLimiter("main", {
 
 export class ApiMaker {
   apiLink = "";
-  private checkResponseError(request: Request, response: Response): void {
-    switch (response.status) {
-      case 200:
-        break;
-      case 400:
-        throw new Error("400 – Bad Request: The request was invalid.");
-      case 401:
-        throw new Error("401 – Unauthorized: Authentication is required.");
-      case 404:
-        throw new Error(`404 – Not Found: The resource ${response.url} was not found.`);
-      case 408:
-        throw new Error("408 – Request Timeout: The server took too long to respond.");
-      case 429:
-        throw new Error("429 – Too Many Requests: Rate limit exceeded.");
-      case 500:
-        throw new Error("500 – Internal Server Error: A server error occurred.");
-      case 502:
-        throw new Error("502 – Bad Gateway: Invalid response from upstream server.");
-      case 504:
-        throw new Error("504 – Gateway Timeout: Server response timed out.");
-      case 403:
-      case 503:
-        throw new CloudflareError(request, "Error Code: " + response.status);
-      default:
-        throw new Error(`Unexpected HTTP error: ${response.status}`);
-    }
-  }
+
   private build(section: string, page: number): string {
     const hidden_gen = filter.getHiddenGenresSettings();
     const hidden_them = filter.getHiddenThemesSettings();
@@ -92,7 +66,10 @@ export class ApiMaker {
     const additionalInfo = ["author"];
     switch (section) {
       case "popular": {
-        const url = new URL(BASE_API).addPathComponent("top");
+        const url = new URL(DOMAIN)
+          .addPathComponent("api")
+          .addPathComponent("v2")
+          .addPathComponent("top");
         url.setQueryItem("type", "trending");
         url.setQueryItem("days", limit);
         url.setQueryItem("limit", "15");
@@ -102,7 +79,10 @@ export class ApiMaker {
         return url.toString();
       }
       case "trending_manga": {
-        const url = new URL(BASE_API).addPathComponent("manga");
+        const url = new URL(DOMAIN)
+          .addPathComponent("api")
+          .addPathComponent("v2")
+          .addPathComponent("manga");
         url.setQueryItem("order[views_30d]", "desc");
         url.setQueryItem("types[]", "manga");
         url.setQueryItem("limit", "28");
@@ -113,7 +93,10 @@ export class ApiMaker {
         return url.toString();
       }
       case "trending_wt": {
-        const url = new URL(BASE_API).addPathComponent("manga");
+        const url = new URL(DOMAIN)
+          .addPathComponent("api")
+          .addPathComponent("v2")
+          .addPathComponent("manga");
         url.setQueryItem("order[views_30d]", "desc");
         url.setQueryItem("types[]", ["manhwa", "manhua"]);
         url.setQueryItem("limit", "28");
@@ -124,7 +107,10 @@ export class ApiMaker {
         return url.toString();
       }
       case "follow": {
-        const url = new URL(BASE_API).addPathComponent("top");
+        const url = new URL(DOMAIN)
+          .addPathComponent("api")
+          .addPathComponent("v2")
+          .addPathComponent("top");
         url.setQueryItem("type", "follows");
         url.setQueryItem("days", limit);
         url.setQueryItem("limit", "50");
@@ -134,7 +120,10 @@ export class ApiMaker {
         return url.toString();
       }
       case "recent": {
-        const url = new URL(BASE_API).addPathComponent("manga");
+        const url = new URL(DOMAIN)
+          .addPathComponent("api")
+          .addPathComponent("v2")
+          .addPathComponent("manga");
         url.setQueryItem("order[created_at]", "desc");
         url.setQueryItem("page", page.toString());
         url.setQueryItem("limit", "20");
@@ -144,7 +133,10 @@ export class ApiMaker {
         return url.toString();
       }
       case "completed": {
-        const url = new URL(BASE_API).addPathComponent("manga");
+        const url = new URL(DOMAIN)
+          .addPathComponent("api")
+          .addPathComponent("v2")
+          .addPathComponent("manga");
         url.setQueryItem("statuses[]", "finished");
         url.setQueryItem("order[chapter_updated_at]", "desc");
         url.setQueryItem("page", page.toString());
@@ -154,7 +146,10 @@ export class ApiMaker {
         return url.toString();
       }
       case "updatesHot": {
-        const url = new URL(BASE_API).addPathComponent("manga");
+        const url = new URL(DOMAIN)
+          .addPathComponent("api")
+          .addPathComponent("v2")
+          .addPathComponent("manga");
         url.setQueryItem("order[chapter_updated_at]", "desc");
         url.setQueryItem("page", page.toString());
         url.setQueryItem("limit", "20");
@@ -164,7 +159,10 @@ export class ApiMaker {
         return url.toString();
       }
       case "updatesNew": {
-        const url = new URL(BASE_API).addPathComponent("manga");
+        const url = new URL(DOMAIN)
+          .addPathComponent("api")
+          .addPathComponent("v2")
+          .addPathComponent("manga");
         url.setQueryItem("order[chapter_updated_at]", "desc");
         url.setQueryItem("page", page.toString());
         url.setQueryItem("limit", "20");
@@ -183,8 +181,7 @@ export class ApiMaker {
       url: this.apiLink,
       method: "GET",
     };
-    const [response, data] = await Application.scheduleRequest(request);
-    this.checkResponseError(request, response);
+    const [, data] = await Application.scheduleRequest(request);
     return Application.arrayBufferToUTF8String(data);
   }
 
@@ -199,7 +196,10 @@ export class ApiMaker {
   }
 
   async getJsonMangaInfoApi(mangaId: string) {
-    const url = new URL(BASE_API).addPathComponent("manga");
+    const url = new URL(DOMAIN)
+      .addPathComponent("api")
+      .addPathComponent("v2")
+      .addPathComponent("manga");
     const additionalInfo = ["author", "artist", "genre", "theme", "demographic"];
     url.addPathComponent(mangaId);
     url.setQueryItem("includes[]", additionalInfo);
@@ -213,7 +213,10 @@ export class ApiMaker {
   }
 
   async getJsonChapterApi(chapter: string, page: number) {
-    const url = new URL(BASE_API).addPathComponent("manga");
+    const url = new URL(DOMAIN)
+      .addPathComponent("api")
+      .addPathComponent("v2")
+      .addPathComponent("manga");
     url.addPathComponent(chapter);
     url.addPathComponent("chapters");
     url.setQueryItem("page", page.toString());
@@ -241,7 +244,10 @@ export class ApiMaker {
     sortBy: string,
     orderBy: string,
   ) {
-    const url = new URL(BASE_API).addPathComponent("manga");
+    const url = new URL(DOMAIN)
+      .addPathComponent("api")
+      .addPathComponent("v2")
+      .addPathComponent("manga");
     if (keyword.length > 0) url.setQueryItem("keyword", keyword);
     const allGenres = [...genres, ...themes, ...formats];
     if (allGenres.length > 0) url.setQueryItem("genres[]", allGenres);
@@ -261,7 +267,10 @@ export class ApiMaker {
   }
 
   async getJsonChapPagesApi(chapterId: string) {
-    const url = new URL(BASE_API).addPathComponent("chapters");
+    const url = new URL(DOMAIN)
+      .addPathComponent("api")
+      .addPathComponent("v2")
+      .addPathComponent("chapters");
     url.addPathComponent(chapterId);
     this.apiLink = url.toString();
     const html = await this.getDataFromRequest();
@@ -273,7 +282,10 @@ export class ApiMaker {
   }
 
   async getFiltersApi(filter: string) {
-    const url = new URL(BASE_API).addPathComponent("terms");
+    const url = new URL(DOMAIN)
+      .addPathComponent("api")
+      .addPathComponent("v2")
+      .addPathComponent("terms");
     url.setQueryItem("limit", "100");
     url.setQueryItem("type", filter);
     this.apiLink = url.toString();
