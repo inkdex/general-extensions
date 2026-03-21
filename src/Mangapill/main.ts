@@ -1,6 +1,7 @@
 import {
   BasicRateLimiter,
   DiscoverSectionType,
+  URL,
   type Chapter,
   type ChapterDetails,
   type ChapterProviding,
@@ -19,10 +20,9 @@ import {
   type TagSection,
 } from "@paperback/types";
 import * as cheerio from "cheerio";
-import { URLBuilder } from "../utils/url-builder/array-query-variant";
-import { getFilterTagsBySection, getShareUrl } from "./helpers";
+import { getFilterTagsBySection } from "./helpers";
 import { MangapillInterceptor } from "./interceptors";
-import { MANGA_PILL_DOMAIN } from "./models";
+import { DOMAIN } from "./models";
 import {
   parseChapterDetails,
   parseChapters,
@@ -119,10 +119,6 @@ export class MangapillExtension
     return { items, metadata };
   }
 
-  getMangaShareUrl(mangaId: string): string {
-    return getShareUrl(mangaId);
-  }
-
   async getMangaDetails(mangaId: string): Promise<SourceManga> {
     const [_, buffer] = await fetchMangaDetailsPage(mangaId);
     const $ = cheerio.load(Application.arrayBufferToUTF8String(buffer));
@@ -153,7 +149,7 @@ export class MangapillExtension
   async getSearchTags(): Promise<TagSection[]> {
     try {
       const request = {
-        url: new URLBuilder(MANGA_PILL_DOMAIN).addPath("search").build(),
+        url: new URL(DOMAIN).addPathComponent("search").toString(),
         method: "GET",
       };
 
