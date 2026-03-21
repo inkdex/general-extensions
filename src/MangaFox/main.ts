@@ -9,6 +9,7 @@ import {
   ContentRating,
   CookieStorageInterceptor,
   DiscoverSectionType,
+  URL,
   type Chapter,
   type ChapterDetails,
   type ChapterProviding,
@@ -29,15 +30,12 @@ import {
   type Tag,
   type TagSection,
 } from "@paperback/types";
-// Template content
 import * as cheerio from "cheerio";
 import { type CheerioAPI } from "cheerio";
-import { URLBuilder } from "../utils/url-builder/base";
 import { genreOptions } from "./genreOptions";
 import { genres } from "./genres";
 import { MangaFoxInterceptor } from "./network";
-
-const DOMAIN_NAME = "https://fanfox.net";
+import { DOMAIN } from "./models";
 
 type Metadata = { offset?: number; collectedIds?: string[] };
 
@@ -138,7 +136,7 @@ export class MangaFoxExtension implements MangaFoxImplementation {
     const collectedIds = metadata?.collectedIds ?? [];
 
     const request = {
-      url: new URLBuilder(DOMAIN_NAME).build(),
+      url: DOMAIN,
       method: "GET",
     };
 
@@ -185,16 +183,16 @@ export class MangaFoxExtension implements MangaFoxImplementation {
     const page = (metadata as { page?: number } | undefined)?.page ?? 1;
 
     // Build the URL with proper pagination
-    const urlBuilder = new URLBuilder(DOMAIN_NAME).addPath("directory");
+    const urlBuilder = new URL(DOMAIN).addPathComponent("directory");
 
     if (page > 1) {
-      urlBuilder.addPath(`${page}.html?news`);
+      urlBuilder.addPathComponent(`${page}.html?news`);
     } else {
-      urlBuilder.addPath("?news");
+      urlBuilder.addPathComponent("?news");
     }
 
     const request = {
-      url: urlBuilder.build(),
+      url: urlBuilder.toString(),
       method: "GET",
     };
 
@@ -265,14 +263,14 @@ export class MangaFoxExtension implements MangaFoxImplementation {
     const page = (metadata as { page?: number } | undefined)?.page ?? 1;
 
     // Build the URL with proper pagination
-    const urlBuilder = new URLBuilder(DOMAIN_NAME).addPath("releases");
+    const urlBuilder = new URL(DOMAIN).addPathComponent("releases");
 
     if (page > 1) {
-      urlBuilder.addPath(`${page}.html`);
+      urlBuilder.addPathComponent(`${page}.html`);
     }
 
     const request = {
-      url: urlBuilder.build(),
+      url: urlBuilder.toString(),
       method: "GET",
     };
 
@@ -378,11 +376,11 @@ export class MangaFoxExtension implements MangaFoxImplementation {
   ): Promise<PagedResults<SearchResultItem>> {
     const collectedIds = metadata?.collectedIds ?? [];
     const page = (metadata as { page?: number } | undefined)?.page ?? 1;
-    const urlBuilder = new URLBuilder(DOMAIN_NAME).addPath("search");
+    const urlBuilder = new URL(DOMAIN).addPathComponent("search");
     let fixedUrl = "";
 
     if (page > 1) {
-      urlBuilder.addQuery("page", page.toString());
+      urlBuilder.setQueryItem("page", page.toString());
     }
 
     // Get the filters to access the genre options
@@ -413,7 +411,7 @@ export class MangaFoxExtension implements MangaFoxImplementation {
           const genreOption = typedGenreFilter.options.find((opt) => opt.id === id);
           if (genreOption) {
             // Use the genre's ID directly for the query parameter
-            urlBuilder.addQuery("genres", genreOption.id);
+            urlBuilder.setQueryItem("genres", genreOption.id);
           }
         }
         // Excluded genres not supported in the provided URL examples
@@ -422,12 +420,12 @@ export class MangaFoxExtension implements MangaFoxImplementation {
 
     if (query.title && query.title.trim() !== "") {
       // Don't encode apostrophes as they should remain in the URL
-      urlBuilder.addQuery("title", query.title);
+      urlBuilder.setQueryItem("title", query.title);
 
-      fixedUrl = urlBuilder.build();
+      fixedUrl = urlBuilder.toString();
     } else {
-      urlBuilder.addQuery("title", "");
-      const url = urlBuilder.build();
+      urlBuilder.removeQueryItem("title");
+      const url = urlBuilder.toString();
 
       fixedUrl = url.replace("title=%22%22", "title=");
     }
@@ -497,7 +495,7 @@ export class MangaFoxExtension implements MangaFoxImplementation {
   // Populates the title details
   async getMangaDetails(mangaId: string): Promise<SourceManga> {
     const request = {
-      url: new URLBuilder(DOMAIN_NAME).addPath("manga").addPath(mangaId).build(),
+      url: new URL(DOMAIN).addPathComponent("manga").addPathComponent(mangaId).toString(),
       method: "GET",
     };
 
@@ -589,7 +587,10 @@ export class MangaFoxExtension implements MangaFoxImplementation {
   // Populates the chapter list
   async getChapters(sourceManga: SourceManga): Promise<Chapter[]> {
     const request = {
-      url: new URLBuilder(DOMAIN_NAME).addPath("manga").addPath(sourceManga.mangaId).build(),
+      url: new URL(DOMAIN)
+        .addPathComponent("manga")
+        .addPathComponent(sourceManga.mangaId)
+        .toString(),
       method: "GET",
     };
 
@@ -633,11 +634,11 @@ export class MangaFoxExtension implements MangaFoxImplementation {
     console.log(`Fetching chapter details for ${chapter.chapterId}`);
 
     const request = {
-      url: new URLBuilder(DOMAIN_NAME)
-        .addPath("manga")
-        .addPath(chapter.sourceManga.mangaId)
-        .addPath(chapter.chapterId)
-        .build(),
+      url: new URL(DOMAIN)
+        .addPathComponent("manga")
+        .addPathComponent(chapter.sourceManga.mangaId)
+        .addPathComponent(chapter.chapterId)
+        .toString(),
       method: "GET",
     };
 
