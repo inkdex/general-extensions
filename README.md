@@ -4,7 +4,6 @@ Paperback extensions for websites with unique, non-generic themes.
 
 ## Available Extensions
 
-- [Asura Scans](https://asuracomic.net)
 - [Atsumaru](https://atsu.moe)
 - [Comix.To](https://comix.to)
 - [MangaDemon](https://demonicscans.org)
