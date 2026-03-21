@@ -1,11 +1,11 @@
 import { PaperbackInterceptor, type Request, type Response } from "@paperback/types";
-import { MANGA_PILL_DOMAIN } from "./models";
+import { DOMAIN } from "./models";
 
 export class MangapillInterceptor extends PaperbackInterceptor {
   override async interceptRequest(request: Request): Promise<Request> {
     request.headers = {
       ...request.headers,
-      referer: `${MANGA_PILL_DOMAIN}/`,
+      referer: `${DOMAIN}/`,
     };
     return request;
   }

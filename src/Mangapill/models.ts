@@ -1,3 +1,1 @@
-// Consts
-
-export const MANGA_PILL_DOMAIN = "https://mangapill.com";
+export const DOMAIN = "https://mangapill.com";

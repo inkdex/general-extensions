@@ -1,4 +1,5 @@
 import {
+  URL,
   type Chapter,
   type ChapterDetails,
   type DiscoverSectionItem,
@@ -9,8 +10,9 @@ import {
 } from "@paperback/types";
 import { type CheerioAPI } from "cheerio";
 import { decodeHTML } from "entities";
-import { formatTagId, getShareUrl } from "./helpers";
+import { formatTagId } from "./helpers";
 import pbconfig from "./pbconfig";
+import { DOMAIN } from "./models";
 
 export const parseMangaDetails = async ($: CheerioAPI, mangaId: string): Promise<SourceManga> => {
   const title = decodeHTML($("h1").first().text().trim());
@@ -57,7 +59,7 @@ export const parseMangaDetails = async ($: CheerioAPI, mangaId: string): Promise
       synopsis: description,
       thumbnailUrl: image,
       contentRating: pbconfig.contentRating,
-      shareUrl: getShareUrl(mangaId),
+      shareUrl: new URL(DOMAIN).addPathComponent("series").addPathComponent(mangaId).toString(),
     },
   };
 };

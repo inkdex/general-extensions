@@ -1,5 +1,4 @@
 import { type SearchQuery } from "@paperback/types";
-import { MANGA_PILL_DOMAIN } from "./models";
 
 export function getFilterTagsBySection(section: string, tags: SearchQuery["filters"]): string[] {
   const values = tags.find((x) => x.id === section)?.value;
@@ -17,8 +16,4 @@ export function formatTagId(tagId: string): string {
 
 export function parseTagId(tagId: string): string {
   return tagId.replace("_", " ");
-}
-
-export function getShareUrl(mangaId: string): string {
-  return `${MANGA_PILL_DOMAIN}/series/${mangaId}`;
 }
