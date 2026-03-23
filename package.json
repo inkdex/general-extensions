@@ -26,7 +26,7 @@
     "jpeg-js": "^0.4.4",
     "oxfmt": "^0.41.0",
     "oxlint": "^1.56.0",
-    "oxlint-tsgolint": "^0.17.0",
+    "oxlint-tsgolint": "^0.17.1",
     "stemmer": "^2.0.1",
     "typescript": "^5.9.3",
     "upng-js": "^2.1.0"
