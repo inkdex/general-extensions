@@ -1,6 +1,4 @@
 import {
-  DiscoverSectionType,
-  Form,
   type Chapter,
   type ChapterDetails,
   type ChapterProviding,
@@ -10,7 +8,9 @@ import {
   type DiscoverSection,
   type DiscoverSectionItem,
   type DiscoverSectionProviding,
+  DiscoverSectionType,
   type Extension,
+  Form,
   type MangaProviding,
   type PagedResults,
   type SearchFilter,
@@ -59,7 +59,6 @@ export class ComiToExtension implements ComixToImplementation {
     }
   }
   async getDiscoverSections(): Promise<DiscoverSection[]> {
-    const sections: DiscoverSection[] = [];
     const get_popular: DiscoverSection = {
       id: "popular",
       title: "Popular",
@@ -77,12 +76,12 @@ export class ComiToExtension implements ComixToImplementation {
     };
     const get_trending_manga: DiscoverSection = {
       id: "trending_manga",
-      title: "Trending Manga",
+      title: `Trending Manga of ${filter.getYearSettings()}`,
       type: DiscoverSectionType.simpleCarousel,
     };
     const get_trending_wt: DiscoverSection = {
       id: "trending_wt",
-      title: "Trending WebToons",
+      title: `Trending WebToons of ${filter.getYearSettings()}`,
       type: DiscoverSectionType.simpleCarousel,
     };
     const get_completed: DiscoverSection = {
@@ -100,21 +99,16 @@ export class ComiToExtension implements ComixToImplementation {
       title: "Latest Updates (NEW)",
       type: DiscoverSectionType.chapterUpdates,
     };
-    type Pair<T, K> = [T, K];
-    const names: Pair<string, DiscoverSection>[] = [
-      ["popular", get_popular],
-      ["recent", get_recent],
-      ["follow", get_follow],
-      ["trending_manga", get_trending_manga],
-      ["trending_wt", get_trending_wt],
-      ["completed", get_completed],
-      ["updatesHot", get_updatesHot],
-      ["updatesNew", get_updatesNew],
+    return [
+      get_popular,
+      get_recent,
+      get_follow,
+      get_trending_manga,
+      get_trending_wt,
+      get_completed,
+      get_updatesHot,
+      get_updatesNew,
     ];
-    names.forEach(([_, section]) => {
-      sections.push(section);
-    });
-    return sections;
   }
 
   async getDiscoverSectionItems(

@@ -1,6 +1,16 @@
-import type { SearchFilter } from "@paperback/types";
+import { CloudflareError, type SearchFilter } from "@paperback/types";
 import { parse } from "./main";
-import type { OptionItem } from "./models";
+import { type OptionItem, type TagMap, DOMAIN } from "./models";
+
+export async function throwCloudflareError(): Promise<never> {
+  throw new CloudflareError({
+    url: DOMAIN,
+    method: "GET",
+    headers: {
+      "user-agent": await Application.getDefaultUserAgent(),
+    },
+  });
+}
 
 export class globalFilters {
   genres: OptionItem[] = [];
@@ -74,19 +84,19 @@ export class globalFilters {
       this.genres
         .filter((option) => genresHidden.includes(option.id))
         .map((item) => [item.id, "excluded" as const]),
-    ) as Record<string, "included" | "excluded">;
+    ) as TagMap;
     const themesHidden = this.getHiddenThemesSettings();
     const getExcludedThemesObject = Object.fromEntries(
       this.genres
         .filter((option) => themesHidden.includes(option.id))
         .map((item) => [item.id, "excluded" as const]),
-    ) as Record<string, "included" | "excluded">;
+    ) as TagMap;
     const showOnly = this.getShowOnlySettings();
     const getShowOnlyObject = Object.fromEntries(
       this.contentType
         .filter((option) => showOnly.includes(option.id))
         .map((item) => [item.id, "included" as const]),
-    ) as Record<string, "included" | "excluded">;
+    ) as TagMap;
 
     filters.push({
       type: "multiselect",
@@ -114,7 +124,7 @@ export class globalFilters {
       title: "Formats",
       options: this.formats,
       value: {},
-      allowExclusion: false,
+      allowExclusion: true,
       allowEmptySelection: true,
       maximum: this.formats.length,
     });
@@ -134,7 +144,7 @@ export class globalFilters {
       title: "Types",
       options: this.contentType,
       value: getShowOnlyObject,
-      allowExclusion: false,
+      allowExclusion: true,
       allowEmptySelection: true,
       maximum: this.contentType.length,
     });
@@ -144,7 +154,7 @@ export class globalFilters {
       title: "Demographic",
       options: this.demographic,
       value: {},
-      allowExclusion: false,
+      allowExclusion: true,
       allowEmptySelection: true,
       maximum: this.demographic.length,
     });
@@ -175,6 +185,12 @@ export class globalFilters {
 
   getLimitSettings() {
     return (Application.getState("limit") as string[] | undefined) ?? ["7"];
+  }
+
+  getYearSettings() {
+    return (
+      (Application.getState("year_settings") as number | undefined) ?? new Date().getFullYear() - 1
+    );
   }
 
   async updateFilters(force: boolean) {

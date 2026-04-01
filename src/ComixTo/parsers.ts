@@ -11,7 +11,14 @@ import {
   type Tag,
   type TagSection,
 } from "@paperback/types";
-import type { ChapterItem, Metadata } from "./models";
+import {
+  type ChapterItem,
+  type Metadata,
+  type Filters,
+  type TagMap,
+  DOMAIN,
+  NO_IMAGE,
+} from "./models";
 import { ApiMaker } from "./network";
 
 const api = new ApiMaker();
@@ -30,10 +37,7 @@ export class JsonParser {
                 ? "featuredCarouselItem"
                 : "simpleCarouselItem",
           contentRating: item.is_nsfw ? ContentRating.ADULT : ContentRating.EVERYONE,
-          imageUrl:
-            item.poster.large.length > 0
-              ? item.poster.large
-              : "https://comix.to/images/no-poster.png",
+          imageUrl: item.poster.large.length > 0 ? item.poster.large : NO_IMAGE,
           mangaId: item.hash_id,
           title: item.title,
           subtitle: item.author?.map((author) => author.title).join(" ") ?? "",
@@ -54,10 +58,7 @@ export class JsonParser {
       json.result.items.forEach((item) => {
         latest.push({
           contentRating: item.is_nsfw ? ContentRating.ADULT : ContentRating.EVERYONE,
-          imageUrl:
-            item.poster.large.length > 0
-              ? item.poster.large
-              : "https://comix.to/images/no-poster.png",
+          imageUrl: item.poster.large.length > 0 ? item.poster.large : NO_IMAGE,
           chapterId: item.hash_id,
           mangaId: item.hash_id,
           subtitle: "Chapter " + item.latest_chapter.toString(),
@@ -121,18 +122,13 @@ export class JsonParser {
   async parseMangaDetails(mangaId: string): Promise<SourceManga> {
     const info = await api.getJsonMangaInfoApi(mangaId);
     const manga = info.result;
-    const demographicArray: Tag[] = manga.demographic.map((demographic) => ({
-      id: demographic.term_id.toString(),
-      title: demographic.title,
-    }));
-    const genreArray: Tag[] = manga.genre.map((genre) => ({
-      id: genre.term_id.toString(),
-      title: genre.title,
-    }));
-    const themeArray: Tag[] = manga.theme.map((theme) => ({
-      id: theme.term_id.toString(),
-      title: theme.title,
-    }));
+    const toTag = (item: { term_id: number; title: string }): Tag => ({
+      id: item.term_id.toString(),
+      title: item.title,
+    });
+    const demographicArray: Tag[] = manga.demographic.map(toTag);
+    const genreArray: Tag[] = manga.genre.map(toTag);
+    const themeArray: Tag[] = manga.theme.map(toTag);
 
     const tags: TagSection[] = [
       {
@@ -152,24 +148,18 @@ export class JsonParser {
       },
     ];
     const mangaInfo = {
-      thumbnailUrl:
-        manga.poster.large.length > 0
-          ? manga.poster.large
-          : "https://comix.to/images/no-poster.png",
+      thumbnailUrl: manga.poster.large.length > 0 ? manga.poster.large : NO_IMAGE,
       synopsis: manga.synopsis,
       primaryTitle: manga.title,
       secondaryTitles: manga.alt_titles,
       contentRating: manga.is_nsfw ? ContentRating.ADULT : ContentRating.EVERYONE,
       status: manga.status,
-      bannerUrl:
-        manga.poster.medium.length > 0
-          ? manga.poster.medium
-          : "https://comix.to/images/no-poster.png",
+      bannerUrl: manga.poster.medium.length > 0 ? manga.poster.medium : NO_IMAGE,
       artist: manga.artist?.map((artist) => artist.title).join(" ") ?? "",
       author: manga.author?.map((author) => author.title).join(" ") ?? "",
       rating: manga.rated_avg / 10,
       tagGroups: tags,
-      shareUrl: `https://comix.to/title/${manga.hash_id}`,
+      shareUrl: `${DOMAIN}/title/${manga.hash_id}`,
     };
     return { mangaId: mangaId, mangaInfo: mangaInfo };
   }
@@ -179,67 +169,39 @@ export class JsonParser {
     metadata: Metadata | undefined,
     sortingOption: SortingOption,
   ): Promise<PagedResults<SearchResultItem>> {
+    function mapTags(filter: string | TagMap) {
+      if (!filter || typeof filter !== "object") return [];
+      return Object.entries(filter).flatMap(([key, value]) => {
+        if (value === "included") return [key];
+        if (value === "excluded") return ["-" + key];
+        return [];
+      });
+    }
+    function buildFilter(type: Filters["type"], ...sources: (string | TagMap)[]): Filters[] {
+      const values = sources.flatMap(mapTags);
+      return values.length ? [{ type, filters: values }] : [];
+    }
     const page = metadata?.page ?? 1;
-
     const getFilterValue = (id: string) => query.filters.find((filter) => filter.id == id)?.value;
-    const genres: string | Record<string, "included" | "excluded"> = getFilterValue("genres") ?? "";
-    const themes: string | Record<string, "included" | "excluded"> = getFilterValue("themes") ?? "";
-    const types: string | Record<string, "included" | "excluded"> = getFilterValue("types") ?? "";
-    const demographic: string | Record<string, "included" | "excluded"> =
-      getFilterValue("demographic") ?? "";
-    const status: string | Record<string, "included" | "excluded"> = getFilterValue("status") ?? "";
-    const mode: string | Record<string, "included" | "excluded"> =
-      getFilterValue("filter_mode") ?? "";
-    const formats: string | Record<string, "included" | "excluded"> =
-      getFilterValue("formats") ?? "";
-    const genresFilter: string[] = [];
-    const themesFilter: string[] = [];
-    const typeFilter: string[] = [];
-    const demographicFilter: string[] = [];
-    const statusFilter: string[] = [];
-    const formatsFilter: string[] = [];
-    if (genres && typeof genres === "object") {
-      for (const tag of Object.entries(genres)) {
-        if (tag[1] == "included") genresFilter.push(tag[0]);
-        if (tag[1] == "excluded") genresFilter.push("-" + tag[0]);
-      }
-    }
-    if (themes && typeof genres === "object") {
-      for (const tag of Object.entries(themes)) {
-        if (tag[1] == "included") themesFilter.push(tag[0]);
-        if (tag[1] == "excluded") themesFilter.push("-" + tag[0]);
-      }
-    }
-    if (types && typeof types === "object") {
-      for (const tag of Object.entries(types)) {
-        if (tag[1] == "included") typeFilter.push(tag[0]);
-      }
-    }
-    if (demographic && typeof demographic === "object") {
-      for (const tag of Object.entries(demographic)) {
-        if (tag[1] == "included") demographicFilter.push(tag[0]);
-      }
-    }
-    if (status && typeof status === "object") {
-      for (const tag of Object.entries(status)) {
-        if (tag[1] == "included") statusFilter.push(tag[0]);
-      }
-    }
-    if (formats && typeof formats === "object") {
-      for (const tag of Object.entries(formats)) {
-        if (tag[1] == "included") formatsFilter.push(tag[0]);
-      }
-    }
+    const genres: string | TagMap = getFilterValue("genres") ?? "";
+    const themes: string | TagMap = getFilterValue("themes") ?? "";
+    const types: string | TagMap = getFilterValue("types") ?? "";
+    const demographic: string | TagMap = getFilterValue("demographic") ?? "";
+    const status: string | TagMap = getFilterValue("status") ?? "";
+    const formats: string | TagMap = getFilterValue("formats") ?? "";
+
+    const mode: string | TagMap = getFilterValue("filter_mode") ?? "";
     const [sortBy, orderBy] = sortingOption.id.split("$");
+    const filters: Filters[] = [
+      ...buildFilter("genres[]", genres, themes, formats),
+      ...buildFilter("types[]", types),
+      ...buildFilter("demographics[]", demographic),
+      ...buildFilter("status[]", status),
+    ];
     const search = await api.getJsonSearchApi(
       query.title,
       page,
-      genresFilter,
-      themesFilter,
-      typeFilter,
-      demographicFilter,
-      statusFilter,
-      formatsFilter,
+      filters,
       mode as string,
       sortBy,
       orderBy,
@@ -250,10 +212,7 @@ export class JsonParser {
         items.push({
           mangaId: item.hash_id,
           title: item.title,
-          imageUrl:
-            item.poster.large.length > 0
-              ? item.poster.large
-              : "https://comix.to/images/no-poster.png",
+          imageUrl: item.poster.large.length > 0 ? item.poster.large : NO_IMAGE,
           contentRating: item.is_nsfw ? ContentRating.ADULT : ContentRating.EVERYONE,
         });
       });
