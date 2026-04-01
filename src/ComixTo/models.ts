@@ -1,8 +1,23 @@
 export const DOMAIN = "https://comix.to";
+export const API = `${DOMAIN}/api/v2`;
+export const NO_IMAGE = `${DOMAIN}/images/no-poster.png`;
+
+type FilterValue = "included" | "excluded";
+export type TagMap = Record<string, FilterValue>;
+
+export interface ApiRequestConfig {
+  path: string | string[];
+  query?: Record<string, string | string[]>;
+}
 
 export interface ApiResponse<T> {
   status: number;
   result: T;
+}
+
+export interface Filters {
+  type: string;
+  filters: string[];
 }
 
 export interface ResultManga {

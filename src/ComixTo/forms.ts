@@ -5,6 +5,7 @@ import {
   Section,
   SelectRow,
   type FormSectionElement,
+  StepperRow,
 } from "@paperback/types";
 import { filter } from "./main";
 
@@ -52,11 +53,10 @@ class SectionSettings extends BaseSettings {
     return [
       Section(
         {
-          id: "limit_settings",
-          footer: "Time Range Settings",
+          id: "timeRangeSection",
         },
         [
-          SelectRow("limit", {
+          SelectRow("timeRange", {
             title: "Time Range",
             subtitle: "Defines the time range for retrieving top-ranked content on Sections",
             value: filter.getLimitSettings(),
@@ -71,12 +71,32 @@ class SectionSettings extends BaseSettings {
           }),
         ],
       ),
+      Section(
+        {
+          id: "yearSettingsSection",
+        },
+        [
+          StepperRow("yearSettings", {
+            title: "Year",
+            subtitle: "Choose year used on some home section",
+            value: filter.getYearSettings(),
+            minValue: 2023,
+            maxValue: new Date().getFullYear(),
+            stepValue: 1,
+            loopOver: false,
+            onValueChange: Application.Selector(this as SectionSettings, "handleYearStatusChange"),
+          }),
+        ],
+      ),
     ];
   }
   limitMap = filter.sectionLimit.map(({ value, id }) => ({
     title: value,
     id: id,
   }));
+  async handleYearStatusChange(id: number) {
+    await this.updateValue(id, "year_settings");
+  }
   async handleLimitStatusChange(id: string[]): Promise<void> {
     await this.updateValue(id, "limit");
   }
