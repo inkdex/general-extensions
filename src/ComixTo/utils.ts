@@ -1,16 +1,6 @@
-import { CloudflareError, type SearchFilter } from "@paperback/types";
+import { type SearchFilter } from "@paperback/types";
 import { parse } from "./main";
-import { type OptionItem, type TagMap, DOMAIN } from "./models";
-
-export async function throwCloudflareError(): Promise<never> {
-  throw new CloudflareError({
-    url: DOMAIN,
-    method: "GET",
-    headers: {
-      "user-agent": await Application.getDefaultUserAgent(),
-    },
-  });
-}
+import { type OptionItem, type TagMap } from "./models";
 
 export class globalFilters {
   genres: OptionItem[] = [];
@@ -177,6 +167,10 @@ export class globalFilters {
 
   getHiddenThemesSettings() {
     return (Application.getState("hide_themes") as string[] | undefined) ?? [];
+  }
+
+  getHiddenDemogSettings() {
+    return (Application.getState("hide_demog") as string[] | undefined) ?? [];
   }
 
   getShowOnlySettings() {

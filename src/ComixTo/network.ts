@@ -4,6 +4,7 @@ import {
   URL,
   type Request,
   type Response,
+  CloudflareError,
 } from "@paperback/types";
 import { filter } from "./main";
 import {
@@ -18,7 +19,6 @@ import {
   API,
   DOMAIN,
 } from "./models";
-import { throwCloudflareError } from "./utils";
 
 export class MainInterceptor extends PaperbackInterceptor {
   override async interceptRequest(request: Request): Promise<Request> {
@@ -39,7 +39,13 @@ export class MainInterceptor extends PaperbackInterceptor {
   ): Promise<ArrayBuffer> {
     const cfMitigated = response.headers?.["cf-mitigated"];
     if (cfMitigated === "challenge") {
-      await throwCloudflareError();
+      throw new CloudflareError({
+        url: DOMAIN,
+        method: "GET",
+        headers: {
+          "user-agent": await Application.getDefaultUserAgent(),
+        },
+      });
     }
     return data;
   }
@@ -53,45 +59,6 @@ export const mainRateLimiter = new BasicRateLimiter("main", {
 
 export class ApiMaker {
   apiLink = "";
-  private async checkResponseError(_: Request, response: Response): Promise<void> {
-    switch (response.status) {
-      case 200:
-        break;
-      case 400:
-        throw new Error("400 – Bad Request: The request was invalid", { cause: "Client" });
-      case 401:
-        throw new Error("401 – Unauthorized: Authentication is required", { cause: "Client" });
-      case 404:
-        throw new Error(`404 – Not Found: The resource "${response.url}" was not found`, {
-          cause: "Client",
-        });
-      case 408:
-        throw new Error("408 – Request Timeout: The server took too long to respond", {
-          cause: "Client",
-        });
-      case 429:
-        throw new Error("429 – Too Many Requests: Rate limit exceeded", { cause: "Client" });
-      case 500:
-        throw new Error("500 – Internal Server Error: A server error occurred", {
-          cause: "Server",
-        });
-      case 502:
-        throw new Error("502 – Bad Gateway: Invalid response from upstream server", {
-          cause: "Server",
-        });
-      case 503:
-        throw new Error("503 – Service Unavailable: The server is temporarily unavailable", {
-          cause: "Server",
-        });
-      case 504:
-        throw new Error("504 – Gateway Timeout: Server response timed out", { cause: "Server" });
-      case 403:
-        await throwCloudflareError();
-        break;
-      default:
-        throw new Error(`Unexpected HTTP error: ${response.status}`, { cause: "Unknown" });
-    }
-  }
 
   private async APIJson<T>(api: ApiRequestConfig): Promise<ApiResponse<T>> {
     const url = new URL(API);
@@ -104,11 +71,19 @@ export class ApiMaker {
     }
     this.apiLink = url.toString();
     const html = await this.getDataFromRequest();
-    return this.JSONParser<T>(html);
+    try {
+      return JSON.parse(html) as ApiResponse<T>;
+    } catch {
+      throw new Error("Json parse failed");
+    }
   }
 
-  private build<T>(section: string, page: number): Promise<ApiResponse<T>> {
-    const hiddenGenres = [...filter.getHiddenGenresSettings(), ...filter.getHiddenThemesSettings()];
+  async getJsonMangaApi(section: string, page: number): Promise<ApiResponse<ResultManga>> {
+    const hiddenGenres = [
+      ...filter.getHiddenGenresSettings(),
+      ...filter.getHiddenThemesSettings(),
+      ...filter.getHiddenDemogSettings(),
+    ];
     const types = filter.getShowOnlySettings();
     const days = filter.getLimitSettings()[0];
     const additionalInfo = ["author"];
@@ -207,28 +182,16 @@ export class ApiMaker {
     };
     const config = sections[section];
     if (!config) throw new Error(`${section} not found on API`);
-    return this.APIJson<T>({ path: config.path, query: config.query });
+    return this.APIJson<ResultManga>({ path: config.path, query: config.query });
   }
 
-  private JSONParser<T>(html: string) {
-    try {
-      return JSON.parse(html) as ApiResponse<T>;
-    } catch {
-      throw new Error("Json parse failed");
-    }
-  }
   private async getDataFromRequest(): Promise<string> {
     const request = {
       url: this.apiLink,
       method: "GET",
     };
-    const [response, data] = await Application.scheduleRequest(request);
-    await this.checkResponseError(request, response);
-    return Application.arrayBufferToUTF8String(data);
-  }
-
-  async getJsonMangaApi(section: string, page: number) {
-    return this.build<ResultManga>(section, page);
+    const data = await Application.scheduleRequest(request);
+    return Application.arrayBufferToUTF8String(data[1]);
   }
 
   async getJsonMangaInfoApi(mangaId: string) {

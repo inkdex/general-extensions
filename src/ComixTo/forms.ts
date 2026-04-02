@@ -116,6 +116,11 @@ class FilterSettings extends BaseSettings {
     id: id,
   }));
 
+  demogMap = filter.demographic.map(({ value, id }) => ({
+    title: value,
+    id: id,
+  }));
+
   typeMap = filter.contentType.map(({ value, id }) => ({
     title: value,
     id: id,
@@ -151,6 +156,18 @@ class FilterSettings extends BaseSettings {
             onValueChange: Application.Selector(
               this as FilterSettings,
               "handleHideThemesStatusChange",
+            ),
+          }),
+          SelectRow("hide_demog", {
+            title: "Hide Demographic Type",
+            subtitle: "Hide Some Demographic Type",
+            value: filter.getHiddenDemogSettings(),
+            options: this.demogMap,
+            minItemCount: 0,
+            maxItemCount: this.demogMap.length,
+            onValueChange: Application.Selector(
+              this as FilterSettings,
+              "handleHideDemogStatusChange",
             ),
           }),
         ],
@@ -198,6 +215,10 @@ class FilterSettings extends BaseSettings {
     await this.updateValue(id, "hide_themes");
   }
 
+  async handleHideDemogStatusChange(id: string[]) {
+    await this.updateValue(id, "hide_demog");
+  }
+
   async handleShowOnlyStatusChange(id: string[]) {
     await this.updateValue(id, "show_only");
   }
@@ -206,5 +227,6 @@ class FilterSettings extends BaseSettings {
     await this.updateValue([], "hide_genres");
     await this.updateValue([], "hide_themes");
     await this.updateValue([], "show_only");
+    await this.updateValue([], "hide_demog");
   }
 }
