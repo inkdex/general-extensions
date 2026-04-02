@@ -1,7 +1,7 @@
 import type { DiscoverSection, DiscoverSectionItem, PagedResults, Request } from "@paperback/types";
 import { DiscoverSectionType, URL } from "@paperback/types";
-import { QISCANS_API_BASE } from "../../main";
-import { type Metadata, type QIScansV2Response } from "../shared/models";
+import { DOMAIN_API } from "../shared/models";
+import type { QIScansHomeResponse } from "../shared/models";
 import { fetchJSON } from "../../services/network";
 import { parseDiscoverItems } from "./parsers";
 
@@ -16,16 +16,16 @@ export class DiscoverProvider {
       {
         id: "popular",
         title: "Popular Today",
-        type: DiscoverSectionType.simpleCarousel,
+        type: DiscoverSectionType.chapterUpdates,
       },
       {
         id: "pinned",
         title: "Pinned",
-        type: DiscoverSectionType.simpleCarousel,
+        type: DiscoverSectionType.chapterUpdates,
       },
       {
-        id: "latest",
-        title: "Latest Updates",
+        id: "new",
+        title: "New Series",
         type: DiscoverSectionType.chapterUpdates,
       },
       {
@@ -33,77 +33,21 @@ export class DiscoverProvider {
         title: "Editor's Pick",
         type: DiscoverSectionType.simpleCarousel,
       },
-      {
-        id: "new",
-        title: "New Fresh Series",
-        type: DiscoverSectionType.simpleCarousel,
-      },
     ];
   }
 
   async getDiscoverSectionItems(
     section: DiscoverSection,
-    metadata?: Metadata,
+    _metadata?: { page?: number },
   ): Promise<PagedResults<DiscoverSectionItem>> {
-    const page = metadata?.page ?? 1;
-    let perPage = 15;
-    let skipItems = 0;
-
-    const urlBuilder = new URL(QISCANS_API_BASE)
-      .addPathComponent("v2")
-      .addPathComponent("posts")
-      .setQueryItem("perPage", perPage.toString())
-      .setQueryItem("page", page.toString());
-
-    switch (section.id) {
-      case "featured":
-        perPage = 25;
-        skipItems = 10;
-        urlBuilder.setQueryItem("featured", "true").setQueryItem("perPage", perPage.toString());
-        break;
-
-      case "popular":
-        urlBuilder.setQueryItem("sortBy", "totalViews").setQueryItem("sortOrder", "desc");
-        break;
-
-      case "pinned":
-        urlBuilder.setQueryItem("pinned", "true");
-        break;
-
-      case "latest":
-        urlBuilder.setQueryItem("sortBy", "lastChapterAddedAt").setQueryItem("sortOrder", "desc");
-        break;
-
-      case "editors-pick":
-        perPage = 40;
-        skipItems = 25;
-        urlBuilder.setQueryItem("editorsPick", "true").setQueryItem("perPage", perPage.toString());
-        break;
-
-      case "new":
-        urlBuilder.setQueryItem("sortBy", "updatedAt").setQueryItem("sortOrder", "desc");
-        break;
-
-      default:
-        throw new Error(`[QiScans] Unknown discover section: ${section.id}`);
-    }
-
-    const url = urlBuilder.toString();
+    const url = new URL(DOMAIN_API).addPathComponent("v1").addPathComponent("home").toString();
     const request: Request = { url, method: "GET" };
-    const json = await fetchJSON<QIScansV2Response>(request);
-
-    let items = parseDiscoverItems(json, section.id);
-
-    if (skipItems > 0 && items.length > skipItems) {
-      items = items.slice(skipItems);
-    }
-
-    const canPaginate = section.id === "pinned" || section.id === "latest";
-    const hasMore = canPaginate && items.length >= 15;
+    const data = await fetchJSON<QIScansHomeResponse>(request);
+    const items = parseDiscoverItems(data, section.id);
 
     return {
       items,
-      metadata: hasMore ? { page: page + 1 } : undefined,
+      metadata: undefined,
     };
   }
 }

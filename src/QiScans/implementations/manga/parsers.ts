@@ -1,40 +1,42 @@
 import type { SourceManga } from "@paperback/types";
 import { ContentRating } from "@paperback/types";
-import type { QIScansPost } from "../shared/models";
+import type { QIScansSeriesDetailsResponse } from "../shared/models";
+import { encodeMangaId } from "../shared/utils";
+import { DOMAIN } from "../shared/models";
 
-export function parseMangaDetails(post: QIScansPost): SourceManga {
-  const author = post.author?.trim();
-  const artist = post.artist?.trim();
+export function parseMangaDetails(series: QIScansSeriesDetailsResponse): SourceManga {
+  const author = series.author?.trim();
+  const artist = series.artist?.trim();
 
   return {
-    mangaId: post.id.toString(),
+    mangaId: encodeMangaId(series.slug),
     mangaInfo: {
-      primaryTitle: Application.decodeHTMLEntities(post.postTitle),
+      primaryTitle: Application.decodeHTMLEntities(series.title),
 
-      secondaryTitles: post.alternativeTitles
-        ? post.alternativeTitles
+      secondaryTitles: series.alternativeTitles
+        ? series.alternativeTitles
             .split(/, ?/)
             .map((t) => t.trim())
             .filter((t) => t.length > 0)
         : [],
 
-      thumbnailUrl: post.featuredImage || "",
+      thumbnailUrl: series.cover || "",
 
-      synopsis: Application.decodeHTMLEntities(post.postContent.replace(/<[^>]+>/g, "")),
+      synopsis: Application.decodeHTMLEntities(series.description.replace(/<[^>]+>/g, "")),
 
       ...(author ? { author } : {}),
       ...(artist ? { artist } : {}),
 
-      status: post.seriesStatus ?? "UNKNOWN",
+      status: series.status ?? "UNKNOWN",
       contentRating: ContentRating.EVERYONE,
 
       tagGroups:
-        post.genres && post.genres.length > 0
+        series.genres && series.genres.length > 0
           ? [
               {
                 id: "genres",
                 title: "Genres",
-                tags: post.genres.map((g) => ({
+                tags: series.genres.map((g) => ({
                   id: g.id.toString(),
                   title: g.name,
                 })),
@@ -43,11 +45,11 @@ export function parseMangaDetails(post: QIScansPost): SourceManga {
           : [],
 
       additionalInfo: {
-        postId: post.id.toString(),
-        slug: post.slug,
+        seriesId: series.id.toString(),
+        slug: series.slug,
       },
 
-      shareUrl: `https://qiscans.org/series/${post.slug}`,
+      shareUrl: `${DOMAIN}/series/${series.slug}`,
     },
   };
 }
