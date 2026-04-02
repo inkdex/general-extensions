@@ -7,9 +7,6 @@ import { SearchProvider } from "./implementations/search-results/main";
 import { applyMixins } from "./implementations/shared/utils";
 import { QiScansInterceptor } from "./services/network";
 
-export const QISCANS_DOMAIN = "https://qimanhwa.com";
-export const QISCANS_API_BASE = "https://api.qimanhwa.com/api";
-
 export interface QiScansImplementation
   extends SearchProvider, MangaProvider, ChapterProvider, DiscoverProvider {}
 

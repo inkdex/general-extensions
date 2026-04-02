@@ -13,7 +13,7 @@ Paperback extensions for websites with unique, non-generic themes.
 - [Manga Plus](https://mangaplus.shueisha.co.jp)
 - [MangaTaro](https://mangataro.org)
 - [Mgeko](https://mgeko.cc)
-- [QiScans](https://qiscans.org)
+- [QiScans](https://qimanhwa.com)
 - [QToon](https://qtoon.com)
 - [Webtoon](https://webtoons.com)
 - [Weeb Central](https://weebcentral.com)
