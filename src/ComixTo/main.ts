@@ -25,7 +25,7 @@ import { MainSettings } from "./forms";
 import type { Metadata } from "./models";
 import { MainInterceptor, mainRateLimiter } from "./network";
 import { JsonParser } from "./parsers";
-import { globalFilters } from "./utils";
+import { globalFilters } from "./utils/globalFilters";
 
 type ComixToImplementation = SettingsFormProviding &
   Extension &

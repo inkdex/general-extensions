@@ -1,6 +1,6 @@
 import { type SearchFilter } from "@paperback/types";
-import { parse } from "./main";
-import { type OptionItem, type TagMap } from "./models";
+import { parse } from "../main";
+import { type OptionItem, type TagMap } from "../models";
 
 export class globalFilters {
   genres: OptionItem[] = [];
