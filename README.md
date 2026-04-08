@@ -17,7 +17,6 @@ Paperback extensions for websites with unique, non-generic themes.
 - [QToon](https://qtoon.com)
 - [Webtoon](https://webtoons.com)
 - [Weeb Central](https://weebcentral.com)
-- [WeebDex](https://weebdex.org)
 - [Mangapill](https://mangapill.com)
 
 ## Installation
