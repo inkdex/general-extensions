@@ -191,12 +191,16 @@ export class JsonParser {
     const formats: string | TagMap = getFilterValue("formats") ?? "";
 
     const mode: string | TagMap = getFilterValue("filter_mode") ?? "";
-    const [sortBy, orderBy] = sortingOption.id.split("$");
+    let sortBy = "views_30d";
+    let orderBy = "desc";
+    if (query.title.length > 0) {
+      [sortBy, orderBy] = sortingOption.id.split("$");
+    }
     const filters: Filters[] = [
       ...buildFilter("genres[]", genres, themes, formats),
       ...buildFilter("types[]", types),
       ...buildFilter("demographics[]", demographic),
-      ...buildFilter("status[]", status),
+      ...buildFilter("statuses[]", status),
     ];
     const search = await api.getJsonSearchApi(
       query.title,
