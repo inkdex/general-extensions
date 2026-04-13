@@ -231,7 +231,7 @@ export class ApiMaker {
       [`order[${sortBy}]`]: orderBy,
       genres_mode: mode,
     };
-    if (keyword.length > 0) {
+    if (keyword.length > 1) {
       query.keyword = keyword;
     }
     filters.forEach((f) => {

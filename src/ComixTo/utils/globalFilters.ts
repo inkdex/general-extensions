@@ -25,30 +25,6 @@ export class globalFilters {
     { id: "other", value: "Other" },
   ];
 
-  order = [
-    { id: "relevance$desc", label: "Best Match" },
-    { id: "chapter_updated_at$asc", label: "Update Date ↑" },
-    { id: "chapter_updated_at$desc", label: "Update Date ↓" },
-    { id: "created_at$asc", label: "Created Date ↑" },
-    { id: "created_at$desc", label: "Created Date ↓" },
-    { id: "title$asc", label: "Title ↑" },
-    { id: "title$desc", label: "Title ↓" },
-    { id: "year$asc", label: "Year ↑" },
-    { id: "year$desc", label: "Year ↓" },
-    { id: "score$asc", label: "Average Score ↑" },
-    { id: "score$desc", label: "Average Score ↓" },
-    { id: "total_views$asc", label: "Total Views ↑" },
-    { id: "total_views$desc", label: "Total Views ↓" },
-    { id: "followed_count$asc", label: "Most Follows ↑" },
-    { id: "followed_count$desc", label: "Most Follows ↓" },
-    { id: "views_7d$asc", label: "Most Views 7 Days ↑" },
-    { id: "views_7d$desc", label: "Most Views 7 Days ↓" },
-    { id: "views_30d$asc", label: "Most Views 1 Month ↑" },
-    { id: "views_30d$desc", label: "Most Views 1 Month ↓" },
-    { id: "views_90d$asc", label: "Most Views 3 Month ↑" },
-    { id: "views_90d$desc", label: "Most Views 3 Month ↓" },
-  ];
-
   publication_status = [
     { id: "finished", value: "Finished" },
     { id: "releasing", value: "Releasing" },

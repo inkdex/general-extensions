@@ -36,7 +36,7 @@ type ComixToImplementation = SettingsFormProviding &
   CloudflareBypassRequestProviding;
 export const parse = new JsonParser();
 export const filter = new globalFilters();
-export class ComiToExtension implements ComixToImplementation {
+export class ComixToExtension implements ComixToImplementation {
   async getSettingsForm(): Promise<Form> {
     await filter.checkFilters();
     return new MainSettings();
@@ -146,10 +146,39 @@ export class ComiToExtension implements ComixToImplementation {
     metadata: Metadata | undefined,
     sortingOption: SortingOption,
   ): Promise<PagedResults<SearchResultItem>> {
+    sortingOption.id = sortingOption.id.split(query.title.length > 1 ? "#title" : "#empty")[0];
     return parse.parseSearchResults(query, metadata, sortingOption);
   }
-  async getSortingOptions(): Promise<SortingOption[]> {
-    return filter.order;
+  async getSortingOptions(query: SearchQuery): Promise<SortingOption[]> {
+    const idSuffix = query.title.length > 1 ? "#title" : "";
+    let sortingOptions: SortingOption[] = [
+      { id: "views_30d$desc#empty", label: "Any" },
+      { id: "chapter_updated_at$asc" + idSuffix, label: "Update Date ↑" },
+      { id: "chapter_updated_at$desc" + idSuffix, label: "Update Date ↓" },
+      { id: "created_at$asc" + idSuffix, label: "Created Date ↑" },
+      { id: "created_at$desc" + idSuffix, label: "Created Date ↓" },
+      { id: "title$asc" + idSuffix, label: "Title ↑" },
+      { id: "title$desc" + idSuffix, label: "Title ↓" },
+      { id: "year$asc" + idSuffix, label: "Year ↑" },
+      { id: "year$desc" + idSuffix, label: "Year ↓" },
+      { id: "score$asc" + idSuffix, label: "Average Score ↑" },
+      { id: "score$desc" + idSuffix, label: "Average Score ↓" },
+      { id: "total_views$asc" + idSuffix, label: "Total Views ↑" },
+      { id: "total_views$desc" + idSuffix, label: "Total Views ↓" },
+      { id: "followed_count$asc" + idSuffix, label: "Most Follows ↑" },
+      { id: "followed_count$desc" + idSuffix, label: "Most Follows ↓" },
+      { id: "views_7d$asc" + idSuffix, label: "Most Views 7 Days ↑" },
+      { id: "views_7d$desc" + idSuffix, label: "Most Views 7 Days ↓" },
+      { id: "views_30d$asc" + idSuffix, label: "Most Views 1 Month ↑" },
+      { id: "views_30d$desc" + idSuffix, label: "Most Views 1 Month ↓" },
+      { id: "views_90d$asc" + idSuffix, label: "Most Views 3 Month ↑" },
+      { id: "views_90d$desc" + idSuffix, label: "Most Views 3 Month ↓" },
+    ];
+    if (query.title.length > 1) {
+      sortingOptions.unshift({ id: "relevance$desc" + idSuffix, label: "Best Match" });
+      sortingOptions = sortingOptions.filter((id) => id.id !== "views_30d$desc#empty");
+    }
+    return sortingOptions;
   }
 
   getMangaDetails(mangaId: string): Promise<SourceManga> {
@@ -164,4 +193,4 @@ export class ComiToExtension implements ComixToImplementation {
   }
 }
 
-export const ComixTo = new ComiToExtension();
+export const ComixTo = new ComixToExtension();
