@@ -1,3 +1,6 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later */
+/* Copyright © 2026 Inkdex */
+
 import { type SearchFilter } from "@paperback/types";
 import { parse } from "../main";
 import { type OptionItem, type TagMap } from "../models";

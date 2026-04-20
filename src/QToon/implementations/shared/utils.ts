@@ -1,3 +1,6 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later */
+/* Copyright © 2026 Inkdex */
+
 import type { QToonComic } from "./models";
 
 // resolves the preferred public ID for a comic (webLinkId over csid)

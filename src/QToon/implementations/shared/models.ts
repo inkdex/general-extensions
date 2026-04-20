@@ -1,3 +1,6 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later */
+/* Copyright © 2026 Inkdex */
+
 export const DOMAIN = "https://qtoon.com";
 export const DOMAIN_API = "https://api.qtoon.com";
 

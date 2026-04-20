@@ -1,3 +1,6 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later */
+/* Copyright © 2026 Inkdex */
+
 import { lock, unlock } from "@paperback/types/src/impl/Lock";
 import { PaperbackInterceptor } from "@paperback/types/src/impl/PaperbackInterceptor";
 import { type Request } from "@paperback/types/src/Request";

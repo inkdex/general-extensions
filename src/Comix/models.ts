@@ -1,3 +1,6 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later */
+/* Copyright © 2026 Inkdex */
+
 export const DOMAIN = "https://comix.to";
 export const API = `${DOMAIN}/api/v2`;
 export const NO_IMAGE = `${DOMAIN}/images/no-poster.png`;

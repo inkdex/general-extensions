@@ -1,3 +1,6 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later */
+/* Copyright © 2026 Inkdex */
+
 import { ButtonRow, Form, Section, type FormSectionElement } from "@paperback/types";
 
 export class SettingsForm extends Form {

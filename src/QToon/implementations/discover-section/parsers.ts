@@ -1,3 +1,6 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later */
+/* Copyright © 2026 Inkdex */
+
 import type { DiscoverSection, SimpleCarouselItem } from "@paperback/types";
 import { ContentRating, DiscoverSectionType } from "@paperback/types";
 import type { QToonComic, QToonCompositionBlock, SectionEndpoint } from "../shared/models";

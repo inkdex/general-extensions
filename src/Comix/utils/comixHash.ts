@@ -1,3 +1,6 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later */
+/* Copyright © 2026 Inkdex */
+
 export class ComixHash {
   private static KEYS: string[] = [
     "13YDu67uDgFczo3DnuTIURqas4lfMEPADY6Jaeqky+w=",

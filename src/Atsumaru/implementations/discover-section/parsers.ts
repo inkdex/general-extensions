@@ -1,3 +1,6 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later */
+/* Copyright © 2026 Inkdex */
+
 import type { DiscoverSection, DiscoverSectionItem } from "@paperback/types";
 import { DiscoverSectionType } from "@paperback/types";
 import type { AtsuHomePageResponse } from "../shared/models";
