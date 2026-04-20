@@ -1,5 +1,5 @@
 {
-  "name": "general-extensions",
+  "name": "General Extensions (0.9)",
   "private": true,
   "description": "Paperback extensions for websites with unique, non-generic themes. Maintained by Inkdex.",
   "type": "module",
@@ -30,6 +30,5 @@
     "stemmer": "^2.0.1",
     "typescript": "^6.0.3",
     "upng-js": "^2.1.0"
-  },
-  "repositoryName": "General Extensions (0.9)"
+  }
 }
