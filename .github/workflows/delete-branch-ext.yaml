@@ -12,12 +12,14 @@ concurrency:
 
 jobs:
   delete-branch-ext:
-    if: |
-      github.ref_type == 'branch' &&
-      github.ref_name matches '^[0-9]+\.[0-9]+/.+'
     name: Delete Branch Extensions
     runs-on: ubuntu-latest
     steps:
+      - name: Check branch pattern
+        run: |
+          if [[ ! "${{ github.ref_name }}" =~ ^[0-9]+\.[0-9]+/.+ ]]; then
+            echo "Skip" && exit 0
+          fi
       - name: Checkout Branch
         uses: actions/checkout@v4
         with:
