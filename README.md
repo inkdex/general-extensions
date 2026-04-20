@@ -5,7 +5,7 @@ Paperback extensions for websites with unique, non-generic themes.
 ## Available Extensions
 
 - [Atsumaru](https://atsu.moe)
-- [Comix.To](https://comix.to)
+- [Comix](https://comix.to)
 - [MangaDemon](https://demonicscans.org)
 - [MangaDex](https://mangadex.org)
 - [MangaFox](https://fanfox.net)

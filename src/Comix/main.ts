@@ -27,7 +27,7 @@ import { MainInterceptor, mainRateLimiter } from "./network";
 import { JsonParser } from "./parsers";
 import { globalFilters } from "./utils/globalFilters";
 
-type ComixToImplementation = SettingsFormProviding &
+type ComixImplementation = SettingsFormProviding &
   Extension &
   DiscoverSectionProviding &
   SearchResultsProviding &
@@ -36,7 +36,7 @@ type ComixToImplementation = SettingsFormProviding &
   CloudflareBypassRequestProviding;
 export const parse = new JsonParser();
 export const filter = new globalFilters();
-export class ComixToExtension implements ComixToImplementation {
+export class ComixExtension implements ComixImplementation {
   async getSettingsForm(): Promise<Form> {
     await filter.checkFilters();
     return new MainSettings();
@@ -193,4 +193,4 @@ export class ComixToExtension implements ComixToImplementation {
   }
 }
 
-export const ComixTo = new ComixToExtension();
+export const Comix = new ComixExtension();
