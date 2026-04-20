@@ -28,7 +28,7 @@
     "oxlint": "^1.60.0",
     "oxlint-tsgolint": "^0.20.0",
     "stemmer": "^2.0.1",
-    "typescript": "^5.9.3",
+    "typescript": "^6.0.3",
     "upng-js": "^2.1.0"
   },
   "repositoryName": "General Extensions (0.9)"
