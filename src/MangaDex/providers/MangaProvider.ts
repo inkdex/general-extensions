@@ -1,3 +1,6 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later */
+/* Copyright © 2026 Inkdex */
+
 import { URL, type SourceManga } from "@paperback/types";
 import { parseMangaDetails } from "../MangaDexParser";
 import { getCoverArtworkEnabled } from "../MangaDexSettings";

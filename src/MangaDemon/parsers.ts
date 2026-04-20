@@ -1,3 +1,6 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later */
+/* Copyright © 2026 Inkdex */
+
 // MangaDemon Parser for Paperback
 // ------------------------------
 // Responsible for parsing HTML responses from demonicscans.org.

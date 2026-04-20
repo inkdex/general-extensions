@@ -1,3 +1,6 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later */
+/* Copyright © 2026 Inkdex */
+
 import type { Cookie, Extension, MangaProviding } from "@paperback/types";
 import { BasicRateLimiter, CookieStorageInterceptor } from "@paperback/types";
 import { ChapterProvider } from "./implementations/chapter-providing/main";

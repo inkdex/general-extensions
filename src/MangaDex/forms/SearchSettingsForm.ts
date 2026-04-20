@@ -1,3 +1,6 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later */
+/* Copyright © 2026 Inkdex */
+
 import { Form, Section, ToggleRow, type FormSectionElement } from "@paperback/types";
 import {
   getRelevanceScoringEnabled,

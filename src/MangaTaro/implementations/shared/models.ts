@@ -1,3 +1,6 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later */
+/* Copyright © 2026 Inkdex */
+
 export const DOMAIN = "https://mangataro.org";
 
 // years, genres, types, statuses are JSON-stringified arrays, not real arrays

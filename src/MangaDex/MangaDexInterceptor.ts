@@ -1,3 +1,6 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later */
+/* Copyright © 2026 Inkdex */
+
 import { PaperbackInterceptor, type Request, type Response } from "@paperback/types";
 import jpeg from "jpeg-js";
 import UPNG from "upng-js";

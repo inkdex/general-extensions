@@ -1,3 +1,6 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later */
+/* Copyright © 2026 Inkdex */
+
 // Models, selectors, and constants for MangaDemon extension
 // Implementation to be added.
 
