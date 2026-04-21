@@ -8,7 +8,7 @@ import {
   OAuthButtonRow,
   Section,
   type FormItemElement,
-  type FormSectionElement,
+  type ListSectionElement,
 } from "@paperback/types";
 import { ContentSettingsForm } from "./forms/ContentSettingsForm";
 import { DiscoverSettingsForm } from "./forms/DiscoverSettingsForm";
@@ -551,7 +551,7 @@ export class MangaDexSettingsForm extends Form {
     return this.oAuthState;
   }
 
-  override getSections(): FormSectionElement[] {
+  override getSections() {
     const sections = [this.createMainSettingsSection()];
 
     if (this.oAuthState.value) {
@@ -571,7 +571,7 @@ export class MangaDexSettingsForm extends Form {
     return sections;
   }
 
-  private createMainSettingsSection(): FormSectionElement {
+  private createMainSettingsSection(): ListSectionElement {
     return Section("mainSettings", [
       NavigationRow("mangadex_settings", {
         title: "MangaDex Website Settings",
@@ -664,7 +664,7 @@ export class MangaDexSettingsForm extends Form {
     });
   }
 
-  private createResetSection(): FormSectionElement {
+  private createResetSection(): ListSectionElement {
     return Section("reset_section", [
       ButtonRow("reset_settings", {
         title: "Reset to Defaults",

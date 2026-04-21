@@ -1,12 +1,12 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 /* Copyright © 2026 Inkdex */
 
-import { ContentRating, SourceIntents, type SourceInfo } from "@paperback/types";
+import { ContentRating, SourceIntents, type ExtensionInfo } from "@paperback/types";
 
 export default {
   name: "Mangapill",
   description: "Extension that pulls content from mangapill.com.",
-  version: "1.0.0-alpha.8",
+  version: "1.0.0-alpha.9",
   icon: "icon.png",
   language: "en",
   contentRating: ContentRating.EVERYONE,
@@ -22,4 +22,4 @@ export default {
       github: "https://github.com/GabrielCWT",
     },
   ],
-} satisfies SourceInfo;
+} satisfies ExtensionInfo;

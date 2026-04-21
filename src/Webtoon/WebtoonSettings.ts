@@ -1,14 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 /* Copyright © 2026 Inkdex */
 
-import {
-  Form,
-  Section,
-  SelectRow,
-  ToggleRow,
-  type FormSectionElement,
-  type SettingsFormProviding,
-} from "@paperback/types";
+import { Form, Section, SelectRow, ToggleRow, type SettingsFormProviding } from "@paperback/types";
 import { Language, LanguagesOptions } from "./WebtoonI18NHelper";
 
 const CANVAS_WANTED = "canvas_wanted";
@@ -50,7 +43,7 @@ class WebtoonSettingForm extends Form {
     this.settings = settings;
   }
 
-  override getSections(): FormSectionElement[] {
+  override getSections() {
     return [
       Section("settings", [
         SelectRow(LANGUAGES, {

@@ -11,7 +11,7 @@ import {
   WebViewRow,
   type Chapter,
   type FormItemElement,
-  type FormSectionElement,
+  type ListSectionElement,
   type SourceManga,
 } from "@paperback/types";
 import { getSelectedCover, removeSelectedCover, setSelectedCover } from "../MangaDexSettings";
@@ -101,7 +101,7 @@ export class MangaProgressForm extends Form {
     return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   }
 
-  override getSections(): FormSectionElement[] {
+  override getSections() {
     const formattedStatus = this.currentStatus
       .split("_")
       .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
@@ -128,7 +128,7 @@ export class MangaProgressForm extends Form {
           ? "Remove Rating"
           : `${this.currentRating}0%`;
 
-    const sections: FormSectionElement[] = [
+    const sections: ListSectionElement[] = [
       Section("manga_info", [
         this.isTextTooLong("Title", this.sourceManga.mangaInfo.primaryTitle)
           ? LabelRow("title", {

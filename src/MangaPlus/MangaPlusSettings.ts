@@ -1,14 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 /* Copyright © 2026 Inkdex */
 
-import {
-  ButtonRow,
-  Form,
-  Section,
-  SelectRow,
-  ToggleRow,
-  type FormSectionElement,
-} from "@paperback/types";
+import { ButtonRow, Form, Section, SelectRow, ToggleRow } from "@paperback/types";
 import { Language } from "./MangaPlusHelper";
 
 export const getLanguages = (): string[] => {
@@ -24,7 +17,7 @@ export const getResolution = (): string => {
 };
 
 export class MangaPlusSettingForm extends Form {
-  override getSections(): FormSectionElement[] {
+  override getSections() {
     return [
       Section("content_settings", [
         SelectRow("languages", {

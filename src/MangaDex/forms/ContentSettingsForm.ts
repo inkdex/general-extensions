@@ -1,14 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 /* Copyright © 2026 Inkdex */
 
-import {
-  Form,
-  NavigationRow,
-  Section,
-  SelectRow,
-  ToggleRow,
-  type FormSectionElement,
-} from "@paperback/types";
+import { Form, NavigationRow, Section, SelectRow, ToggleRow } from "@paperback/types";
 import { MDImageQuality, MDLanguages, MDRatings } from "../MangaDexHelper";
 import {
   getCoverArtworkEnabled,
@@ -74,7 +67,7 @@ export class ContentSettingsForm extends Form {
     this.nativeTitleDisplay = getNativeTitleDisplay();
   }
 
-  override getSections(): FormSectionElement[] {
+  override getSections() {
     const priorityOrder = getLanguagePriority();
     const prioritySubtitle = priorityOrder.map((code) => MDLanguages.getName(code)).join(" → ");
 

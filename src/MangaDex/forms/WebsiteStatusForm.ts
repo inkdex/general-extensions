@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 /* Copyright © 2026 Inkdex */
 
-import { ButtonRow, Form, Section, WebViewRow, type FormSectionElement } from "@paperback/types";
+import { ButtonRow, Form, Section, WebViewRow } from "@paperback/types";
 import * as cheerio from "cheerio";
 
 /**
@@ -20,7 +20,7 @@ export class WebsiteStatusForm extends Form {
     void this.fetchStatusInfo();
   }
 
-  override getSections(): FormSectionElement[] {
+  override getSections() {
     return [
       Section("status_actions", [
         WebViewRow("status_webview", {

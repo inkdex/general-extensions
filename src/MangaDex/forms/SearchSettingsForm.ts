@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 /* Copyright © 2026 Inkdex */
 
-import { Form, Section, ToggleRow, type FormSectionElement } from "@paperback/types";
+import { Form, Section, ToggleRow } from "@paperback/types";
 import {
   getRelevanceScoringEnabled,
   getShowChapter,
@@ -43,7 +43,7 @@ export class SearchSettingsForm extends Form {
     getShowSearchRatingInSubtitle(),
   );
 
-  override getSections(): FormSectionElement[] {
+  override getSections() {
     return [
       Section("sorting", [
         ToggleRow("relevance_scoring_enabled", {

@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 /* Copyright © 2026 Inkdex */
 
-import { Form, Section, SelectRow, ToggleRow, type FormSectionElement } from "@paperback/types";
+import { Form, Section, SelectRow, ToggleRow } from "@paperback/types";
 import { MDRatings } from "../MangaDexHelper";
 import {
   getAccessToken,
@@ -39,7 +39,7 @@ export class TrackingSettingsForm extends Form {
     getTrackingContentRatings(),
   );
 
-  override getSections(): FormSectionElement[] {
+  override getSections() {
     return [
       Section(
         {

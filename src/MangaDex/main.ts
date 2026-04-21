@@ -2,6 +2,7 @@
 /* Copyright © 2026 Inkdex */
 
 import {
+  BasicRateLimiter,
   Form,
   type Chapter,
   type ChapterDetails,
@@ -38,7 +39,6 @@ import { MangaProvider } from "./providers/MangaProvider";
 import { ProgressProvider } from "./providers/ProgressProvider";
 import { SearchProvider } from "./providers/SearchProvider";
 import { SettingsProvider } from "./providers/SettingsProvider";
-import { BasicRateLimiter } from "./utils/BasicRateLimiter";
 
 /**
  * Interface defining all the capabilities this extension implements

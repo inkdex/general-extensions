@@ -10,7 +10,6 @@ import {
   SelectRow,
   ToggleRow,
   URL,
-  type FormSectionElement,
 } from "@paperback/types";
 import {
   blockGroup,
@@ -72,7 +71,7 @@ export class GroupBlockForm extends Form {
     this.onBlockedGroupsChange = onBlockedGroupsChange;
   }
 
-  override getSections(): FormSectionElement[] {
+  override getSections() {
     const hasSearchResults = this.searchResults.length > 0;
     const blockedGroupIds = Object.keys(this.blockedGroups);
     const currentPage = Math.floor(this.currentOffset / GROUP_SEARCH_PAGE_SIZE) + 1;

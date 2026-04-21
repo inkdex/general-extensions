@@ -1,14 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 /* Copyright © 2026 Inkdex */
 
-import {
-  DeferredItem,
-  Form,
-  NavigationRow,
-  Section,
-  type FormItemElement,
-  type FormSectionElement,
-} from "@paperback/types";
+import { DeferredItem, Form, NavigationRow, Section, type FormItemElement } from "@paperback/types";
 
 /**
  * Form for managing website-related settings
@@ -33,7 +26,7 @@ export class WebsiteSettingsForm extends Form {
     this.createStatusInfoFormCallback = createStatusInfoForm;
   }
 
-  override getSections(): FormSectionElement[] {
+  override getSections() {
     // Dynamically shows either login button or session info based on auth state
     // Also provides navigation to MangaDex status page
     return [
