@@ -18,6 +18,15 @@ export function getFilterTagsBySection(
     .map((x) => parseTagId(x[0]));
 }
 
+export function getDropdownFilterValue(
+  section: TagSectionId,
+  tags: SearchQuery["filters"],
+  fallback = "",
+): string {
+  const value = tags.find((x) => (x.id as TagSectionId) === section)?.value;
+  return typeof value === "string" && value ? value : fallback;
+}
+
 export function formatTagId(tagId: string): string {
   return tagId.replaceAll(" ", "_");
 }
