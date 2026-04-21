@@ -67,16 +67,33 @@ export class SearchProvider {
       });
     }
 
+    if (filters.statuses && filters.statuses.length > 0) {
+      searchFilters.push({
+        type: "multiselect",
+        id: "statuses",
+        title: "Status",
+        options: filters.statuses.map((status) => ({
+          id: status.id,
+          value: status.name,
+        })),
+        value: {},
+        allowExclusion: false,
+        allowEmptySelection: true,
+        maximum: undefined,
+      });
+    }
+
     return searchFilters;
   }
 
   async getSortingOptions(): Promise<SortingOption[]> {
     return [
-      { id: "none", label: "All Statuses" },
-      { id: "Ongoing", label: "Ongoing" },
-      { id: "Completed", label: "Completed" },
-      { id: "Hiatus", label: "Hiatus" },
-      { id: "Canceled", label: "Canceled" },
+      { id: "title", label: "Title" },
+      { id: "popularity", label: "Popularity" },
+      { id: "trending", label: "Trending" },
+      { id: "createdAt", label: "Date Added" },
+      { id: "released", label: "Release Date" },
+      { id: "topRated", label: "Top Rated" },
     ];
   }
 
@@ -97,24 +114,19 @@ export class SearchProvider {
     const showAdult = getShowAdult();
     const filters = extractSearchFilters(query);
 
-    const statusList: string[] = [];
-    if (sortingOption && sortingOption.id !== "none") {
-      statusList.push(sortingOption.id);
-    }
-
     const requestBody: AtsuFilteredViewRequest = {
       filter: {
         search: query.title?.trim() || "",
         genres: filters.includedTags,
         excludeGenres: filters.excludedTags,
         types: filters.selectedTypes,
-        status: statusList,
+        status: filters.selectedStatuses,
         years: [],
         minChapters: null,
         hideBookmarked: false,
         officialTranslation: false,
         showAdult,
-        sortBy: "popularity",
+        sortBy: sortingOption?.id || "Popularity",
       },
       page,
     };
