@@ -171,8 +171,27 @@ export const parseGenreTags = ($: CheerioAPI): TagSection[] => {
     arrayTags.push({ id: title.replaceAll(" ", "_"), title: title });
   }
 
-  const tagSections: TagSection[] = [{ id: "genres", title: "Genres", tags: arrayTags }];
-  return tagSections;
+  const statusTags: Tag[] = [];
+  for (const option of $("select#bf-status option").toArray()) {
+    const value = $(option).attr("value") ?? "";
+    const title = $(option).text().trim();
+    if (!value) continue;
+    statusTags.push({ id: value, title: title });
+  }
+
+  const typeTags: Tag[] = [];
+  for (const option of $("select#bf-type option").toArray()) {
+    const value = $(option).attr("value") ?? "";
+    const title = $(option).text().trim();
+    if (!value) continue;
+    typeTags.push({ id: value, title: title });
+  }
+
+  return [
+    { id: "genres", title: "Genres", tags: arrayTags },
+    { id: "status", title: "Status", tags: statusTags },
+    { id: "type", title: "Type", tags: typeTags },
+  ];
 };
 
 export const parseOldSearch = ($: CheerioAPI, baseUrl: string): SearchResultItem[] => {
