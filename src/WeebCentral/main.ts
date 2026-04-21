@@ -25,11 +25,13 @@ import {
   type SourceManga,
   type Tag,
   type TagSection,
+  type SortingOption,
 } from "@paperback/types";
 import * as cheerio from "cheerio";
 import { getState } from "../utils/state";
 import { SettingsForm } from "./forms";
 import {
+  getDropdownFilterValue,
   getFilterTagsBySection,
   getShareUrl,
   getTagFromTagStore,
@@ -245,15 +247,27 @@ export class WeebCentralExtension
     return filters;
   }
 
+  async getSortingOptions(): Promise<SortingOption[]> {
+    return [
+      { id: "Best Match", label: "Best Match" },
+      { id: "Alphabet", label: "Alphabet" },
+      { id: "Popularity", label: "Popularity" },
+      { id: "Subscribers", label: "Subscribers" },
+      { id: "Recently Added", label: "Recently Added" },
+      { id: "Latest Updates", label: "Latest Updates" },
+    ];
+  }
+
   async getSearchResults(
     query: SearchQuery,
     metadata: Metadata | undefined,
+    sortingOption?: SortingOption,
   ): Promise<PagedResults<SearchResultItem>> {
     const LIMIT = 32;
     const offset = metadata?.offset ?? 0;
     const paths = ["data"];
     const queries = [
-      newQuery("sort", "Best Match"),
+      newQuery("sort", sortingOption?.id ?? "Best Match"),
       newQuery("display_mode", "Full Display"),
       newQuery("limit", LIMIT.toString()),
       newQuery("offset", offset.toString()),
@@ -272,8 +286,12 @@ export class WeebCentralExtension
         TagSectionId.SeriesType,
         getFilterTagsBySection(TagSectionId.SeriesType, query.filters),
       ),
-      newQuery(TagSectionId.Order, getFilterTagsBySection(TagSectionId.Order, query.filters)),
     );
+
+    const orderValue = getDropdownFilterValue(TagSectionId.Order, query.filters);
+    if (orderValue) {
+      queries.push(newQuery(TagSectionId.Order, orderValue));
+    }
 
     const [_, buffer] = await fetchSearchPage(paths, queries);
     const $ = cheerio.load(Application.arrayBufferToUTF8String(buffer));
