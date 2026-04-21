@@ -21,7 +21,7 @@ jobs:
             echo "Skip" && exit 0
           fi
       - name: Checkout Branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: "gh-pages"
       - name: Git Configuration
