@@ -174,16 +174,29 @@ export class MgekoExtension implements MgekoImplementation {
 
     const searchTags = await this.getGenreTags();
     for (const tags of searchTags) {
-      filters.push({
-        type: "multiselect",
-        options: tags.tags.map((x) => ({ id: x.id, value: x.title })),
-        id: tags.id,
-        allowExclusion: true,
-        title: tags.title,
-        value: {},
-        allowEmptySelection: true,
-        maximum: undefined,
-      });
+      if (tags.id === "genres") {
+        filters.push({
+          type: "multiselect",
+          options: tags.tags.map((x) => ({ id: x.id, value: x.title })),
+          id: tags.id,
+          allowExclusion: true,
+          title: tags.title,
+          value: {},
+          allowEmptySelection: true,
+          maximum: undefined,
+        });
+      } else {
+        filters.push({
+          type: "dropdown",
+          options: [
+            { id: "", value: "Any" },
+            ...tags.tags.map((x) => ({ id: x.id, value: x.title })),
+          ],
+          id: tags.id,
+          title: tags.title,
+          value: "",
+        });
+      }
     }
 
     return filters;
@@ -254,6 +267,12 @@ export class MgekoExtension implements MgekoImplementation {
         .join(",");
 
       urlBuilder.setQueryItem("genre_excluded", genreExcluded);
+
+      const status = (getFilterValue("status") as string) ?? "";
+      if (status) urlBuilder.setQueryItem("status", status);
+
+      const type = (getFilterValue("type") as string) ?? "";
+      if (type) urlBuilder.setQueryItem("type", type);
 
       const request = {
         url: urlBuilder.toString(),
