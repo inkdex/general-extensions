@@ -118,4 +118,5 @@ export interface ExtractedFilters {
   includedTags: string[];
   excludedTags: string[];
   selectedTypes: string[];
+  selectedStatuses: string[];
 }
