@@ -30,11 +30,13 @@ jobs:
           git config --global user.name "github-actions[bot]"
       - name: Delete Branch Extensions
         run: rm -rf "./${{ github.event.ref }}"
-      - name: Commit Changes
+      - name: Commit and Push
         run: |
           git add --all
+          if git diff --cached --quiet; then
+            echo "Nothing to delete"
+            exit 0
+          fi
           git commit -m "Delete branch extensions"
-      - name: Pull from Remote
-        run: git pull --rebase
-      - name: Push to Remote
-        run: git push origin gh-pages
+          git pull --rebase
+          git push origin gh-pages
