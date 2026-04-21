@@ -1,12 +1,12 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 /* Copyright © 2026 Inkdex */
 
-import type { FormSectionElement, FormItemElement, ToggleRowProps } from "@paperback/types";
+import type { FormItemElement, ToggleRowProps } from "@paperback/types";
 import { Form, Section, ToggleRow } from "@paperback/types";
 import { getShowAdult, setShowAdult } from "./main";
 
 export class AtsumaruSettingsForm extends Form {
-  override getSections(): FormSectionElement[] {
+  override getSections() {
     return [
       Section(
         {

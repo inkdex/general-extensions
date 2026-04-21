@@ -1,14 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 /* Copyright © 2026 Inkdex */
 
-import {
-  ButtonRow,
-  Form,
-  LabelRow,
-  Section,
-  type FormItemElement,
-  type FormSectionElement,
-} from "@paperback/types";
+import { ButtonRow, Form, LabelRow, Section, type FormItemElement } from "@paperback/types";
 import { MDLanguages } from "../MangaDexHelper";
 import { getLanguagePriority, setLanguagePriority, getLanguages } from "../MangaDexSettings";
 
@@ -44,7 +37,7 @@ export class LanguagePriorityForm extends Form {
     this.reloadForm();
   }
 
-  override getSections(): FormSectionElement[] {
+  override getSections() {
     return [
       Section(
         {

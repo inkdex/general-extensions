@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 /* Copyright © 2026 Inkdex */
 
-import { ButtonRow, Form, LabelRow, Section, type FormSectionElement } from "@paperback/types";
+import { ButtonRow, Form, LabelRow, Section } from "@paperback/types";
 import { authEndpointRequest, getAccessToken, saveAccessToken } from "../MangaDexSettings";
 
 interface OAuthState {
@@ -23,7 +23,7 @@ export class SessionInfoForm extends Form {
     this.sessionState = oAuthState.value;
   }
 
-  override getSections(): FormSectionElement[] {
+  override getSections() {
     if (!this.sessionState) {
       return [
         Section("session_status", [

@@ -1,15 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 /* Copyright © 2026 Inkdex */
 
-import {
-  ButtonRow,
-  Form,
-  NavigationRow,
-  Section,
-  SelectRow,
-  type FormSectionElement,
-  StepperRow,
-} from "@paperback/types";
+import { ButtonRow, Form, NavigationRow, Section, SelectRow, StepperRow } from "@paperback/types";
 import { filter } from "./main";
 
 abstract class BaseSettings extends Form {
@@ -22,7 +14,7 @@ abstract class BaseSettings extends Form {
 }
 
 export class MainSettings extends BaseSettings {
-  override getSections(): FormSectionElement[] {
+  override getSections() {
     return [
       Section("settings", [
         NavigationRow("Contents", {
@@ -52,7 +44,7 @@ export class MainSettings extends BaseSettings {
 }
 
 class SectionSettings extends BaseSettings {
-  override getSections(): FormSectionElement[] {
+  override getSections() {
     return [
       Section(
         {
@@ -129,7 +121,7 @@ class FilterSettings extends BaseSettings {
     id: id,
   }));
 
-  override getSections(): FormSectionElement[] {
+  override getSections() {
     return [
       Section(
         {

@@ -6,7 +6,6 @@ import {
   Section,
   SelectRow,
   type FormItemElement,
-  type FormSectionElement,
   type SelectRowProps,
 } from "@paperback/types";
 import { getLanguage, setLanguage } from "./main";
@@ -19,7 +18,7 @@ const LANGUAGES = [
 ];
 
 export class QToonSettingsForm extends Form {
-  override getSections(): FormSectionElement[] {
+  override getSections() {
     return [
       Section(
         {

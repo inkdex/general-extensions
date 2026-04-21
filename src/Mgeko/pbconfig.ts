@@ -6,7 +6,7 @@ import { ContentRating, SourceIntents, type ExtensionInfo } from "@paperback/typ
 export default {
   name: "Mgeko",
   description: "Extension that pulls content from mgeko.cc.",
-  version: "1.0.0-alpha.23",
+  version: "1.0.0-alpha.24",
   icon: "icon.png",
   language: "en",
   contentRating: ContentRating.EVERYONE,

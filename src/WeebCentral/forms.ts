@@ -1,10 +1,10 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 /* Copyright © 2026 Inkdex */
 
-import { ButtonRow, Form, Section, type FormSectionElement } from "@paperback/types";
+import { ButtonRow, Form, Section } from "@paperback/types";
 
 export class SettingsForm extends Form {
-  override getSections(): FormSectionElement[] {
+  override getSections() {
     return [
       Section("tags", [
         ButtonRow("clearTags", {

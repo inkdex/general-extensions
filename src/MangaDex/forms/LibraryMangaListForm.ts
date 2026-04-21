@@ -9,7 +9,7 @@ import {
   Section,
   URL,
   type FormItemElement,
-  type FormSectionElement,
+  type ListSectionElement,
   type SourceManga,
 } from "@paperback/types";
 import { parseMangaDetails } from "../MangaDexParser";
@@ -60,8 +60,8 @@ export class LibraryMangaListForm extends Form {
     this.chapterProvider = new ChapterProvider(mangaProvider);
   }
 
-  override getSections(): FormSectionElement[] {
-    const sections: FormSectionElement[] = [];
+  override getSections() {
+    const sections: ListSectionElement[] = [];
 
     if (!this.isLoaded && !this.isLoading) {
       sections.push(

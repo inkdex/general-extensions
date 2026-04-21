@@ -8,7 +8,6 @@ import {
   Section,
   ToggleRow,
   type FormItemElement,
-  type FormSectionElement,
 } from "@paperback/types";
 import {
   DEFAULT_SECTION_ORDER,
@@ -57,7 +56,7 @@ export class DiscoverSettingsForm extends Form {
     getDiscoverSectionOrder(),
   );
 
-  override getSections(): FormSectionElement[] {
+  override getSections() {
     return [
       Section("discover_visibility", [
         ToggleRow("seasonal_enabled", {

@@ -7,7 +7,7 @@ import { ContentRating, SourceIntents } from "@paperback/types";
 export default {
   name: "QToon",
   description: "Extension that pulls content from qtoon.com.",
-  version: "1.0.0-alpha.1",
+  version: "1.0.0-alpha.2",
   icon: "icon.png",
   language: "multi",
   contentRating: ContentRating.MATURE,
