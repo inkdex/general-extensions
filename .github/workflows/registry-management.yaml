@@ -16,9 +16,17 @@ jobs:
     name: Registry Management
     runs-on: ubuntu-latest
     steps:
+      - name: Generate App Token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.REGISTRY_MANAGEMENT_APP_ID }}
+          private-key: ${{ secrets.REGISTRY_MANAGEMENT_APP_PRIVATE_KEY }}
+          repositories: extensions
+
       - name: Registry Management Workflow Dispatch
         env:
-          GH_TOKEN: ${{ secrets.REGISTRY_MANAGEMENT }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           gh api \
             --method POST \
