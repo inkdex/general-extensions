@@ -7,7 +7,10 @@ import {
   type Request,
 } from "@paperback/types";
 import { fetchCheerio } from "../../services/network";
-import { getDiscoverSectionOrder, getHiddenDiscoverSections } from "../settings-form/forms/main";
+import {
+  getDiscoverSectionOrder,
+  getHiddenDiscoverSections,
+} from "../settings-form-providing/forms/main";
 import { DOMAIN, type DiscoverSectionDefinition, type Metadata } from "../shared/models";
 import { getDiscoverSectionDefinition } from "../shared/utils";
 import { parseDesktopTabItems, parseDiscoverItems } from "./parsers";

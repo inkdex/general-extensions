@@ -2,7 +2,7 @@ import type { Chapter, ChapterDetails, Request, SourceManga } from "@paperback/t
 import { URL } from "@paperback/types";
 import { DOMAIN } from "../shared/models";
 import { createChapterPageUrls, fetchCheerio } from "../../services/network";
-import { getUseHighQualityImages } from "../settings-form/forms/main";
+import { getUseHighQualityImages } from "../settings-form-providing/forms/main";
 import { parseChapterDetails, parseChapterList } from "./parsers";
 
 export class ChapterProvider {

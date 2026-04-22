@@ -14,7 +14,7 @@ import {
   getDefaultSearchSort,
   getHiddenSearchGenres,
   getSearchGenreOrder,
-} from "../settings-form/forms/main";
+} from "../settings-form-providing/forms/main";
 import { getSearchGenreOption } from "../shared/utils";
 import {
   buildSearchFilters,
