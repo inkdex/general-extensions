@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 /* Copyright © 2026 Inkdex */
 
+import type { JSONObject } from "@paperback/types";
 export const DOMAIN = "https://comix.to";
 export const API = `${DOMAIN}/api/v2`;
 export const NO_IMAGE = `${DOMAIN}/images/no-poster.png`;
@@ -85,7 +86,7 @@ export interface ChapterItem {
   scanlation_group?: { name: string } | null;
 }
 
-export interface Metadata {
+export interface Metadata extends JSONObject {
   page: number;
 }
 
@@ -103,3 +104,13 @@ export type OptionItem = {
   value: string;
   id: string;
 };
+
+export interface SearchMetadata extends JSONObject {
+  genres?: TagMap;
+  formats?: TagMap;
+  types?: TagMap;
+  demographic?: TagMap;
+  status?: TagMap;
+  themes?: TagMap;
+  mode?: string[];
+}

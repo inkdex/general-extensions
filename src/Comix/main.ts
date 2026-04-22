@@ -16,7 +16,7 @@ import {
   Form,
   type MangaProviding,
   type PagedResults,
-  type SearchFilter,
+  type AdvancedSearchForm,
   type SearchQuery,
   type SearchResultItem,
   type SearchResultsProviding,
@@ -25,11 +25,19 @@ import {
   type SourceManga,
 } from "@paperback/types";
 
-import { MainSettings } from "./forms";
-import type { Metadata } from "./models";
+import { ComixAdvancedSearchForm } from "./forms/search";
+import { getDiscoverySectionsOrder, MainSettings } from "./forms/settings";
+import type { Metadata, SearchMetadata } from "./models";
 import { MainInterceptor, mainRateLimiter } from "./network";
 import { JsonParser } from "./parsers";
-import { globalFilters } from "./utils/globalFilters";
+import {
+  getChapterSectionDiffType,
+  getRecentSectionDiffType,
+  getSectionTimesType,
+  getTrendingSectionDiffType,
+  globalFilters,
+} from "./utils/globalFilters";
+import { getDefaultMetadata } from "./utils/utilsFunctions";
 
 type ComixImplementation = SettingsFormProviding &
   Extension &
@@ -63,97 +71,136 @@ export class ComixExtension implements ComixImplementation {
     }
   }
   async getDiscoverSections(): Promise<DiscoverSection[]> {
-    const get_popular: DiscoverSection = {
-      id: "popular",
-      title: "Popular",
-      type: DiscoverSectionType.featured,
+    const allSections: Record<string, DiscoverSection> = {
+      popular: {
+        id: "popular",
+        title: "Popular",
+        type: DiscoverSectionType.featured,
+      },
+      follow: {
+        id: "follow",
+        title: "Most Follows New Comics",
+        type: DiscoverSectionType.prominentCarousel,
+      },
+      recent: {
+        id: "recent",
+        title: "Recently Added",
+        type: getRecentSectionDiffType()
+          ? DiscoverSectionType.simpleCarousel
+          : DiscoverSectionType.chapterUpdates,
+      },
+      trending_manga: {
+        id: "trending_manga",
+        title: `Trending Manga${getSectionTimesType() ? " of " + filter.getYearSettings() : ""}`,
+        type: getTrendingSectionDiffType()
+          ? DiscoverSectionType.simpleCarousel
+          : DiscoverSectionType.chapterUpdates,
+      },
+      trending_wt: {
+        id: "trending_wt",
+        title: `Trending WebToons${getSectionTimesType() ? " of " + filter.getYearSettings() : ""}`,
+        type: getTrendingSectionDiffType()
+          ? DiscoverSectionType.simpleCarousel
+          : DiscoverSectionType.chapterUpdates,
+      },
+      completed: {
+        id: "completed",
+        title: "Completed",
+        type: DiscoverSectionType.simpleCarousel,
+      },
+      updatesHot: {
+        id: "updatesHot",
+        title: "Latest Updates (HOT)",
+        type: getChapterSectionDiffType()
+          ? DiscoverSectionType.simpleCarousel
+          : DiscoverSectionType.chapterUpdates,
+      },
+      updatesNew: {
+        id: "updatesNew",
+        title: "Latest Updates (NEW)",
+        type: getChapterSectionDiffType()
+          ? DiscoverSectionType.simpleCarousel
+          : DiscoverSectionType.chapterUpdates,
+      },
+      genresSection: {
+        id: "genresSection",
+        title: "Best of genres",
+        type: DiscoverSectionType.genres,
+      },
     };
-    const get_follow: DiscoverSection = {
-      id: "follow",
-      title: "Most Follows New Comics",
-      type: DiscoverSectionType.prominentCarousel,
-    };
-    const get_recent: DiscoverSection = {
-      id: "recent",
-      title: "Recently Added",
-      type: DiscoverSectionType.simpleCarousel,
-    };
-    const get_trending_manga: DiscoverSection = {
-      id: "trending_manga",
-      title: `Trending Manga of ${filter.getYearSettings()}`,
-      type: DiscoverSectionType.simpleCarousel,
-    };
-    const get_trending_wt: DiscoverSection = {
-      id: "trending_wt",
-      title: `Trending WebToons of ${filter.getYearSettings()}`,
-      type: DiscoverSectionType.simpleCarousel,
-    };
-    const get_completed: DiscoverSection = {
-      id: "completed",
-      title: "Completed",
-      type: DiscoverSectionType.simpleCarousel,
-    };
-    const get_updatesHot: DiscoverSection = {
-      id: "updatesHot",
-      title: "Latest Updates (HOT)",
-      type: DiscoverSectionType.chapterUpdates,
-    };
-    const get_updatesNew: DiscoverSection = {
-      id: "updatesNew",
-      title: "Latest Updates (NEW)",
-      type: DiscoverSectionType.chapterUpdates,
-    };
-    return [
-      get_popular,
-      get_recent,
-      get_follow,
-      get_trending_manga,
-      get_trending_wt,
-      get_completed,
-      get_updatesHot,
-      get_updatesNew,
-    ];
+    return getDiscoverySectionsOrder()
+      .map((key) => allSections[key.id])
+      .filter(Boolean);
   }
 
   async getDiscoverSectionItems(
     section: DiscoverSection,
     metadata: Metadata,
   ): Promise<PagedResults<DiscoverSectionItem>> {
+    console.log(section.id);
     switch (section.id) {
       case "popular":
         return await parse.parseSection("popular", undefined);
       case "follow":
         return await parse.parseSection("follow", undefined);
       case "recent":
-        return await parse.parseSection("recent", metadata);
+        return getRecentSectionDiffType()
+          ? await parse.parseSectionSimple("recent", metadata)
+          : await parse.parseSectionChapter("recent", metadata);
       case "trending_manga":
-        return await parse.parseSection("trending_manga", metadata);
+        return getTrendingSectionDiffType()
+          ? await parse.parseSectionSimple("trending_manga", metadata)
+          : await parse.parseSectionChapter("trending_manga", metadata);
       case "trending_wt":
-        return await parse.parseSection("trending_wt", metadata);
+        return getTrendingSectionDiffType()
+          ? await parse.parseSectionSimple("trending_wt", metadata)
+          : await parse.parseSectionChapter("trending_wt", metadata);
       case "completed":
         return await parse.parseSection("completed", metadata);
       case "updatesNew":
-        return await parse.parseSectionChUp("updatesNew", metadata);
+        return getChapterSectionDiffType()
+          ? await parse.parseSectionSimple("updatesNew", metadata)
+          : await parse.parseSectionChapter("updatesNew", metadata);
       case "updatesHot":
-        return await parse.parseSectionChUp("updatesHot", metadata);
+        return getChapterSectionDiffType()
+          ? await parse.parseSectionSimple("updatesHot", metadata)
+          : await parse.parseSectionChapter("updatesHot", metadata);
+      case "genresSection":
+        return await parse.parseGenreSection(metadata);
       default:
         return { items: [] };
     }
   }
 
-  async getSearchFilters(): Promise<SearchFilter[]> {
-    return filter.getFilters();
-  }
-
   getSearchResults(
-    query: SearchQuery,
+    searchQuery: SearchQuery<SearchMetadata>,
     metadata: Metadata | undefined,
     sortingOption: SortingOption,
   ): Promise<PagedResults<SearchResultItem>> {
-    sortingOption.id = sortingOption.id.split(query.title.length > 1 ? "#title" : "#empty")[0];
-    return parse.parseSearchResults(query, metadata, sortingOption);
+    let sorting = sortingOption;
+    if (sorting === undefined) {
+      sorting = {
+        id: "views_30d$desc#empty",
+        label: "Any",
+      };
+    }
+    sorting.id = sorting.id.split(searchQuery.title.length > 1 ? "#title" : "#empty")[0];
+    if (searchQuery.metadata === undefined) {
+      searchQuery.metadata = getDefaultMetadata();
+    }
+    sorting.id = sorting.id.split(searchQuery.title.length > 1 ? "#title" : "#empty")[0];
+    return parse.parseSearchResults(searchQuery, metadata, sorting);
   }
-  async getSortingOptions(query: SearchQuery): Promise<SortingOption[]> {
+  async getAdvancedSearchForm(
+    searchQuery: SearchQuery<SearchMetadata>,
+  ): Promise<AdvancedSearchForm> {
+    await filter.checkFilters();
+    if (searchQuery.metadata === undefined) {
+      searchQuery.metadata = getDefaultMetadata();
+    }
+    return new ComixAdvancedSearchForm(searchQuery);
+  }
+  async getSortingOptions(query: SearchQuery<SearchMetadata>): Promise<SortingOption[]> {
     const idSuffix = query.title.length > 1 ? "#title" : "";
     let sortingOptions: SortingOption[] = [
       { id: "views_30d$desc#empty", label: "Any" },
@@ -167,10 +214,10 @@ export class ComixExtension implements ComixImplementation {
       { id: "year$desc" + idSuffix, label: "Year ↓" },
       { id: "score$asc" + idSuffix, label: "Average Score ↑" },
       { id: "score$desc" + idSuffix, label: "Average Score ↓" },
-      { id: "total_views$asc" + idSuffix, label: "Total Views ↑" },
-      { id: "total_views$desc" + idSuffix, label: "Total Views ↓" },
-      { id: "followed_count$asc" + idSuffix, label: "Most Follows ↑" },
-      { id: "followed_count$desc" + idSuffix, label: "Most Follows ↓" },
+      { id: "views_total$asc" + idSuffix, label: "Total Views ↑" },
+      { id: "views_totals$desc" + idSuffix, label: "Total Views ↓" },
+      { id: "follows_total$asc" + idSuffix, label: "Most Follows ↑" },
+      { id: "follows_total$desc" + idSuffix, label: "Most Follows ↓" },
       { id: "views_7d$asc" + idSuffix, label: "Most Views 7 Days ↑" },
       { id: "views_7d$desc" + idSuffix, label: "Most Views 7 Days ↓" },
       { id: "views_30d$asc" + idSuffix, label: "Most Views 1 Month ↑" },
@@ -180,7 +227,9 @@ export class ComixExtension implements ComixImplementation {
     ];
     if (query.title.length > 1) {
       sortingOptions.unshift({ id: "relevance$desc" + idSuffix, label: "Best Match" });
-      sortingOptions = sortingOptions.filter((id) => id.id !== "views_30d$desc#empty");
+      sortingOptions = sortingOptions.filter((sort) => {
+        return sort.id !== "views_30d$desc#empty";
+      });
     }
     return sortingOptions;
   }

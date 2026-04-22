@@ -2,9 +2,9 @@
 /* Copyright © 2026 Inkdex */
 
 import {
-  ContentRating,
   type Chapter,
   type ChapterDetails,
+  ContentRating,
   type DiscoverSectionItem,
   type PagedResults,
   type SearchQuery,
@@ -15,15 +15,18 @@ import {
   type TagSection,
 } from "@paperback/types";
 
+import { filter } from "./main";
 import {
   type ChapterItem,
-  type Metadata,
-  type Filters,
-  type TagMap,
   DOMAIN,
+  type Filters,
+  type Metadata,
   NO_IMAGE,
+  type SearchMetadata,
+  type TagMap,
 } from "./models";
 import { ApiMaker } from "./network";
+import { getDefaultMetadata } from "./utils/utilsFunctions";
 
 const api = new ApiMaker();
 export class JsonParser {
@@ -53,8 +56,58 @@ export class JsonParser {
       metadata: section === "follow" || section === "popular" ? undefined : { page: page + 1 },
     };
   }
+  async parseGenreSection(
+    ComixMetadata: Metadata | undefined,
+  ): Promise<{ items: DiscoverSectionItem[]; metadata: Metadata }> {
+    await filter.updateFilters(true);
+    const allGenres: DiscoverSectionItem[] = [];
+    const page = ComixMetadata?.page ?? 1;
+    filter.genres
+      .filter((filterName) => {
+        return !filter.getHiddenGenresSettings().includes(filterName.id);
+      })
+      .forEach((filterItem) => {
+        allGenres.push({
+          type: "genresCarouselItem",
+          searchQuery: {
+            title: "",
+            metadata: getDefaultMetadata(filterItem.id),
+          },
+          name: filterItem.value,
+          contentRating:
+            filterItem.value === "Adult" ? ContentRating.ADULT : ContentRating.EVERYONE,
+        });
+      });
+    return {
+      items: allGenres,
+      metadata: { page: page + 1 },
+    };
+  }
 
-  async parseSectionChUp(section: string, metadata: Metadata) {
+  async parseSectionSimple(section: string, metadata: Metadata) {
+    const latest: DiscoverSectionItem[] = [];
+    const page = metadata?.page ?? 1;
+    const json = await api.getJsonMangaApi(section, page);
+    if (json.status === 200) {
+      json.result.items.forEach((item) => {
+        latest.push({
+          contentRating: item.is_nsfw ? ContentRating.ADULT : ContentRating.EVERYONE,
+          imageUrl: item.poster.large.length > 0 ? item.poster.large : NO_IMAGE,
+          mangaId: item.hash_id,
+          subtitle: "Chapter " + item.latest_chapter.toString(),
+          title: item.title,
+          type: "simpleCarouselItem",
+        });
+      });
+      return {
+        items: latest,
+        metadata: json.result.items.length > 0 ? { page: page + 1 } : undefined,
+      };
+    }
+    return { items: latest, metadata: undefined };
+  }
+
+  async parseSectionChapter(section: string, metadata: Metadata) {
     const latest: DiscoverSectionItem[] = [];
     const page = metadata?.page ?? 1;
     const json = await api.getJsonMangaApi(section, page);
@@ -169,7 +222,7 @@ export class JsonParser {
   }
 
   async parseSearchResults(
-    query: SearchQuery,
+    query: SearchQuery<SearchMetadata>,
     metadata: Metadata | undefined,
     sortingOption: SortingOption,
   ): Promise<PagedResults<SearchResultItem>> {
@@ -186,15 +239,13 @@ export class JsonParser {
       return values.length ? [{ type, filters: values }] : [];
     }
     const page = metadata?.page ?? 1;
-    const getFilterValue = (id: string) => query.filters.find((filter) => filter.id == id)?.value;
-    const genres: string | TagMap = getFilterValue("genres") ?? "";
-    const themes: string | TagMap = getFilterValue("themes") ?? "";
-    const types: string | TagMap = getFilterValue("types") ?? "";
-    const demographic: string | TagMap = getFilterValue("demographic") ?? "";
-    const status: string | TagMap = getFilterValue("status") ?? "";
-    const formats: string | TagMap = getFilterValue("formats") ?? "";
-
-    const mode: string | TagMap = getFilterValue("filter_mode") ?? "";
+    const genres = query.metadata?.genres ?? {};
+    const themes = query.metadata?.themes ?? {};
+    const formats = query.metadata?.formats ?? {};
+    const demographic = query.metadata?.demographic ?? {};
+    const status = query.metadata?.status ?? {};
+    const types = query.metadata?.types ?? {};
+    const mode = query.metadata?.mode ?? "and";
     const [sortBy, orderBy] = sortingOption.id.split("$");
     const filters: Filters[] = [
       ...buildFilter("genres[]", genres, themes, formats),
