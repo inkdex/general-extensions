@@ -35,7 +35,7 @@ export class DiscoverProvider {
   ): Promise<PagedResults<DiscoverSectionItem>> {
     const definition = getDiscoverSectionDefinition(section.id);
     if (!definition) {
-      throw new Error(`[ReadComicOnlineLi] Unknown discover section: ${section.id}`);
+      throw new Error(`[ReadComicOnline] Unknown discover section: ${section.id}`);
     }
 
     if (definition.source === "desktop-tab") {

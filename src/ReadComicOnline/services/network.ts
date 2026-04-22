@@ -4,10 +4,10 @@ import * as cheerio from "cheerio";
 import { DOMAIN } from "../implementations/shared/models";
 
 const IMAGE_PROXY_PREFIX = `${DOMAIN}/__pb__/img/`;
-const CHAPTER_PAGE_STATE_PREFIX = "readcomiconlineli:chapter-pages:";
+const CHAPTER_PAGE_STATE_PREFIX = "readcomiconline:chapter-pages:";
 const chapterPageCache = new Map<string, string[]>();
 
-export class ReadComicOnlineLiInterceptor extends PaperbackInterceptor {
+export class ReadComicOnlineInterceptor extends PaperbackInterceptor {
   async interceptRequest(request: Request): Promise<Request> {
     const rewrittenUrl = resolveImageRequestUrl(request.url);
 

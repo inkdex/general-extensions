@@ -9,7 +9,7 @@ import {
   SEARCH_GENRE_ORDER_KEY,
 } from "../models";
 import { normalizeSettingIds } from "../utils";
-import { ReadComicOnlineLiSettingsForm } from "./landing";
+import { ReadComicOnlineSettingsForm } from "./landing";
 
 export function getHiddenDiscoverSections(): string[] {
   return normalizeSettingIds(
@@ -89,6 +89,6 @@ export function setDefaultSearchPage(value: string): void {
 
 export class SettingsFormProvider implements SettingsFormProviding {
   async getSettingsForm(): Promise<Form> {
-    return new ReadComicOnlineLiSettingsForm();
+    return new ReadComicOnlineSettingsForm();
   }
 }

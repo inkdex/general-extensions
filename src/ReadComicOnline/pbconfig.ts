@@ -2,7 +2,7 @@ import type { ExtensionInfo } from "@paperback/types";
 import { ContentRating, SourceIntents } from "@paperback/types";
 
 export default {
-  name: "ReadComicOnlineLi",
+  name: "ReadComicOnline",
   description: "Extension that pulls content from readcomiconline.li.",
   version: "1.0.0-alpha.1",
   icon: "icon.png",

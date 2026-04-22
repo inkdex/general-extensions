@@ -6,12 +6,12 @@ import { MangaProvider } from "./implementations/manga/main";
 import { SearchProvider } from "./implementations/search-results/main";
 import { SettingsFormProvider } from "./implementations/settings-form/forms/main";
 import { applyMixins } from "./implementations/shared/utils";
-import { ReadComicOnlineLiInterceptor } from "./services/network";
+import { ReadComicOnlineInterceptor } from "./services/network";
 
-export interface ReadComicOnlineLiImplementation
+export interface ReadComicOnlineImplementation
   extends SearchProvider, MangaProvider, ChapterProvider, DiscoverProvider, SettingsFormProvider {}
 
-export class ReadComicOnlineLiExtension implements Omit<Extension, keyof MangaProviding> {
+export class ReadComicOnlineExtension implements Omit<Extension, keyof MangaProviding> {
   cookieStorageInterceptor = new CookieStorageInterceptor({
     storage: "stateManager",
   });
@@ -20,12 +20,12 @@ export class ReadComicOnlineLiExtension implements Omit<Extension, keyof MangaPr
     bufferInterval: 1,
     ignoreImages: true,
   });
-  readComicOnlineLiInterceptor = new ReadComicOnlineLiInterceptor("readcomiconlineli-interceptor");
+  readComicOnlineInterceptor = new ReadComicOnlineInterceptor("readcomiconline-interceptor");
 
   async initialise(): Promise<void> {
     this.globalRateLimiter.registerInterceptor();
     this.cookieStorageInterceptor.registerInterceptor();
-    this.readComicOnlineLiInterceptor.registerInterceptor();
+    this.readComicOnlineInterceptor.registerInterceptor();
   }
 
   async saveCloudflareBypassCookies(cookies: Cookie[]): Promise<void> {
@@ -45,7 +45,7 @@ export class ReadComicOnlineLiExtension implements Omit<Extension, keyof MangaPr
   }
 }
 
-applyMixins(ReadComicOnlineLiExtension, [
+applyMixins(ReadComicOnlineExtension, [
   SearchProvider,
   MangaProvider,
   ChapterProvider,
@@ -53,4 +53,4 @@ applyMixins(ReadComicOnlineLiExtension, [
   SettingsFormProvider,
 ]);
 
-export const ReadComicOnlineLi = new ReadComicOnlineLiExtension();
+export const ReadComicOnline = new ReadComicOnlineExtension();
