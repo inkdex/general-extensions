@@ -6,6 +6,7 @@ export const HIDDEN_SEARCH_GENRES_KEY = "readcomiconline-hidden-search-genres";
 export const SEARCH_GENRE_ORDER_KEY = "readcomiconline-search-genre-order";
 export const DEFAULT_SEARCH_SORT_KEY = "readcomiconline-default-search-sort";
 export const DEFAULT_SEARCH_PAGE_KEY = "readcomiconline-default-search-page";
+export const USE_HIGH_QUALITY_IMAGES_KEY = "readcomiconline-use-high-quality-images";
 
 export const SEARCH_STATUS_OPTIONS = SORT_OPTIONS.map((option) => ({
   id: option.id,

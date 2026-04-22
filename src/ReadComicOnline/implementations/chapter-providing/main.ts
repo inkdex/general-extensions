@@ -2,6 +2,7 @@ import type { Chapter, ChapterDetails, Request, SourceManga } from "@paperback/t
 import { URL } from "@paperback/types";
 import { DOMAIN } from "../shared/models";
 import { createChapterPageUrls, fetchCheerio } from "../../services/network";
+import { getUseHighQualityImages } from "../settings-form/forms/main";
 import { parseChapterDetails, parseChapterList } from "./parsers";
 
 export class ChapterProvider {
@@ -17,8 +18,10 @@ export class ChapterProvider {
   }
 
   async getChapterDetails(chapter: Chapter): Promise<ChapterDetails> {
+    const imageQuality = getUseHighQualityImages() ? "hq" : "lq";
     const url = new URL(`${DOMAIN}/Comic/${chapter.chapterId}`)
       .setQueryItem("readType", "1")
+      .setQueryItem("quality", imageQuality)
       .toString();
 
     const request: Request = { url, method: "GET" };
@@ -27,6 +30,7 @@ export class ChapterProvider {
       chapter.sourceManga.mangaId,
       chapter.chapterId,
       parseChapterDetails($),
+      imageQuality,
     );
 
     return {

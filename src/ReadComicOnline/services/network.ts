@@ -61,8 +61,9 @@ export function createChapterPageUrls(
   mangaId: string,
   chapterId: string,
   pages: string[],
+  cacheVariant?: string,
 ): string[] {
-  const chapterKey = hashString(`${mangaId}:${chapterId}`);
+  const chapterKey = hashString([mangaId, chapterId, cacheVariant].filter(Boolean).join(":"));
   chapterPageCache.set(chapterKey, pages);
   Application.setState(JSON.stringify(pages), getChapterPageStateKey(chapterKey));
 

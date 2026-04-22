@@ -7,6 +7,7 @@ import {
   HIDDEN_DISCOVER_SECTIONS_KEY,
   HIDDEN_SEARCH_GENRES_KEY,
   SEARCH_GENRE_ORDER_KEY,
+  USE_HIGH_QUALITY_IMAGES_KEY,
 } from "../models";
 import { normalizeSettingIds } from "../utils";
 import { ReadComicOnlineSettingsForm } from "./landing";
@@ -85,6 +86,14 @@ export function getDefaultSearchPage(): string {
 
 export function setDefaultSearchPage(value: string): void {
   Application.setState(value, DEFAULT_SEARCH_PAGE_KEY);
+}
+
+export function getUseHighQualityImages(): boolean {
+  return (Application.getState(USE_HIGH_QUALITY_IMAGES_KEY) as boolean | undefined) ?? true;
+}
+
+export function setUseHighQualityImages(value: boolean): void {
+  Application.setState(value, USE_HIGH_QUALITY_IMAGES_KEY);
 }
 
 export class SettingsFormProvider implements SettingsFormProviding {
