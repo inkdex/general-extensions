@@ -15,6 +15,7 @@ Paperback extensions for websites with unique, non-generic themes.
 - [Mgeko](https://mgeko.cc)
 - [QiScans](https://qimanhwa.com)
 - [QToon](https://qtoon.com)
+- [ReadComicOnline](https://readcomiconline.li)
 - [Webtoon](https://webtoons.com)
 - [Weeb Central](https://weebcentral.com)
 - [Mangapill](https://mangapill.com)
