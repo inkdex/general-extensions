@@ -24,6 +24,7 @@ import {
   DOMAIN,
 } from "./models";
 import { ComixHash } from "./utils/comixHash";
+import { getSectionTimesType } from "./utils/globalFilters";
 
 export class MainInterceptor extends PaperbackInterceptor {
   override async interceptRequest(request: Request): Promise<Request> {
@@ -107,10 +108,12 @@ export class ApiMaker {
           "order[views_30d]": "desc",
           "types[]": "manga",
           limit: "28",
-          "release_year[from]": year.toString(),
           "includes[]": additionalInfo,
           page: page.toString(),
           ...(hiddenGenres.length > 0 && { "exclude_genres[]": hiddenGenres }),
+          ...(getSectionTimesType() && {
+            "release_year[from]": year.toString(),
+          }),
         },
       },
       trending_wt: {
@@ -119,10 +122,12 @@ export class ApiMaker {
           "order[views_30d]": "desc",
           "types[]": ["manhwa", "manhua"],
           limit: "28",
-          "release_year[from]": year.toString(),
           "includes[]": additionalInfo,
           page: page.toString(),
           ...(hiddenGenres.length > 0 && { "exclude_genres[]": hiddenGenres }),
+          ...(getSectionTimesType() && {
+            "release_year[from]": year.toString(),
+          }),
         },
       },
       follow: {
@@ -208,7 +213,6 @@ export class ApiMaker {
     const path = `/manga/${chapter}/chapters`;
     const timeVal = 1;
     const hashToken = ComixHash.generateHash(path, 0, timeVal);
-    console.log(hashToken);
     return this.APIJson<ResultChapter>({
       path: ["manga", chapter, "chapters"],
       query: {

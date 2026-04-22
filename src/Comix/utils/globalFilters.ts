@@ -1,10 +1,8 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 /* Copyright © 2026 Inkdex */
 
-import { type SearchFilter } from "@paperback/types";
-
 import { parse } from "../main";
-import { type OptionItem, type TagMap } from "../models";
+import { type OptionItem } from "../models";
 
 export class globalFilters {
   genres: OptionItem[] = [];
@@ -45,101 +43,6 @@ export class globalFilters {
     { id: "180", value: "6 Month" },
     { id: "365", value: "1 Year" },
   ];
-
-  async getFilters() {
-    const filters: SearchFilter[] = [];
-    await this.updateFilters(false);
-    const genresHidden = this.getHiddenGenresSettings();
-    const getExcludedGenreObject = Object.fromEntries(
-      this.genres
-        .filter((option) => genresHidden.includes(option.id))
-        .map((item) => [item.id, "excluded" as const]),
-    ) as TagMap;
-    const themesHidden = this.getHiddenThemesSettings();
-    const getExcludedThemesObject = Object.fromEntries(
-      this.genres
-        .filter((option) => themesHidden.includes(option.id))
-        .map((item) => [item.id, "excluded" as const]),
-    ) as TagMap;
-    const showOnly = this.getShowOnlySettings();
-    const getShowOnlyObject = Object.fromEntries(
-      this.contentType
-        .filter((option) => showOnly.includes(option.id))
-        .map((item) => [item.id, "included" as const]),
-    ) as TagMap;
-
-    filters.push({
-      type: "multiselect",
-      id: "genres",
-      title: "Genres",
-      options: this.genres,
-      value: getExcludedGenreObject,
-      allowExclusion: true,
-      allowEmptySelection: true,
-      maximum: this.genres.length,
-    });
-    filters.push({
-      type: "multiselect",
-      id: "themes",
-      title: "Themes",
-      options: this.themes,
-      value: getExcludedThemesObject,
-      allowExclusion: true,
-      allowEmptySelection: true,
-      maximum: this.themes.length,
-    });
-    filters.push({
-      type: "multiselect",
-      id: "formats",
-      title: "Formats",
-      options: this.formats,
-      value: {},
-      allowExclusion: true,
-      allowEmptySelection: true,
-      maximum: this.formats.length,
-    });
-    filters.push({
-      type: "dropdown",
-      id: "filter_mode",
-      title: "Filter Mode",
-      value: "and",
-      options: [
-        { id: "and", value: "AND" },
-        { id: "or", value: "OR" },
-      ],
-    });
-    filters.push({
-      type: "multiselect",
-      id: "types",
-      title: "Types",
-      options: this.contentType,
-      value: getShowOnlyObject,
-      allowExclusion: true,
-      allowEmptySelection: true,
-      maximum: this.contentType.length,
-    });
-    filters.push({
-      type: "multiselect",
-      id: "demographic",
-      title: "Demographic",
-      options: this.demographic,
-      value: {},
-      allowExclusion: true,
-      allowEmptySelection: true,
-      maximum: this.demographic.length,
-    });
-    filters.push({
-      type: "multiselect",
-      id: "status",
-      title: "Status",
-      options: this.publication_status,
-      value: {},
-      allowExclusion: false,
-      allowEmptySelection: true,
-      maximum: this.publication_status.length,
-    });
-    return filters;
-  }
 
   getHiddenGenresSettings() {
     return (Application.getState("hide_genres") as string[] | undefined) ?? [];
@@ -214,3 +117,39 @@ export class globalFilters {
     Application.setState(JSON.stringify(newValue), "format");
   }
 }
+export function getSectionTimesType() {
+  return (Application.getState("yearTimes") as boolean | undefined) ?? true;
+}
+
+/**
+ * @return true if horizontal, false if table
+ */
+export function getChapterSectionDiffType() {
+  return (Application.getState("chapterSection") as boolean | undefined) ?? false;
+}
+
+/**
+ * @return true if horizontal, false if table
+ */
+export function getTrendingSectionDiffType() {
+  return (Application.getState("trendingSection") as boolean | undefined) ?? true;
+}
+
+/**
+ * @return true if horizontal, false if table
+ */
+export function getRecentSectionDiffType() {
+  return (Application.getState("recentSection") as boolean | undefined) ?? true;
+}
+
+export const discoverySections = [
+  { id: "popular", title: "Popular" },
+  { id: "follow", title: "Most Follows New Comics" },
+  { id: "recent", title: "Recent Comics" },
+  { id: "trending_manga", title: "Trending Manga" },
+  { id: "trending_wt", title: "Trending WebToons" },
+  { id: "updatesHot", title: "Latest Updates HOT" },
+  { id: "updatesNew", title: "Latest Updates NEW" },
+  { id: "completed", title: "Completed" },
+  { id: "genresSection", title: "Best of Genres" },
+];
