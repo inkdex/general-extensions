@@ -293,7 +293,20 @@ function parseRelativeDate(dateText: string): Date {
     }
   }
 
-  const monthNames = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+  const monthNames = [
+    "jan",
+    "feb",
+    "mar",
+    "apr",
+    "may",
+    "jun",
+    "jul",
+    "aug",
+    "sep",
+    "oct",
+    "nov",
+    "dec",
+  ];
   const dateMatch = text.match(/(\w+)\s+(\d+),\s+(\d+)/);
   if (dateMatch?.[1] && dateMatch[2] && dateMatch[3]) {
     const month = monthNames.findIndex((m) => dateMatch[1]!.startsWith(m));
