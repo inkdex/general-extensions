@@ -33,7 +33,6 @@ export function generateDid(length = 24): string {
 export function md5(input: string): string {
   const encoder = new TextEncoder();
   const array = encoder.encode(input);
-  // @ts-expect-error (remove this once method is in types)
   return Application.crypto_md5Hash(array.buffer);
 }
 
