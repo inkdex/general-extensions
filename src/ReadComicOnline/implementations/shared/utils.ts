@@ -63,6 +63,9 @@ export function beauDecode(url: string): string | null {
 
   // decode real cdn path
   const decoded = Application.base64Decode(path);
+  if (typeof decoded !== "string") {
+    return null;
+  }
 
   // strip 4-byte decoded path padding at position 13
   let result = decoded.substring(0, 13) + decoded.substring(17);
