@@ -1,9 +1,15 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 /* Copyright © 2026 Inkdex */
 
-export type Metadata = {
+export type PageMetadata = {
   page?: number;
   completed?: boolean;
+};
+
+export type SearchMetadata = {
+  genres?: { [id: string]: "included" | "excluded" };
+  status?: string;
+  type?: string;
 };
 
 export type BrowseResult = {
