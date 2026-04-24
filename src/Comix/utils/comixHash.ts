@@ -24,7 +24,15 @@ export class ComixHash {
     const b64 = this.KEYS[index];
     if (!b64) return [];
     try {
-      return Array.from(Buffer.from(b64, "base64"));
+      const decoded = Application.base64Decode(b64);
+      if (typeof decoded === "string") {
+        const bytes: number[] = [];
+        for (let i = 0; i < decoded.length; i++) {
+          bytes.push(decoded.charCodeAt(i) & 0xff);
+        }
+        return bytes;
+      }
+      return Array.from(new Uint8Array(decoded));
     } catch {
       return [];
     }
@@ -335,10 +343,12 @@ export class ComixHash {
 
   public static generateHash(path: string, bodySize: number = 0, time: number = 1): string {
     const baseString = `${path}:${bodySize}:${time}`;
-
     const encoded = this.encodeURIComponentCustom(baseString);
 
-    const initialBytes = Array.from(Buffer.from(encoded, "ascii"));
+    const initialBytes: number[] = [];
+    for (let i = 0; i < encoded.length; i++) {
+      initialBytes.push(encoded.charCodeAt(i));
+    }
 
     const r1 = this.round1(initialBytes);
     const r2 = this.round2(r1);
@@ -346,8 +356,17 @@ export class ComixHash {
     const r4 = this.round4(r3);
     const r5 = this.round5(r4);
 
-    const finalBytes = Buffer.from(r5);
+    const encodedResult = Application.base64Encode(new Uint8Array(r5).buffer);
 
-    return finalBytes.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    let b64: string;
+    if (typeof encodedResult === "string") {
+      b64 = encodedResult;
+    } else {
+      const view = new Uint8Array(encodedResult);
+      b64 = "";
+      for (let i = 0; i < view.length; i++) b64 += String.fromCharCode(view[i]);
+    }
+
+    return b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
   }
 }
