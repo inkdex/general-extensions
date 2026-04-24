@@ -24,7 +24,6 @@ export function generateToken(): { token: string; timestamp: number } {
   const secret = "mng_ch_" + hour;
   const encoder = new TextEncoder();
   const array = encoder.encode(timestamp.toString() + secret);
-  // @ts-expect-error (remove this once method is in types)
   const hash = Application.crypto_md5Hash(array.buffer).substring(0, 16);
   return { token: hash, timestamp };
 }

@@ -243,7 +243,7 @@ function parseAccessToken(accessToken: string): MangaDex.TokenBody {
   if (!tokenBodyBase64) throw new Error("Invalid access token format");
 
   const tokenBodyJSON = Application.base64Decode(tokenBodyBase64);
-  return JSON.parse(tokenBodyJSON) as MangaDex.TokenBody;
+  return JSON.parse(tokenBodyJSON as string) as MangaDex.TokenBody;
 }
 
 async function _authEndpointRequest(payload: string): Promise<MangaDex.AuthResponse> {
