@@ -7,6 +7,7 @@ import {
   DiscoverSectionType,
   EndOfPageResults,
   URL,
+  type AdvancedSearchForm,
   type Chapter,
   type ChapterDetails,
   type ChapterProviding,
@@ -19,7 +20,6 @@ import {
   type MangaProviding,
   type PagedResults,
   type Request,
-  type SearchFilter,
   type SearchQuery,
   type SearchResultItem,
   type SearchResultsProviding,
@@ -29,7 +29,8 @@ import {
 } from "@paperback/types";
 import * as cheerio from "cheerio";
 
-import { DOMAIN, type BrowseResult, type Metadata } from "./models";
+import { MgekoAdvancedSearchForm } from "./forms";
+import { DOMAIN, type BrowseResult, type PageMetadata, type SearchMetadata } from "./models";
 import { MgekoInterceptor } from "./network";
 import {
   parseChapterDetails,
@@ -93,7 +94,7 @@ export class MgekoExtension implements MgekoImplementation {
 
   async getDiscoverSectionItems(
     section: DiscoverSection,
-    metadata: Metadata | undefined,
+    metadata: PageMetadata | undefined,
   ): Promise<PagedResults<DiscoverSectionItem>> {
     switch (section.id) {
       case "popular_all_time":
@@ -170,39 +171,6 @@ export class MgekoExtension implements MgekoImplementation {
     return parseChapterDetails($, chapter);
   }
 
-  async getSearchFilters(): Promise<SearchFilter[]> {
-    const filters: SearchFilter[] = [];
-
-    const searchTags = await this.getGenreTags();
-    for (const tags of searchTags) {
-      if (tags.id === "genres") {
-        filters.push({
-          type: "multiselect",
-          options: tags.tags.map((x) => ({ id: x.id, value: x.title })),
-          id: tags.id,
-          allowExclusion: true,
-          title: tags.title,
-          value: {},
-          allowEmptySelection: true,
-          maximum: undefined,
-        });
-      } else {
-        filters.push({
-          type: "dropdown",
-          options: [
-            { id: "", value: "Any" },
-            ...tags.tags.map((x) => ({ id: x.id, value: x.title })),
-          ],
-          id: tags.id,
-          title: tags.title,
-          value: "",
-        });
-      }
-    }
-
-    return filters;
-  }
-
   async getSortingOptions(): Promise<SortingOption[]> {
     return [
       { id: "rating", label: "Top Rated" },
@@ -217,9 +185,13 @@ export class MgekoExtension implements MgekoImplementation {
     ];
   }
 
+  async getAdvancedSearchForm(query: SearchQuery<SearchMetadata>): Promise<AdvancedSearchForm> {
+    return new MgekoAdvancedSearchForm(query, await this.getGenreTags());
+  }
+
   async getSearchResults(
-    query: SearchQuery,
-    metadata: Metadata | undefined,
+    query: SearchQuery<SearchMetadata>,
+    metadata: PageMetadata | undefined,
     sortingOption?: SortingOption,
   ): Promise<PagedResults<SearchResultItem>> {
     const page: number = metadata?.page ?? 1;
@@ -249,11 +221,8 @@ export class MgekoExtension implements MgekoImplementation {
 
       urlBuilder.setQueryItem("sort", sortingOption?.id ?? "rating");
 
-      // Tag/Filter Search
-      const getFilterValue = (id: string) =>
-        query.filters?.find((filter) => filter.id === id)?.value;
-
-      const genres = (getFilterValue("genres") as Record<string, "included" | "excluded">) ?? {};
+      const searchMeta = query.metadata ?? {};
+      const genres = searchMeta.genres ?? {};
 
       const genreIncluded = Object.entries(genres)
         .filter(([, value]) => value === "included")
@@ -269,10 +238,10 @@ export class MgekoExtension implements MgekoImplementation {
 
       urlBuilder.setQueryItem("genre_excluded", genreExcluded);
 
-      const status = (getFilterValue("status") as string) ?? "";
+      const status = searchMeta.status ?? "";
       if (status) urlBuilder.setQueryItem("status", status);
 
-      const type = (getFilterValue("type") as string) ?? "";
+      const type = searchMeta.type ?? "";
       if (type) urlBuilder.setQueryItem("type", type);
 
       const request = {
@@ -300,7 +269,7 @@ export class MgekoExtension implements MgekoImplementation {
 
   private async getFilteredSectionItems(
     sort: string,
-    metadata: Metadata | undefined,
+    metadata: PageMetadata | undefined,
   ): Promise<PagedResults<DiscoverSectionItem>> {
     if (metadata?.completed) return EndOfPageResults;
 
@@ -339,7 +308,7 @@ export class MgekoExtension implements MgekoImplementation {
         type: "genresCarouselItem",
         searchQuery: {
           title: "",
-          filters: [{ id: "genres", value: { [genre.id]: "included" } }],
+          metadata: { genres: { [genre.id]: "included" } } satisfies SearchMetadata,
         },
         name: genre.title,
         metadata: undefined,
