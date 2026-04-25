@@ -2,6 +2,7 @@
 /* Copyright © 2026 Inkdex */
 
 import { URL, type Response } from "@paperback/types";
+
 import { DOMAIN } from "./models";
 
 interface Query {

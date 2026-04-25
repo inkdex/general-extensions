@@ -11,6 +11,7 @@ import {
 } from "@paperback/types";
 import * as cheerio from "cheerio";
 import { type CheerioAPI } from "cheerio";
+
 import { type WebtoonDto } from "./WebtoonDtos";
 import { WebtoonParser, type WebtoonsSearchingMetadata } from "./WebtoonParser";
 import { BASE_URL, MOBILE_URL } from "./WebtoonSettings";

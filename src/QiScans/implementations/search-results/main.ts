@@ -10,10 +10,11 @@ import type {
   SortingOption,
 } from "@paperback/types";
 import { URL } from "@paperback/types";
+
+import { fetchJSON } from "../../services/network";
 import { DOMAIN_API, PAGE_SIZE } from "../shared/models";
 import type { Metadata, QIScansSeriesSearchResponse } from "../shared/models";
 import { normalizeSearchTerm } from "../shared/utils";
-import { fetchJSON } from "../../services/network";
 import {
   buildSearchFilters,
   parseSearchResults,

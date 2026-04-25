@@ -3,6 +3,7 @@
 
 import type { Chapter, ChapterDetails, Request, SourceManga } from "@paperback/types";
 import { URL } from "@paperback/types";
+
 import { DOMAIN } from "../../main";
 import { fetchJSON, fetchText } from "../../services/network";
 import type { AtsuChaptersResponse, AtsuReadChapterResponse } from "../shared/models";

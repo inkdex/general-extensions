@@ -2,6 +2,7 @@
 /* Copyright © 2026 Inkdex */
 
 import type { SearchQuery } from "@paperback/types";
+
 import type { ExtractedFilters } from "../shared/models";
 
 export function extractSearchFilters(query: SearchQuery): ExtractedFilters {

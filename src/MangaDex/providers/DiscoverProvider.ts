@@ -9,6 +9,7 @@ import {
   type PagedResults,
   type TagSection,
 } from "@paperback/types";
+
 import tagJSON from "../external/tag.json";
 import { parseChapterTitle, parseMangaList } from "../MangaDexParser";
 import {

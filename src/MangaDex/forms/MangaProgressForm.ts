@@ -14,6 +14,7 @@ import {
   type ListSectionElement,
   type SourceManga,
 } from "@paperback/types";
+
 import { getSelectedCover, removeSelectedCover, setSelectedCover } from "../MangaDexSettings";
 import { ChapterProvider } from "../providers/ChapterProvider";
 import { MangaProvider } from "../providers/MangaProvider";

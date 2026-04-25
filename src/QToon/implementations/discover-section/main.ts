@@ -3,8 +3,9 @@
 
 import type { DiscoverSection, DiscoverSectionItem, PagedResults, Request } from "@paperback/types";
 import { URL } from "@paperback/types";
-import { DOMAIN_API } from "../shared/models";
+
 import { fetchEncryptedJSON } from "../../services/network";
+import { DOMAIN_API } from "../shared/models";
 import type {
   DiscoverMetadata,
   QToonComicsList,

@@ -2,6 +2,7 @@
 /* Copyright © 2026 Inkdex */
 
 import type { SourceManga } from "@paperback/types";
+
 import { DOMAIN } from "../../main";
 import { buildThumbnailUrl, getContentRating, parseMangaPage } from "../shared/utils";
 

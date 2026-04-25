@@ -2,6 +2,7 @@
 /* Copyright © 2026 Inkdex */
 
 import { Form, Section, ToggleRow } from "@paperback/types";
+
 import {
   getRelevanceScoringEnabled,
   getShowChapter,

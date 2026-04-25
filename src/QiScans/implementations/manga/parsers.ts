@@ -3,9 +3,10 @@
 
 import type { SourceManga } from "@paperback/types";
 import { ContentRating } from "@paperback/types";
+
 import type { QIScansSeriesDetailsResponse } from "../shared/models";
-import { encodeMangaId } from "../shared/utils";
 import { DOMAIN } from "../shared/models";
+import { encodeMangaId } from "../shared/utils";
 
 export function parseMangaDetails(series: QIScansSeriesDetailsResponse): SourceManga {
   const author = series.author?.trim();

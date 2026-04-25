@@ -3,14 +3,15 @@
 
 import type { Chapter, ChapterDetails, Request, SourceManga } from "@paperback/types";
 import { URL } from "@paperback/types";
-import { DOMAIN } from "../shared/models";
+
 import { fetchJSON, fetchText } from "../../services/network";
-import { extractNumericId, generateToken, parseMangaId } from "../shared/utils";
+import { DOMAIN } from "../shared/models";
 import type {
   MangaTaroChapter,
   MangaTaroChaptersResponse,
   MangaTaroChapterContentResponse,
 } from "../shared/models";
+import { extractNumericId, generateToken, parseMangaId } from "../shared/utils";
 import { parseChapterList } from "./parsers";
 
 export class ChapterProvider {

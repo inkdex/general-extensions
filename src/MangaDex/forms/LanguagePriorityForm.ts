@@ -2,6 +2,7 @@
 /* Copyright © 2026 Inkdex */
 
 import { ButtonRow, Form, LabelRow, Section, type FormItemElement } from "@paperback/types";
+
 import { MDLanguages } from "../MangaDexHelper";
 import { getLanguagePriority, setLanguagePriority, getLanguages } from "../MangaDexSettings";
 

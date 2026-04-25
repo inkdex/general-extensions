@@ -10,8 +10,9 @@ import type {
   SortingOption,
 } from "@paperback/types";
 import { ContentRating, URL } from "@paperback/types";
-import { DOMAIN } from "../shared/models";
+
 import { fetchJSON } from "../../services/network";
+import { DOMAIN } from "../shared/models";
 import type { MangaTaroLoadItem, MangaTaroLoadRequest } from "../shared/models";
 import { formatMangaId, isNovel, slugFromUrl } from "../shared/utils";
 import {

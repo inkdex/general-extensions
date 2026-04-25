@@ -2,6 +2,7 @@
 /* Copyright © 2026 Inkdex */
 
 import { ButtonRow, Form, NavigationRow, Section, SelectRow, StepperRow } from "@paperback/types";
+
 import { filter } from "./main";
 
 abstract class BaseSettings extends Form {

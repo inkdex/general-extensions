@@ -24,6 +24,7 @@ import {
   type SortingOption,
   type SourceManga,
 } from "@paperback/types";
+
 import { MainSettings } from "./forms";
 import type { Metadata } from "./models";
 import { MainInterceptor, mainRateLimiter } from "./network";

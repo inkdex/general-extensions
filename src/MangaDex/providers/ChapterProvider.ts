@@ -10,6 +10,7 @@ import {
   type SourceManga,
   type UpdateManager,
 } from "@paperback/types";
+
 import { MDLanguages } from "../MangaDexHelper";
 import { parseMangaItemDetails } from "../MangaDexParser";
 import {

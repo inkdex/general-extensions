@@ -3,6 +3,7 @@
 
 import type { SettingsFormProviding } from "@paperback/types";
 import { Form } from "@paperback/types";
+
 import { AtsumaruSettingsForm } from "./forms";
 
 export function getShowAdult(): boolean {

@@ -3,6 +3,7 @@
 
 import type { SearchFilter, SearchResultItem, SortingOption } from "@paperback/types";
 import { ContentRating } from "@paperback/types";
+
 import type { FilterEntry, QToonComic } from "../shared/models";
 import { comicId } from "../shared/utils";
 

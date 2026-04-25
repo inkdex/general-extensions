@@ -10,6 +10,7 @@ import type {
   SortingOption,
 } from "@paperback/types";
 import { URL } from "@paperback/types";
+
 import { DOMAIN } from "../../main";
 import { fetchJSON } from "../../services/network";
 import { getShowAdult } from "../settings-form/main";

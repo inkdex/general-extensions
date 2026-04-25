@@ -13,6 +13,7 @@ import {
 import { type CheerioAPI } from "cheerio";
 import { type Element } from "domhandler";
 import { decodeHTML } from "entities";
+
 import { formatTagId, getRating, getShareUrl } from "./helpers";
 import {
   DEFAULT_LANGUAGE_CODE,

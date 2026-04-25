@@ -2,6 +2,7 @@
 /* Copyright © 2026 Inkdex */
 
 import { ContentRating, type SearchQuery, type Tag, type TagSection } from "@paperback/types";
+
 import { TagSectionId, WC_DOMAIN } from "./models";
 import { type Query } from "./network";
 

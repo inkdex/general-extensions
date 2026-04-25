@@ -3,6 +3,8 @@
 
 import type { Chapter, ChapterDetails, Request, SourceManga } from "@paperback/types";
 import { URL } from "@paperback/types";
+
+import { fetchJSON } from "../../services/network";
 import { MangaProvider } from "../manga/main";
 import { DOMAIN_API } from "../shared/models";
 import type {
@@ -10,7 +12,6 @@ import type {
   QIScansSeriesChapterDetailsResponse,
   QIScansSeriesChaptersResponse,
 } from "../shared/models";
-import { fetchJSON } from "../../services/network";
 import { decodeMangaId } from "../shared/utils";
 import { parseChapterDetails, parseChapterList } from "./parsers";
 

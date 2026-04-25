@@ -2,6 +2,7 @@
 /* Copyright © 2026 Inkdex */
 
 import type { Chapter, ChapterDetails, SourceManga } from "@paperback/types";
+
 import type { QIScansSeriesChapter, QIScansSeriesChapterDetailsResponse } from "../shared/models";
 
 export function parseChapterList(

@@ -13,9 +13,10 @@ import {
 } from "@paperback/types";
 import { type CheerioAPI } from "cheerio";
 import { decodeHTML } from "entities";
+
 import { formatTagId } from "./helpers";
-import pbconfig from "./pbconfig";
 import { DOMAIN } from "./models";
+import pbconfig from "./pbconfig";
 
 export const parseMangaDetails = async ($: CheerioAPI, mangaId: string): Promise<SourceManga> => {
   const title = decodeHTML($("h1").first().text().trim());

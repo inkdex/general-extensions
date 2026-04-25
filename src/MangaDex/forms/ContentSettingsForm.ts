@@ -2,6 +2,7 @@
 /* Copyright © 2026 Inkdex */
 
 import { Form, NavigationRow, Section, SelectRow, ToggleRow } from "@paperback/types";
+
 import { MDImageQuality, MDLanguages, MDRatings } from "../MangaDexHelper";
 import {
   getCoverArtworkEnabled,

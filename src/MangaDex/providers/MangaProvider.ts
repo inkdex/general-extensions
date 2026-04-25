@@ -2,6 +2,7 @@
 /* Copyright © 2026 Inkdex */
 
 import { URL, type SourceManga } from "@paperback/types";
+
 import { parseMangaDetails } from "../MangaDexParser";
 import { getCoverArtworkEnabled } from "../MangaDexSettings";
 import { checkId, fetchJSON, MANGADEX_API } from "../utils/CommonUtil";
