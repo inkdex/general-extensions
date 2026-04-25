@@ -8,6 +8,7 @@ import {
   type Tag,
   type TagSection,
 } from "@paperback/types";
+
 import { MDImageQuality, ROMANIZED_CODES } from "./MangaDexHelper";
 import {
   getCustomCoversEnabled,

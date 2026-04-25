@@ -3,6 +3,7 @@
 
 import type { Cookie, Extension, MangaProviding } from "@paperback/types";
 import { BasicRateLimiter, CookieStorageInterceptor } from "@paperback/types";
+
 import { ChapterProvider } from "./implementations/chapter-providing/main";
 import { DiscoverProvider } from "./implementations/discover-section/main";
 import { MangaProvider } from "./implementations/manga/main";

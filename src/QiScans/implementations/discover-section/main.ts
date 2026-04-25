@@ -3,9 +3,10 @@
 
 import type { DiscoverSection, DiscoverSectionItem, PagedResults, Request } from "@paperback/types";
 import { DiscoverSectionType, URL } from "@paperback/types";
+
+import { fetchJSON } from "../../services/network";
 import { DOMAIN_API } from "../shared/models";
 import type { QIScansHomeResponse } from "../shared/models";
-import { fetchJSON } from "../../services/network";
 import { parseDiscoverItems } from "./parsers";
 
 export class DiscoverProvider {

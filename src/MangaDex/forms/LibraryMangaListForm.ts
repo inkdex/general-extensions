@@ -12,6 +12,7 @@ import {
   type ListSectionElement,
   type SourceManga,
 } from "@paperback/types";
+
 import { parseMangaDetails } from "../MangaDexParser";
 import { getAccessToken, getUpdateBatchSize } from "../MangaDexSettings";
 import { ChapterProvider } from "../providers/ChapterProvider";

@@ -3,6 +3,7 @@
 
 import type { SourceManga } from "@paperback/types";
 import { ContentRating } from "@paperback/types";
+
 import { DOMAIN } from "../shared/models";
 import type { QToonComic } from "../shared/models";
 import { comicId } from "../shared/utils";

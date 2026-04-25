@@ -3,6 +3,7 @@
 
 import type { ChapterUpdatesCarouselItem, SimpleCarouselItem } from "@paperback/types";
 import { ContentRating } from "@paperback/types";
+
 import type {
   MangaTaroFollowedMangaItem,
   MangaTaroPopularChapter,

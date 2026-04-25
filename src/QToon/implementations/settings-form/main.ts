@@ -2,6 +2,7 @@
 /* Copyright © 2026 Inkdex */
 
 import { Form, type SettingsFormProviding } from "@paperback/types";
+
 import { QToonSettingsForm } from "./forms";
 
 export function getLanguage(): string {

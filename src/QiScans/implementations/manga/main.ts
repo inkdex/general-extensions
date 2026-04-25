@@ -3,9 +3,10 @@
 
 import type { Request, SourceManga } from "@paperback/types";
 import { URL } from "@paperback/types";
+
+import { fetchJSON } from "../../services/network";
 import { DOMAIN_API } from "../shared/models";
 import type { QIScansSeriesDetailsResponse } from "../shared/models";
-import { fetchJSON } from "../../services/network";
 import { decodeMangaId } from "../shared/utils";
 import { parseMangaDetails } from "./parsers";
 

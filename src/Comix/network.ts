@@ -9,6 +9,7 @@ import {
   type Response,
   CloudflareError,
 } from "@paperback/types";
+
 import { filter } from "./main";
 import {
   type ApiResponse,
@@ -22,7 +23,6 @@ import {
   API,
   DOMAIN,
 } from "./models";
-
 import { ComixHash } from "./utils/comixHash";
 
 export class MainInterceptor extends PaperbackInterceptor {

@@ -3,6 +3,7 @@
 
 import type { Request, SourceManga } from "@paperback/types";
 import { URL } from "@paperback/types";
+
 import { DOMAIN } from "../../main";
 import { fetchText } from "../../services/network";
 import { parseMangaDetails } from "./parsers";

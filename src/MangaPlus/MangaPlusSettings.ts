@@ -2,6 +2,7 @@
 /* Copyright © 2026 Inkdex */
 
 import { ButtonRow, Form, Section, SelectRow, ToggleRow } from "@paperback/types";
+
 import { Language } from "./MangaPlusHelper";
 
 export const getLanguages = (): string[] => {

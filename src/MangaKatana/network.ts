@@ -7,6 +7,7 @@ import {
   type Request,
   type Response,
 } from "@paperback/types";
+
 import { DOMAIN } from "./models";
 
 export class MangaKatanaInterceptor extends PaperbackInterceptor {

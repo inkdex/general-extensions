@@ -3,8 +3,9 @@
 
 import type { Request, SourceManga } from "@paperback/types";
 import { URL } from "@paperback/types";
-import { DOMAIN } from "../shared/models";
+
 import { fetchText } from "../../services/network";
+import { DOMAIN } from "../shared/models";
 import { parseMangaId } from "../shared/utils";
 import { parseMangaDetails } from "./parsers";
 

@@ -2,6 +2,7 @@
 /* Copyright © 2026 Inkdex */
 
 import { Form, Section, SelectRow, ToggleRow } from "@paperback/types";
+
 import {
   getMetadataUpdater,
   getOptimizeUpdates,

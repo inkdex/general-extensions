@@ -4,6 +4,7 @@
 import { PaperbackInterceptor, type Request, type Response } from "@paperback/types";
 import jpeg from "jpeg-js";
 import UPNG from "upng-js";
+
 import { getAccessToken, getCropImagesEnabled, saveAccessToken } from "./MangaDexSettings";
 import { MANGADEX_DOMAIN } from "./utils/CommonUtil";
 

@@ -31,6 +31,7 @@ import {
   type TrackedMangaChapterReadAction,
   type UpdateManager,
 } from "@paperback/types";
+
 import { MangaDexInterceptor } from "./MangaDexInterceptor";
 import { ChapterProvider } from "./providers/ChapterProvider";
 import { CollectionProvider } from "./providers/CollectionProvider";

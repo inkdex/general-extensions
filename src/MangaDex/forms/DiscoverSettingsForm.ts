@@ -9,6 +9,7 @@ import {
   ToggleRow,
   type FormItemElement,
 } from "@paperback/types";
+
 import {
   DEFAULT_SECTION_ORDER,
   DISCOVER_SECTIONS,

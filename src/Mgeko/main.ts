@@ -28,7 +28,9 @@ import {
   type TagSection,
 } from "@paperback/types";
 import * as cheerio from "cheerio";
+
 import { DOMAIN, type BrowseResult, type Metadata } from "./models";
+import { MgekoInterceptor } from "./network";
 import {
   parseChapterDetails,
   parseChapters,
@@ -38,7 +40,6 @@ import {
   parseSearch,
   parseViewMore,
 } from "./parsers";
-import { MgekoInterceptor } from "./network";
 
 type MgekoImplementation = Extension &
   SearchResultsProviding &

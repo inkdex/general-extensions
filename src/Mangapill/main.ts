@@ -23,6 +23,7 @@ import {
   type TagSection,
 } from "@paperback/types";
 import * as cheerio from "cheerio";
+
 import { getFilterTagsBySection } from "./helpers";
 import { MangapillInterceptor } from "./interceptors";
 import { DOMAIN } from "./models";

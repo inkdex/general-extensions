@@ -2,6 +2,7 @@
 /* Copyright © 2026 Inkdex */
 
 import type { Chapter, SourceManga } from "@paperback/types";
+
 import type { QToonEpisode } from "../shared/models";
 
 // season in multiple languages

@@ -3,6 +3,7 @@
 
 import type { DiscoverSection, DiscoverSectionItem } from "@paperback/types";
 import { DiscoverSectionType } from "@paperback/types";
+
 import type { AtsuHomePageResponse } from "../shared/models";
 import { buildThumbnailUrl, getContentRating } from "../shared/utils";
 

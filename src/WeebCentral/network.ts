@@ -8,6 +8,7 @@ import {
   type Response,
   URL,
 } from "@paperback/types";
+
 import { WC_DOMAIN } from "./models";
 
 export class WeebCentralInterceptor extends PaperbackInterceptor {

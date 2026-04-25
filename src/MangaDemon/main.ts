@@ -23,6 +23,7 @@ import {
   type SourceManga,
 } from "@paperback/types";
 import * as cheerio from "cheerio";
+
 import {
   DOMAIN,
   LATEST_NOVEL_SECTION_ID,
@@ -37,8 +38,8 @@ import {
   NEW_TITLES_SECTION_TITLE,
   type SearchResultItem,
 } from "./models";
-import { MangaDemonParser } from "./parsers";
 import { MangaDemonInterceptor } from "./network";
+import { MangaDemonParser } from "./parsers";
 
 class MangaDemonExtension
   implements

@@ -2,6 +2,7 @@
 /* Copyright © 2026 Inkdex */
 
 import { ContentRating } from "@paperback/types";
+
 import { DOMAIN } from "../../main";
 import { getShowAdult } from "../settings-form/main";
 import type { AtsuMangaPageResponse } from "./models";

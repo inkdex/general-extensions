@@ -3,6 +3,7 @@
 
 import type { DiscoverSection, SimpleCarouselItem } from "@paperback/types";
 import { ContentRating, DiscoverSectionType } from "@paperback/types";
+
 import type { QToonComic, QToonCompositionBlock, SectionEndpoint } from "../shared/models";
 import { comicId } from "../shared/utils";
 

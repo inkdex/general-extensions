@@ -35,10 +35,11 @@ import {
 } from "@paperback/types";
 import * as cheerio from "cheerio";
 import { type CheerioAPI } from "cheerio";
+
 import { genreOptions } from "./genreOptions";
 import { genres } from "./genres";
-import { MangaFoxInterceptor } from "./network";
 import { DOMAIN } from "./models";
+import { MangaFoxInterceptor } from "./network";
 
 type Metadata = { offset?: number; collectedIds?: string[] };
 

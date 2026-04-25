@@ -8,6 +8,7 @@ import type {
   SimpleCarouselItem,
 } from "@paperback/types";
 import { ContentRating } from "@paperback/types";
+
 import type {
   QIScansHomeChapter,
   QIScansHomeResponse,

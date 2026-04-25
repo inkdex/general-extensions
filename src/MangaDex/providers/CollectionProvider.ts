@@ -8,6 +8,7 @@ import {
   type ManagedCollectionChangeset,
   type SourceManga,
 } from "@paperback/types";
+
 import { parseMangaDetails } from "../MangaDexParser";
 import { getAccessToken } from "../MangaDexSettings";
 import { MANGADEX_API } from "../utils/CommonUtil";

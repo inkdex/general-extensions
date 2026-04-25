@@ -3,6 +3,7 @@
 
 import type { Request, Response } from "@paperback/types";
 import { CloudflareError, PaperbackInterceptor } from "@paperback/types";
+
 import { DOMAIN } from "../implementations/shared/models";
 
 export class QiScansInterceptor extends PaperbackInterceptor {

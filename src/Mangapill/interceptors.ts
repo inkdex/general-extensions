@@ -2,6 +2,7 @@
 /* Copyright © 2026 Inkdex */
 
 import { PaperbackInterceptor, type Request, type Response } from "@paperback/types";
+
 import { DOMAIN } from "./models";
 
 export class MangapillInterceptor extends PaperbackInterceptor {

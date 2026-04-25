@@ -10,6 +10,7 @@ import {
   type SortingOption,
   type TagSection,
 } from "@paperback/types";
+
 import tagJSON from "../external/tag.json";
 import { parseMangaList } from "../MangaDexParser";
 import {

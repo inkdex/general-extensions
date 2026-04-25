@@ -2,6 +2,7 @@
 /* Copyright © 2026 Inkdex */
 
 import { Form } from "@paperback/types";
+
 import { MangaDexSettingsForm } from "../MangaDexSettings";
 
 /**

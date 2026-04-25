@@ -3,6 +3,7 @@
 
 import type { FormItemElement, ToggleRowProps } from "@paperback/types";
 import { Form, Section, ToggleRow } from "@paperback/types";
+
 import { getShowAdult, setShowAdult } from "./main";
 
 export class AtsumaruSettingsForm extends Form {

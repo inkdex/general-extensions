@@ -3,6 +3,7 @@
 
 import type { Request, SearchFilter, SearchResultItem, SortingOption } from "@paperback/types";
 import { ContentRating, URL } from "@paperback/types";
+
 import { fetchJSON } from "../../services/network";
 import { DOMAIN_API } from "../shared/models";
 import type { QIScansSeriesGenre, QIScansSeriesSearchResponse } from "../shared/models";

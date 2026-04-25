@@ -2,6 +2,7 @@
 /* Copyright © 2026 Inkdex */
 
 import { ButtonRow, Form, LabelRow, Section } from "@paperback/types";
+
 import { authEndpointRequest, getAccessToken, saveAccessToken } from "../MangaDexSettings";
 
 interface OAuthState {

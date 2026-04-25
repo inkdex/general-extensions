@@ -3,6 +3,7 @@
 
 import type { SourceManga } from "@paperback/types";
 import { ContentRating } from "@paperback/types";
+
 import type { MangaTaroSchemaOrg } from "../shared/models";
 import { extractNumericId, formatMangaId, parseMangaId } from "../shared/utils";
 

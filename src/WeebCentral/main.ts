@@ -28,6 +28,7 @@ import {
   type SortingOption,
 } from "@paperback/types";
 import * as cheerio from "cheerio";
+
 import { getState } from "../utils/state";
 import { SettingsForm } from "./forms";
 import {
@@ -38,8 +39,16 @@ import {
   isInvalidTags,
   newQuery,
 } from "./helpers";
-import { WeebCentralInterceptor } from "./network";
 import { TagSectionId, type Metadata } from "./models";
+import { WeebCentralInterceptor } from "./network";
+import {
+  fetchChapterDetailsPage,
+  fetchChaptersPage,
+  fetchHomepage,
+  fetchMangaDetailsPage,
+  fetchRecentViewMorePage,
+  fetchSearchPage,
+} from "./network";
 import {
   isLastPage,
   parseChapterDetails,
@@ -53,14 +62,6 @@ import {
   parseTags,
 } from "./parsers";
 import pbconfig from "./pbconfig";
-import {
-  fetchChapterDetailsPage,
-  fetchChaptersPage,
-  fetchHomepage,
-  fetchMangaDetailsPage,
-  fetchRecentViewMorePage,
-  fetchSearchPage,
-} from "./network";
 
 export class WeebCentralExtension
   implements

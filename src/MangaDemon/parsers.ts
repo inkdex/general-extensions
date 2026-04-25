@@ -8,6 +8,7 @@
 
 import { type DiscoverSectionItem } from "@paperback/types";
 import { type CheerioAPI } from "cheerio";
+
 import { type SearchResultItem } from "./models";
 
 export class MangaDemonParser {

@@ -3,11 +3,12 @@
 
 import type { Request, Response } from "@paperback/types";
 import { CloudflareError, PaperbackInterceptor } from "@paperback/types";
+
+import { getLanguage } from "../implementations/settings-form/main";
 import { DOMAIN, DOMAIN_API } from "../implementations/shared/models";
 import type { QToonEncryptedResponse } from "../implementations/shared/models";
-import { requestToken } from "../main";
-import { getLanguage } from "../implementations/settings-form/main";
 import { decryptResponse } from "../implementations/shared/utils";
+import { requestToken } from "../main";
 
 export class QToonInterceptor extends PaperbackInterceptor {
   async interceptRequest(request: Request): Promise<Request> {
