@@ -1,1 +1,1 @@
-npm test
+npm run tsc && npm run lint:check && npm run format:check
