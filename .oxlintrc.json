@@ -1,4 +1,3 @@
 {
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "ignorePatterns": ["/bundles"]
+  "$schema": "./node_modules/oxlint/configuration_schema.json"
 }
