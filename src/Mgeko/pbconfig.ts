@@ -11,9 +11,9 @@ export default {
   language: "en",
   contentRating: ContentRating.EVERYONE,
   capabilities: [
+    SourceIntents.CHAPTER_PROVIDING,
     SourceIntents.CLOUDFLARE_BYPASS_PROVIDING,
     SourceIntents.DISCOVER_SECTION_PROVIDING,
-    SourceIntents.CHAPTER_PROVIDING,
     SourceIntents.SEARCH_RESULT_PROVIDING,
   ],
   badges: [],

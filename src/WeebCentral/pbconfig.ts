@@ -10,12 +10,13 @@ export default {
   icon: "icon.png",
   language: "en",
   contentRating: ContentRating.EVERYONE,
-  capabilities:
-    SourceIntents.CHAPTER_PROVIDING |
-    SourceIntents.DISCOVER_SECTION_PROVIDING |
-    SourceIntents.SEARCH_RESULT_PROVIDING |
-    SourceIntents.SETTINGS_FORM_PROVIDING |
+  capabilities: [
+    SourceIntents.CHAPTER_PROVIDING,
     SourceIntents.CLOUDFLARE_BYPASS_PROVIDING,
+    SourceIntents.DISCOVER_SECTION_PROVIDING,
+    SourceIntents.SEARCH_RESULT_PROVIDING,
+    SourceIntents.SETTINGS_FORM_PROVIDING,
+  ],
   badges: [],
   developers: [
     {
