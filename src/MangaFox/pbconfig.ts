@@ -11,10 +11,10 @@ export default {
   language: "en",
   contentRating: ContentRating.MATURE,
   capabilities: [
-    SourceIntents.DISCOVER_SECTION_PROVIDING,
-    SourceIntents.SEARCH_RESULT_PROVIDING,
     SourceIntents.CHAPTER_PROVIDING,
     SourceIntents.CLOUDFLARE_BYPASS_PROVIDING,
+    SourceIntents.DISCOVER_SECTION_PROVIDING,
+    SourceIntents.SEARCH_RESULT_PROVIDING,
   ],
   badges: [],
   developers: [

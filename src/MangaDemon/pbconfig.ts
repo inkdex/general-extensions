@@ -11,12 +11,13 @@ export default {
   language: "en",
   contentRating: ContentRating.EVERYONE,
   badges: [],
-  capabilities:
-    SourceIntents.CHAPTER_PROVIDING |
-    SourceIntents.DISCOVER_SECTION_PROVIDING |
-    SourceIntents.SETTINGS_FORM_PROVIDING |
-    SourceIntents.SEARCH_RESULT_PROVIDING |
+  capabilities: [
+    SourceIntents.CHAPTER_PROVIDING,
     SourceIntents.CLOUDFLARE_BYPASS_PROVIDING,
+    SourceIntents.DISCOVER_SECTION_PROVIDING,
+    SourceIntents.SEARCH_RESULT_PROVIDING,
+    SourceIntents.SETTINGS_FORM_PROVIDING,
+  ],
   developers: [
     {
       name: "samipmainali",
