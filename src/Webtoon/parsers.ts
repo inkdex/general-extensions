@@ -9,21 +9,18 @@ import {
   type SearchResultItem,
   type SourceManga,
 } from "@paperback/types";
-import { type Cheerio, type CheerioAPI } from "cheerio";
-import type { Element } from "domhandler";
+import { type CheerioAPI } from "cheerio";
 
-import { type WebtoonChaptersElemDto, type WebtoonChaptersListDto } from "./WebtoonDtos";
-import { getLanguagesTitle, Language } from "./WebtoonI18NHelper";
-import { BASE_URL, WebtoonSettings } from "./WebtoonSettings";
-
-type CheerioElement = Cheerio<Element>;
-
-export type WebtoonsSearchingMetadata = {
-  page: number;
-  maxPages?: number | undefined;
-};
-export type WebtoonsItemMetadata = { link: string };
-export type Tag = { id: string; value: string };
+import { WebtoonSettings } from "./forms";
+import {
+  type CheerioElement,
+  type Tag,
+  type WebtoonChaptersElemDto,
+  type WebtoonChaptersListDto,
+  BASE_URL,
+  getLanguagesTitle,
+  Language,
+} from "./models";
 
 export abstract class WebtoonParser extends WebtoonSettings {
   parseDetails($: CheerioAPI, mangaId: string): SourceManga {
@@ -273,7 +270,7 @@ export abstract class WebtoonParser extends WebtoonSettings {
   parseTagFromElement(elem: CheerioElement): Tag {
     return {
       id: elem.find("a").attr("data-genre") ?? "",
-      value: elem.find("a").text().trim(),
+      title: elem.find("a").text().trim(),
     };
   }
 
@@ -286,7 +283,7 @@ export abstract class WebtoonParser extends WebtoonSettings {
           .text()
           .trim()
           .replaceAll(/\s+|\//gm, "_"),
-      value: "Canvas - " + elem.find("a").text().trim(),
+      title: "Canvas - " + elem.find("a").text().trim(),
     };
   }
 

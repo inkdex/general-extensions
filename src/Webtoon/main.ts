@@ -2,6 +2,7 @@
 /* Copyright © 2026 Inkdex */
 
 import {
+  AdvancedSearchForm,
   DiscoverSectionType,
   URL,
   type Chapter,
@@ -10,8 +11,8 @@ import {
   type DiscoverSection,
   type DiscoverSectionItem,
   type DiscoverSectionProviding,
+  type Metadata,
   type PagedResults,
-  type SearchFilter,
   type SearchQuery,
   type SearchResultItem,
   type SearchResultsProviding,
@@ -19,11 +20,19 @@ import {
   type SourceManga,
 } from "@paperback/types";
 
-import { type WebtoonChaptersListDto } from "./WebtoonDtos";
-import { getDateDayFormat, getLanguagesTitle, Language } from "./WebtoonI18NHelper";
-import { WebtoonInfra } from "./WebtoonInfra";
-import { type Tag, type WebtoonsSearchingMetadata } from "./WebtoonParser";
-import { BASE_URL, MOBILE_URL } from "./WebtoonSettings";
+import { WebtoonAdvancedSearchForm } from "./forms";
+import type { SearchMetadata } from "./models";
+import {
+  type Tag,
+  type WebtoonsSearchingMetadata,
+  type WebtoonChaptersListDto,
+  BASE_URL,
+  MOBILE_URL,
+  getDateDayFormat,
+  getLanguagesTitle,
+  Language,
+} from "./models";
+import { WebtoonInfra } from "./network";
 
 export class WebtoonExtention
   extends WebtoonInfra
@@ -166,54 +175,36 @@ export class WebtoonExtention
     );
   }
 
-  getSearchResults(
-    query: SearchQuery,
-    metadata: WebtoonsSearchingMetadata | undefined,
+  async getSearchResults(
+    query: SearchQuery<SearchMetadata>,
+    metadata: Metadata | undefined,
     sortingOption: SortingOption | undefined,
   ): Promise<PagedResults<SearchResultItem>> {
-    let genre = "";
-    const includedlanguage: Language[] = [];
-
-    for (const filter of query.filters) {
-      switch (filter.id) {
-        case "languages": {
-          const language = (filter.value ?? {}) as Record<string, "included" | "excluded">;
-
-          for (const lang of Object.entries(language)) {
-            switch (lang[1]) {
-              case "included":
-                includedlanguage.push(lang[0] as Language);
-                break;
-              case "excluded":
-                // Excluded languages are ignored
-                break;
-            }
-          }
-          break;
-        }
-        case "genres":
-          genre = (filter.value as string) ?? "ALL";
-          break;
-        default:
-          // Ignore other filters
-          break;
-      }
-    }
-
     const result: Promise<PagedResults<SearchResultItem>>[] = [];
 
-    if (includedlanguage.length < 1) {
-      this.languages.forEach((lang) => includedlanguage.push(lang));
-    }
+    const searchMetadata = query.metadata ?? { genres: [], languages: [] };
 
-    includedlanguage.forEach((lang) => {
+    const genres: string =
+      searchMetadata.genres.length !== 0 ? searchMetadata.genres.join("%%") : "ALL";
+
+    const languages: Language[] =
+      searchMetadata.languages.length !== 0
+        ? (searchMetadata.languages as Language[])
+        : this.languages;
+
+    languages.forEach((lang) => {
       result.push(
-        genre !== "ALL"
-          ? genre.startsWith("CANVAS%%")
-            ? this.getCanvasPopularTitles(lang, metadata, genre.split("%%")[1], sortingOption)
-            : this.getTitlesByGenre(lang, genre, sortingOption)
+        genres !== "ALL"
+          ? genres.startsWith("CANVAS%%")
+            ? this.getCanvasPopularTitles(
+                lang,
+                metadata as WebtoonsSearchingMetadata,
+                genres.split("%%")[1],
+                sortingOption,
+              )
+            : this.getTitlesByGenre(lang, genres, sortingOption)
           : query.title
-            ? this.getTitlesByKeyword(lang, query.title, metadata)
+            ? this.getTitlesByKeyword(lang, query.title, metadata as WebtoonsSearchingMetadata)
             : Promise.resolve({ items: [] }),
       );
     });
@@ -221,35 +212,9 @@ export class WebtoonExtention
     return Promise.all(result).then((res) => {
       return {
         items: res.flatMap((r) => r.items),
-        metadata: res[0].metadata,
+        metadata: res.filter((r) => r.metadata != undefined)[0]?.metadata ?? undefined,
       };
     });
-  }
-
-  async getSearchFilters(): Promise<SearchFilter[]> {
-    const genres = await this.getSearchGenres();
-    return [
-      {
-        id: "languages",
-        title: "Languages",
-        type: "multiselect",
-        options: Object.values(Language).map((lang) => ({
-          id: lang,
-          value: getLanguagesTitle(lang) ?? lang,
-        })),
-        value: {},
-        allowEmptySelection: true,
-        allowExclusion: false,
-        maximum: undefined,
-      },
-      {
-        id: "genres",
-        title: "Genres",
-        type: "dropdown",
-        options: genres,
-        value: "ALL",
-      },
-    ];
   }
 
   async getDiscoverSectionItems(
@@ -282,10 +247,13 @@ export class WebtoonExtention
     }
 
     return {
-      items: result.items.map((item) => ({
-        type: "simpleCarouselItem",
-        ...item,
-      })),
+      items: result.items.map(
+        (item) =>
+          ({
+            type: "simpleCarouselItem",
+            ...item,
+          }) as DiscoverSectionItem,
+      ),
       metadata: result.metadata,
     };
   }
@@ -343,7 +311,7 @@ export class WebtoonExtention
   // TODO GENRES LOCALISATION
   async getSearchGenres(): Promise<Tag[]> {
     return [
-      { id: "ALL", value: "All" },
+      { id: "ALL", title: "ALL" },
       ...(await this.ExecRequest({ url: `${BASE_URL}/en/genres` }, ($) => this.parseGenres($))),
       ...(this.canvasWanted
         ? await this.ExecRequest({ url: `${BASE_URL}/en/canvas` }, ($) => this.parseCanvasGenres($))
@@ -357,6 +325,12 @@ export class WebtoonExtention
       { id: "LIKEIT", label: "Likes" },
       { id: "UPDATE", label: "Date" },
     ];
+  }
+
+  async getAdvancedSearchForm(searchQuery: SearchQuery<Metadata>): Promise<AdvancedSearchForm> {
+    const genres = await this.getSearchGenres();
+
+    return new WebtoonAdvancedSearchForm(searchQuery as SearchQuery<SearchMetadata>, genres);
   }
 }
 

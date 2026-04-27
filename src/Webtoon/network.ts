@@ -12,9 +12,8 @@ import {
 import * as cheerio from "cheerio";
 import { type CheerioAPI } from "cheerio";
 
-import { type WebtoonDto } from "./WebtoonDtos";
-import { WebtoonParser, type WebtoonsSearchingMetadata } from "./WebtoonParser";
-import { BASE_URL, MOBILE_URL } from "./WebtoonSettings";
+import { BASE_URL, MOBILE_URL, type WebtoonDto, type WebtoonsSearchingMetadata } from "./models";
+import { WebtoonParser } from "./parsers";
 
 export abstract class WebtoonInfra extends WebtoonParser implements Extension {
   cheerio = cheerio;
@@ -115,11 +114,13 @@ export abstract class WebtoonInfra extends WebtoonParser implements Extension {
     infos.params ??= {};
     const page = (infos.params.page = metadata.page + 1);
 
-    if (metadata?.maxPages && page > metadata.maxPages) return { items: [], metadata };
+    if (metadata?.maxPages && page > metadata.maxPages) return { items: [], metadata: undefined };
+
+    let results = await this.ExecRequest(infos, parseMethods);
 
     return {
-      items: (await this.ExecRequest(infos, parseMethods)).items,
-      metadata: { ...metadata, page: page },
+      items: results.items,
+      metadata: results.items.length != 0 ? { ...metadata, page } : undefined,
     };
   }
 }
