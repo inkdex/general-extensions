@@ -9,19 +9,18 @@ import {
   type ExtensionInfo,
   type MangaProviding,
   type PagedResults,
-  type SearchFilter,
   type SearchResultItem,
   type SearchResultsProviding,
   type SortingOption,
   type SourceManga,
+  type TestLogger,
 } from "@paperback/types";
-
 import { expect } from "chai";
 
 // Types for test cases and results
 export type TestCase = {
   name: string;
-  fn: () => Promise<unknown>;
+  fn: (testLogger: TestLogger) => Promise<unknown>;
 };
 
 export type TestResult = {
@@ -32,23 +31,15 @@ export type TestResult = {
   returnValue?: unknown;
 };
 
-export type SuiteResult = {
-  suiteName: string;
-  passed: number;
-  failed: number;
-  total: number;
-  duration: number;
-  testResults: TestResult[];
-};
-
 // Test Suite class
 export class TestSuite {
   readonly state: Record<string, unknown> = {};
   private testCases: TestCase[] = [];
-  private suiteName: string;
+  private logger: TestLogger;
 
-  constructor(name: string) {
-    this.suiteName = name;
+  constructor(name: string, logger: TestLogger) {
+    this.logger = logger;
+    this.logger.log("name", name);
   }
 
   // Register a test case
@@ -57,87 +48,64 @@ export class TestSuite {
   }
 
   // Run all test cases sequentially
-  async run(): Promise<SuiteResult> {
-    console.log(`\n🧪 Running test suite: ${this.suiteName}`);
-    console.log("=".repeat(50));
-
+  async run() {
     const startTime = Date.now();
-    const testResults: TestResult[] = [];
     let passed = 0;
     let failed = 0;
 
+    const tests = this.logger.list("tests");
     for (const testCase of this.testCases) {
       const testStartTime = Date.now();
-      let testResult: TestResult;
 
+      const testLogger = tests.scope(testCase.name);
       try {
-        const returnValue = await testCase.fn();
+        const returnValue = await testCase.fn(testLogger.scope("runner"));
         const duration = Date.now() - testStartTime;
-        testResult = {
-          name: testCase.name,
-          passed: true,
-          duration,
-          returnValue,
-        };
         passed++;
-        console.log(`✅ ${testCase.name} (${duration}ms)`);
+        testLogger.log("status", "pass");
+        testLogger.log("duration", duration);
+        testLogger.log("returnValue", returnValue);
       } catch (error) {
         const duration = Date.now() - testStartTime;
-        testResult = {
-          name: testCase.name,
-          passed: false,
-          error: error as Error,
-          duration,
-        };
         failed++;
-        console.log(`❌ ${testCase.name} (${duration}ms)`);
-        console.log(`   Error: ${(error as Error).message}`);
+        testLogger.log("status", "fail");
+        testLogger.log("error", String(error));
+        testLogger.log("duration", duration);
       }
-
-      testResults.push(testResult);
     }
 
     const totalDuration = Date.now() - startTime;
-    const suiteResult: SuiteResult = {
-      suiteName: this.suiteName,
+    const suiteResult = {
       passed,
       failed,
       total: this.testCases.length,
       duration: totalDuration,
-      testResults,
     };
 
-    this.printSummary(suiteResult);
-    return suiteResult;
-  }
-
-  private printSummary(result: SuiteResult): void {
-    console.log("\n📊 Test Summary:");
-    console.log(`   Total: ${result.total}`);
-    console.log(`   Passed: ${result.passed}`);
-    console.log(`   Failed: ${result.failed}`);
-    console.log(`   Duration: ${result.duration}ms`);
-
-    if (result.failed > 0) {
-      console.log(`\n❌ Suite "${result.suiteName}" failed`);
-    } else {
-      console.log(`\n✅ Suite "${result.suiteName}" passed`);
-    }
+    this.logger.log("summary", suiteResult);
   }
 }
 
 type ExtensionTestData = {
-  searchResultsProviding?: {
-    getSearchResults: Parameters<SearchResultsProviding["getSearchResults"]>;
-    getSortingOptions?: Parameters<Exclude<SearchResultsProviding["getSortingOptions"], undefined>>;
-  };
-  mangaProviding?: {
-    getMangaDetails: Parameters<MangaProviding["getMangaDetails"]>;
-  };
-  chapterProviding?: {
-    getChapters: Parameters<ChapterProviding["getChapters"]>;
-    getChapterDetails: Parameters<ChapterProviding["getChapterDetails"]>;
-  };
+  searchResultsProviding?:
+    | {
+        getSearchResults: Parameters<SearchResultsProviding["getSearchResults"]> | false;
+        getSortingOptions?:
+          | Parameters<Exclude<SearchResultsProviding["getSortingOptions"], undefined>>
+          | false;
+      }
+    | false;
+  mangaProviding?:
+    | {
+        getMangaDetails: Parameters<MangaProviding["getMangaDetails"]> | false;
+      }
+    | false;
+  chapterProviding?:
+    | {
+        getChapters: Parameters<ChapterProviding["getChapters"]> | false;
+        getChapterDetails: Parameters<ChapterProviding["getChapterDetails"]> | false;
+      }
+    | false;
 };
 
 export const registerDefaultTests = function (
@@ -155,9 +123,16 @@ export const registerDefaultTests = function (
     sourceCapabilities = extensionInfo.capabilities;
   }
 
-  if (sourceCapabilities & SourceIntents.SEARCH_RESULTS_PROVIDING) {
+  if (
+    sourceCapabilities & SourceIntents.SEARCH_RESULT_PROVIDING &&
+    testData.searchResultsProviding !== false
+  ) {
     if (implementsSearchResultsProviding(extension)) {
-      registerDefaultSearchResultsProvidingSourceTests(suite, extension, testData);
+      registerDefaultSearchResultsProvidingSourceTests(
+        suite,
+        extension,
+        testData.searchResultsProviding,
+      );
     } else {
       throw new Error(
         `extension does not implement 'SearchResultsProviding' but has the 'SEARCH_RESULTS_PROVIDING' capability`,
@@ -165,11 +140,13 @@ export const registerDefaultTests = function (
     }
   }
 
-  registerDefaultMangaProvidingSourceTests(suite, extension, testData);
+  if (testData.mangaProviding !== false) {
+    registerDefaultMangaProvidingSourceTests(suite, extension, testData.mangaProviding);
+  }
 
-  if (sourceCapabilities & SourceIntents.CHAPTER_PROVIDING) {
+  if (sourceCapabilities & SourceIntents.CHAPTER_PROVIDING && testData.chapterProviding !== false) {
     if (implementsChapterProviding(extension)) {
-      registerDefaultChapterProvidingSourceTests(suite, extension, testData);
+      registerDefaultChapterProvidingSourceTests(suite, extension, testData.chapterProviding);
     } else {
       throw new Error(
         `extension does not implement 'ChapterProviding' but has the 'CHAPTER_PROVIDING' capability`,
@@ -189,7 +166,6 @@ export const registerDefaultInitialisationTests = function (
 
 const STATE_KEY = {
   SearchResultsProviding: {
-    getSearchFilters: "SearchResultsProviding.getSearchFilters",
     getSearchResults: "SearchResultsProviding.getSearchResults",
     getSortingOptions: "SearchResultsProviding.getSortingOptions",
   },
@@ -205,25 +181,13 @@ const STATE_KEY = {
 export const registerDefaultSearchResultsProvidingSourceTests = function (
   suite: TestSuite,
   extension: Extension & SearchResultsProviding,
-  { searchResultsProviding: testData }: Pick<ExtensionTestData, "searchResultsProviding">,
+  testData: Exclude<ExtensionTestData["searchResultsProviding"], false>,
 ) {
-  suite.test("getSearchFilters", async () => {
-    expect(extension).to.have.property("getSearchFilters");
-
-    const searchFilters = await extension.getSearchFilters();
-
-    expect(searchFilters).to.not.be.undefined;
-    suite.state[STATE_KEY.SearchResultsProviding.getSearchFilters] = searchFilters;
-  });
-
-  if ("getSortingOptions" in extension) {
+  if ("getSortingOptions" in extension && testData?.getSortingOptions !== false) {
     suite.test("getSortingOptions", async () => {
       let params = testData?.getSortingOptions;
       if (!params) {
-        const searchFilters = suite.state[STATE_KEY.SearchResultsProviding.getSearchFilters] as
-          | SearchFilter[]
-          | undefined;
-        params = [{ title: "", filters: searchFilters ?? [] }];
+        params = [{ title: "" }];
       }
 
       const sortingOptions = await extension.getSortingOptions!(...params);
@@ -233,106 +197,113 @@ export const registerDefaultSearchResultsProvidingSourceTests = function (
     });
   }
 
-  suite.test("getSearchResults", async () => {
-    expect(extension).to.have.property("getSearchResults");
+  if (testData?.getSearchResults !== false) {
+    suite.test("getSearchResults", async () => {
+      expect(extension).to.have.property("getSearchResults");
 
-    let params = testData?.getSearchResults;
-    if (!params) {
-      const searchFilters = suite.state[STATE_KEY.SearchResultsProviding.getSearchFilters] as
-        | SearchFilter[]
-        | undefined;
-      const sortingOptions = suite.state[STATE_KEY.SearchResultsProviding.getSortingOptions] as
-        | SortingOption[]
-        | undefined;
-      params = [{ title: "", filters: searchFilters ?? [] }, undefined, sortingOptions?.[0]];
-    }
+      let params = testData?.getSearchResults;
+      if (!params) {
+        const sortingOptions = suite.state[STATE_KEY.SearchResultsProviding.getSortingOptions] as
+          | SortingOption[]
+          | undefined;
+        params = [{ title: "" }, undefined, sortingOptions?.[0]];
+      }
 
-    const searchResults = await extension.getSearchResults(...params);
-    expect(searchResults).not.empty;
-    expect(searchResults.items).not.be.empty;
+      const searchResults = await extension.getSearchResults(...params);
+      expect(searchResults).not.empty;
+      expect(searchResults.items).not.be.empty;
 
-    suite.state[STATE_KEY.SearchResultsProviding.getSearchResults] = searchResults;
-  });
+      suite.state[STATE_KEY.SearchResultsProviding.getSearchResults] = searchResults;
+    });
+  }
 };
 
 export const registerDefaultMangaProvidingSourceTests = function (
   suite: TestSuite,
   extension: Extension,
-  { mangaProviding: testData }: Pick<ExtensionTestData, "mangaProviding">,
+  testData: Exclude<ExtensionTestData["mangaProviding"], false>,
 ) {
-  suite.test("getMangaDetails", async () => {
-    expect(extension).to.have.property("getMangaDetails");
+  if (testData?.getMangaDetails !== false) {
+    suite.test("getMangaDetails", async () => {
+      expect(extension).to.have.property("getMangaDetails");
 
-    let params = testData?.getMangaDetails;
-    if (!params) {
-      const searchResults = suite.state[STATE_KEY.SearchResultsProviding.getSearchResults] as
-        | PagedResults<SearchResultItem>
-        | undefined;
-      if (searchResults?.items[0]?.mangaId) {
-        params = [searchResults.items[0].mangaId];
-      } else {
-        throw new Error(
-          "No `mangaId` provided in test data. Unable to infer from `SearchResultsProviding.getSearchResults`",
-        );
+      let params = testData?.getMangaDetails;
+      if (!params) {
+        const searchResults = suite.state[STATE_KEY.SearchResultsProviding.getSearchResults] as
+          | PagedResults<SearchResultItem>
+          | undefined;
+        if (searchResults?.items[0]?.mangaId) {
+          params = [searchResults.items[0].mangaId];
+        } else {
+          throw new Error(
+            "No `mangaId` provided in test data. Unable to infer from `SearchResultsProviding.getSearchResults`",
+          );
+        }
       }
-    }
 
-    const mangaDetails = await extension.getMangaDetails(...params);
-    expect(mangaDetails).to.not.be.undefined;
-    expect(mangaDetails.mangaInfo).to.not.be.undefined;
+      const mangaDetails = await extension.getMangaDetails(...params);
+      expect(mangaDetails).to.not.be.undefined;
+      expect(mangaDetails.mangaInfo).to.not.be.undefined;
 
-    suite.state[STATE_KEY.MangaProviding.getMangaDetails] = mangaDetails;
-  });
+      suite.state[STATE_KEY.MangaProviding.getMangaDetails] = mangaDetails;
+    });
+  }
 };
 
 export const registerDefaultChapterProvidingSourceTests = function (
   suite: TestSuite,
   extension: Extension & ChapterProviding,
-  { chapterProviding: testData }: Pick<ExtensionTestData, "chapterProviding">,
+  testData: Exclude<ExtensionTestData["chapterProviding"], false>,
 ) {
-  suite.test("getChapters", async () => {
-    expect(extension).to.have.property("getChapters");
+  if (testData?.getChapters !== false) {
+    suite.test("getChapters", async () => {
+      expect(extension).to.have.property("getChapters");
 
-    let params = testData?.getChapters;
-    if (!params) {
-      const sourceManga = suite.state[STATE_KEY.MangaProviding.getMangaDetails] as
-        | SourceManga
-        | undefined;
+      let params = testData?.getChapters;
+      if (!params) {
+        const sourceManga = suite.state[STATE_KEY.MangaProviding.getMangaDetails] as
+          | SourceManga
+          | undefined;
 
-      if (sourceManga) {
-        params = [sourceManga];
-      } else {
-        throw new Error(
-          "No `sourceManga` provided in test data. Unable to infer from `MangaProviding.getMangaDetails`",
-        );
+        if (sourceManga) {
+          params = [sourceManga];
+        } else {
+          throw new Error(
+            "No `sourceManga` provided in test data. Unable to infer from `MangaProviding.getMangaDetails`",
+          );
+        }
       }
-    }
 
-    const chapters = await extension.getChapters(...params);
-    expect(chapters).to.not.be.empty;
+      const chapters = await extension.getChapters(...params);
+      expect(chapters).to.not.be.empty;
 
-    suite.state[STATE_KEY.ChapterProviding.getChapters] = chapters;
-  });
+      suite.state[STATE_KEY.ChapterProviding.getChapters] = chapters;
+    });
+  }
 
-  suite.test("getChapterDetails", async () => {
-    expect(extension).to.have.property("getChapterDetails");
+  if (testData?.getChapterDetails !== false) {
+    suite.test("getChapterDetails", async () => {
+      expect(extension).to.have.property("getChapterDetails");
 
-    let params = testData?.getChapterDetails;
-    if (!params) {
-      const chapters = suite.state[STATE_KEY.ChapterProviding.getChapters] as Chapter[] | undefined;
+      let params = testData?.getChapterDetails;
+      if (!params) {
+        const chapters = suite.state[STATE_KEY.ChapterProviding.getChapters] as
+          | Chapter[]
+          | undefined;
 
-      if (chapters?.[0]) {
-        params = [chapters[0]];
-      } else {
-        throw new Error(
-          "No `sourceManga` provided in test data. Unable to infer from `MangaProviding.getMangaDetails`",
-        );
+        if (chapters?.[0]) {
+          params = [chapters[0]];
+        } else {
+          throw new Error(
+            "No `sourceManga` provided in test data. Unable to infer from `MangaProviding.getMangaDetails`",
+          );
+        }
       }
-    }
 
-    const chapterDetails = await extension.getChapterDetails(...params);
-    expect(chapterDetails).to.not.be.undefined;
+      const chapterDetails = await extension.getChapterDetails(...params);
+      expect(chapterDetails).to.not.be.undefined;
 
-    suite.state[STATE_KEY.ChapterProviding.getChapterDetails] = chapterDetails;
-  });
+      suite.state[STATE_KEY.ChapterProviding.getChapterDetails] = chapterDetails;
+    });
+  }
 };

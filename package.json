@@ -10,15 +10,15 @@
     "format:check": "oxfmt --check .",
     "tsc": "tsc",
     "bundle": "paperback-cli bundle",
-    "test": "paperback-cli test",
+    "test": "npx --package @paperback/toolchain@1.0.0-alpha.78 paperback-cli test --noConsole --output ./bundles/tests.json",
     "serve": "paperback-cli serve",
     "logcat": "paperback-cli logcat",
     "dev": "paperback-cli serve --watch",
     "prepare": "husky"
   },
   "devDependencies": {
-    "@paperback/toolchain": "^1.0.0-alpha.74",
-    "@paperback/types": "^1.0.0-alpha.74",
+    "@paperback/toolchain": "1.0.0-alpha.74",
+    "@paperback/types": "1.0.0-alpha.74",
     "@types/chai": "^5.2.3",
     "@types/upng-js": "^2.1.5",
     "chai": "^6.2.2",
