@@ -5,7 +5,6 @@ import { AdvancedSearchForm, NavigationRow, Section, SelectRow, ToggleRow } from
 
 import { type Metadata, STATIC_SEARCH_DETAILS } from "../models";
 import { TagCategoryForm } from "./TagCategoryForm";
-import { ShowcaseForm } from "./ShowcaseForm";
 
 export class MangaballSearchForm extends AdvancedSearchForm {
   private nsfw: boolean;
@@ -121,14 +120,7 @@ export class MangaballSearchForm extends AdvancedSearchForm {
             "updateOriginalLanguages",
           ),
         }),
-      ]),
-      Section("dev", [
-        NavigationRow("showcase", {
-          title: "UI Elements Showcase",
-          subtitle: "Preview every available form row and section type",
-          form: new ShowcaseForm(),
-        }),
-      ]),
+      ])
     ];
   }
 }
