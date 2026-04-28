@@ -17,7 +17,6 @@ import {
   type Extension,
   type MangaProviding,
   type PagedResults,
-  type SearchFilter,
   type SearchQuery,
   type SearchResultItem,
   type SearchResultsProviding,
@@ -26,20 +25,19 @@ import {
   type Tag,
   type TagSection,
   type SortingOption,
+  AdvancedSearchForm,
 } from "@paperback/types";
 import * as cheerio from "cheerio";
 
 import { getState } from "../utils/state";
-import { SettingsForm } from "./forms";
+import { SettingsForm, WeebCentralAdvancedSearchForm } from "./forms";
+import { getSearchTags, getShareUrl, isInvalidTags, newQuery } from "./helpers";
 import {
-  getDropdownFilterValue,
-  getFilterTagsBySection,
-  getShareUrl,
-  getTagFromTagStore,
-  isInvalidTags,
-  newQuery,
-} from "./helpers";
-import { TagSectionId, type Metadata } from "./models";
+  EMPTY_SEARCH_METADATA,
+  TagSectionId,
+  type SearchMetadata,
+  type WeebCentralMetadata,
+} from "./models";
 import { WeebCentralInterceptor } from "./network";
 import {
   fetchChapterDetailsPage,
@@ -59,7 +57,6 @@ import {
   parseRecentSectionViewMore,
   parseRecommendedSection,
   parseSearch,
-  parseTags,
 } from "./parsers";
 import pbconfig from "./pbconfig";
 
@@ -118,7 +115,7 @@ export class WeebCentralExtension
 
   async getDiscoverSectionItems(
     section: DiscoverSection,
-    metadata: Metadata | undefined,
+    metadata: WeebCentralMetadata | undefined,
   ): Promise<PagedResults<DiscoverSectionItem>> {
     let items: DiscoverSectionItem[] = [];
     const page: number = metadata?.page ?? 1;
@@ -157,12 +154,9 @@ export class WeebCentralExtension
           type: "genresCarouselItem",
           searchQuery: {
             title: "",
-            filters: [
-              {
-                id: TagSectionId.Genres,
-                value: { [genre.id]: "included" },
-              },
-            ],
+            metadata: {
+              genres: [genre.id],
+            },
           },
           name: genre.title,
           metadata: metadata,
@@ -202,7 +196,7 @@ export class WeebCentralExtension
   async getGenres(): Promise<Tag[]> {
     let tags = getState<TagSection[]>("tags", []);
     if (tags.length == 0) {
-      tags = await this.getSearchTags();
+      tags = await getSearchTags();
       if (tags.length == 0) {
         throw new Error("Tags not found");
       }
@@ -217,37 +211,6 @@ export class WeebCentralExtension
     return genreTag.tags;
   }
 
-  async getSearchTags(): Promise<TagSection[]> {
-    let tags = getState<TagSection[]>("tags", []);
-    if (tags.length > 0) {
-      console.log("bypassing web request");
-      return tags;
-    }
-    try {
-      console.log("fetching tags from web request");
-      const [_, buffer] = await fetchSearchPage([], []);
-      const $ = cheerio.load(Application.arrayBufferToUTF8String(buffer));
-      tags = await parseTags($);
-      Application.setState(tags, "tags");
-      return tags;
-    } catch (error) {
-      throw new Error(error as string);
-    }
-  }
-  async getSearchFilters(): Promise<SearchFilter[]> {
-    const tags = await this.getSearchTags();
-    const filters: SearchFilter[] = [];
-
-    filters.push(
-      this.getGenresFilter(tags),
-      this.getSeriesStatusFilter(tags),
-      this.getSeriesTypeFilter(tags),
-      this.getOrderFilter(tags),
-    );
-
-    return filters;
-  }
-
   async getSortingOptions(): Promise<SortingOption[]> {
     return [
       { id: "Best Match", label: "Best Match" },
@@ -260,13 +223,14 @@ export class WeebCentralExtension
   }
 
   async getSearchResults(
-    query: SearchQuery,
-    metadata: Metadata | undefined,
+    query: SearchQuery<SearchMetadata>,
+    metadata: WeebCentralMetadata | undefined,
     sortingOption?: SortingOption,
   ): Promise<PagedResults<SearchResultItem>> {
     const LIMIT = 32;
     const offset = metadata?.offset ?? 0;
     const paths = ["data"];
+    query.metadata = query.metadata ?? EMPTY_SEARCH_METADATA;
     const queries = [
       newQuery("sort", sortingOption?.id ?? "Best Match"),
       newQuery("display_mode", "Full Display"),
@@ -278,21 +242,13 @@ export class WeebCentralExtension
     }
 
     queries.push(
-      newQuery(TagSectionId.Genres, getFilterTagsBySection(TagSectionId.Genres, query.filters)),
-      newQuery(
-        TagSectionId.SeriesStatus,
-        getFilterTagsBySection(TagSectionId.SeriesStatus, query.filters),
-      ),
-      newQuery(
-        TagSectionId.SeriesType,
-        getFilterTagsBySection(TagSectionId.SeriesType, query.filters),
-      ),
+      newQuery(TagSectionId.Genres, query.metadata.genres ?? []),
+      newQuery(TagSectionId.SeriesStatus, query.metadata.seriesStatuses ?? []),
+      newQuery(TagSectionId.SeriesType, query.metadata.seriesTypes ?? []),
     );
 
-    const orderValue = getDropdownFilterValue(TagSectionId.Order, query.filters);
-    if (orderValue) {
-      queries.push(newQuery(TagSectionId.Order, orderValue));
-    }
+    const orderIsDescending = query.metadata.orderIsDescending ?? false;
+    queries.push(newQuery(TagSectionId.Order, orderIsDescending ? "Descending" : "Ascending"));
 
     const [_, buffer] = await fetchSearchPage(paths, queries);
     const $ = cheerio.load(Application.arrayBufferToUTF8String(buffer));
@@ -304,61 +260,15 @@ export class WeebCentralExtension
     return { items, metadata };
   }
 
-  getGenresFilter(tags: TagSection[]): SearchFilter {
-    const tag = getTagFromTagStore(TagSectionId.Genres, tags);
-    return {
-      id: tag.id,
-      title: tag.title,
-      type: "multiselect",
-      options: tag.tags.map((x) => ({ id: x.id, value: x.title })),
-      allowExclusion: false,
-      value: {},
-      allowEmptySelection: false,
-      maximum: undefined,
-    };
-  }
-
-  getSeriesStatusFilter(tags: TagSection[]): SearchFilter {
-    const tag = getTagFromTagStore(TagSectionId.SeriesStatus, tags);
-    return {
-      id: tag.id,
-      title: tag.title,
-      type: "multiselect",
-      options: tag.tags.map((x) => ({ id: x.id, value: x.title })),
-      allowExclusion: false,
-      value: {},
-      allowEmptySelection: false,
-      maximum: undefined,
-    };
-  }
-
-  getSeriesTypeFilter(tags: TagSection[]): SearchFilter {
-    const tag = getTagFromTagStore(TagSectionId.SeriesType, tags);
-    return {
-      id: tag.id,
-      title: tag.title,
-      type: "multiselect",
-      options: tag.tags.map((x) => ({ id: x.id, value: x.title })),
-      allowExclusion: false,
-      value: {},
-      allowEmptySelection: false,
-      maximum: undefined,
-    };
-  }
-
-  getOrderFilter(tags: TagSection[]): SearchFilter {
-    const tag = getTagFromTagStore(TagSectionId.Order, tags);
-    return {
-      id: tag.id,
-      title: tag.title,
-      type: "dropdown",
-      options: tag.tags.map((x) => ({ id: x.id, value: x.title })),
-      value: "Ascending",
-    };
-  }
-
   async getSettingsForm(): Promise<Form> {
     return new SettingsForm();
+  }
+
+  async getAdvancedSearchForm(
+    searchQuery: SearchQuery<SearchMetadata>,
+  ): Promise<AdvancedSearchForm> {
+    const tags = await getSearchTags();
+    return new WeebCentralAdvancedSearchForm(searchQuery, tags);
   }
 
   async saveCloudflareBypassCookies(cookies: Cookie[]): Promise<void> {
