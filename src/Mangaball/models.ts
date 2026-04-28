@@ -1,13 +1,15 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 /* Copyright © 2026 Inkdex */
 
-export type Metadata = {
+import type { JSONObject } from "@paperback/types";
+
+export interface Metadata extends JSONObject {
   nsfw?: boolean;
   demographic?: string;
-  tagIncluded?: string[];
-  tagExcluded?: string[];
-  originalLanguages?: string[];
-};
+  tagIncluded: string[];
+  tagExcluded: string[];
+  originalLanguages: string[];
+}
 
 export interface filterOption {
   id: string;

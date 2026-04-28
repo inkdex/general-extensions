@@ -248,7 +248,8 @@ export class MangaballExtension implements MangaballImplementation {
   }
 
   async getAdvancedSearchForm(query: SearchQuery<Metadata>): Promise<AdvancedSearchForm> {
-    return new MangaballSearchForm(query.metadata as MangaballMetadata | undefined);
+    const meta = (query.metadata as { searchMeta?: MangaballMetadata } | undefined)?.searchMeta;
+    return new MangaballSearchForm(meta);
   }
 
   async getSearchResults(
@@ -260,7 +261,7 @@ export class MangaballExtension implements MangaballImplementation {
     const page = paginationMeta?.page ?? 1;
     const collectedIds = paginationMeta?.searchCollectedIds ?? [];
 
-    const searchMeta = query.metadata as MangaballMetadata | undefined;
+    const searchMeta = (query.metadata as { searchMeta?: MangaballMetadata } | undefined)?.searchMeta;
     const nsfw = searchMeta?.nsfw ?? false;
     const tag_included_ids = searchMeta?.tagIncluded ?? [];
     const tag_excluded_ids = searchMeta?.tagExcluded ?? [];
@@ -282,7 +283,7 @@ export class MangaballExtension implements MangaballImplementation {
 
     if (tag_included_ids.length > 0) filters["tag_included_ids"] = tag_included_ids;
     if (tag_excluded_ids.length > 0) filters["tag_excluded_ids"] = tag_excluded_ids;
-    if (originalLanguages.length > 0) filters["originalLanguages"] = originalLanguages;
+    if (originalLanguages.length > 0) filters["originalLanguages"] = originalLanguages.join(",");
     filters["page"] = page;
 
     const formBody = [

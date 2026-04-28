@@ -45,7 +45,7 @@ export class MangaballSearchForm extends AdvancedSearchForm {
     this.reloadForm();
   }
 
-  getSearchQueryMetadata(): Metadata {
+  getSearchQueryMetadata() {
     const tagIncluded: string[] = [];
     const tagExcluded: string[] = [];
     for (const form of this.tagCategoryForms.values()) {
@@ -55,11 +55,13 @@ export class MangaballSearchForm extends AdvancedSearchForm {
     }
 
     return {
-      nsfw: this.nsfw,
-      demographic: this.demographic[0] ?? "any",
-      tagIncluded: tagIncluded.length ? tagIncluded : undefined,
-      tagExcluded: tagExcluded.length ? tagExcluded : undefined,
-      originalLanguages: this.originalLanguages.length ? this.originalLanguages : undefined,
+      searchMeta: {
+        nsfw: this.nsfw,
+        demographic: this.demographic[0] ?? "any",
+        tagIncluded,
+        tagExcluded,
+        originalLanguages: this.originalLanguages,
+      } satisfies Metadata,
     };
   }
 
