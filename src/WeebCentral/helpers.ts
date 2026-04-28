@@ -1,32 +1,13 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 /* Copyright © 2026 Inkdex */
 
-import { ContentRating, type SearchQuery, type Tag, type TagSection } from "@paperback/types";
+import { ContentRating, type Tag, type TagSection } from "@paperback/types";
+import * as cheerio from "cheerio";
 
+import { getState } from "../utils/state";
 import { TagSectionId, WC_DOMAIN } from "./models";
-import { type Query } from "./network";
-
-export function getFilterTagsBySection(
-  section: TagSectionId,
-  tags: SearchQuery["filters"],
-): string[] {
-  const values = tags.find((x) => (x.id as TagSectionId) === section)?.value;
-  if (values === undefined) {
-    return [];
-  }
-  return Object.entries(values)
-    .filter((x) => x[1] == "included")
-    .map((x) => parseTagId(x[0]));
-}
-
-export function getDropdownFilterValue(
-  section: TagSectionId,
-  tags: SearchQuery["filters"],
-  fallback = "",
-): string {
-  const value = tags.find((x) => (x.id as TagSectionId) === section)?.value;
-  return typeof value === "string" && value ? value : fallback;
-}
+import { fetchSearchPage, type Query } from "./network";
+import { parseTags } from "./parsers";
 
 export function formatTagId(tagId: string): string {
   return tagId.replaceAll(" ", "_");
@@ -61,4 +42,16 @@ export function newQuery(key: string, value: string | string[]): Query {
     key,
     value,
   };
+}
+
+export async function getSearchTags(): Promise<TagSection[]> {
+  let tags = getState<TagSection[]>("tags", []);
+  if (tags.length > 0) {
+    return tags;
+  }
+  const [_, buffer] = await fetchSearchPage([], []);
+  const $ = cheerio.load(Application.arrayBufferToUTF8String(buffer));
+  tags = await parseTags($);
+  Application.setState(tags, "tags");
+  return tags;
 }
