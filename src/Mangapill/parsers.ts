@@ -201,11 +201,37 @@ export const parseTags = async ($: CheerioAPI): Promise<TagSection[]> => {
     id = formatTagId(id);
     genres.push({ id, title });
   }
+
+  const types: Tag[] = [];
+  for (const typeObj of $("label:Contains('Type')").siblings().first().children().toArray()) {
+    const title = $(typeObj).text().trim();
+    let id = $("input", typeObj).attr("value") ?? title;
+    id = formatTagId(id);
+    types.push({ id, title });
+  }
+
+  const statuses: Tag[] = [];
+  for (const statusObj of $("label:Contains('Status')").siblings().first().children().toArray()) {
+    const title = $(statusObj).text().trim();
+    let id = $("input", statusObj).attr("value") ?? title;
+    id = formatTagId(id);
+    statuses.push({ id, title });
+  }
   return [
     {
       id: "genre",
       title: "Genres",
       tags: genres,
+    },
+    {
+      id: "type",
+      title: "Types",
+      tags: types,
+    },
+    {
+      id: "status",
+      title: "Status",
+      tags: statuses,
     },
   ];
 };
