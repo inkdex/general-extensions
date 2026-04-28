@@ -2,6 +2,7 @@
 /* Copyright © 2026 Inkdex */
 
 import {
+  AdvancedSearchForm,
   BasicRateLimiter,
   DiscoverSectionType,
   URL,
@@ -14,19 +15,18 @@ import {
   type Extension,
   type MangaProviding,
   type PagedResults,
-  type SearchFilter,
   type SearchQuery,
   type SearchResultItem,
   type SearchResultsProviding,
   type SourceManga,
-  type Tag,
   type TagSection,
 } from "@paperback/types";
 import * as cheerio from "cheerio";
 
-import { getFilterTagsBySection } from "./helpers";
+import { MangapillAdvancedSearchForm } from "./forms";
+import { getGenresFromTags, getSearchTags } from "./helpers";
 import { MangapillInterceptor } from "./interceptors";
-import { DOMAIN } from "./models";
+import { DOMAIN, type SearchMetadata } from "./models";
 import {
   parseChapterDetails,
   parseChapters,
@@ -103,17 +103,15 @@ export class MangapillExtension
         break;
       }
       case "genre": {
-        const genres = await this.getGenres();
-        items = genres.map((genre) => ({
+        const tags = await getSearchTags();
+        const genres = getGenresFromTags(tags);
+        items = genres.tags.map((genre) => ({
           type: "genresCarouselItem",
           searchQuery: {
             title: "",
-            filters: [
-              {
-                id: "genre",
-                value: { [genre.id]: "included" },
-              },
-            ],
+            metadata: {
+              genres: [genre.id],
+            },
           },
           name: genre.title,
           metadata: metadata,
@@ -145,43 +143,39 @@ export class MangapillExtension
     return false;
   }
 
-  async getGenres(): Promise<Tag[]> {
-    const tags = await this.getSearchTags();
-    return tags[0].tags;
-  }
-
   async getSearchTags(): Promise<TagSection[]> {
-    try {
-      const request = {
-        url: new URL(DOMAIN).addPathComponent("search").toString(),
-        method: "GET",
-      };
+    const request = {
+      url: new URL(DOMAIN).addPathComponent("search").toString(),
+      method: "GET",
+    };
 
-      const [_, buffer] = await Application.scheduleRequest(request);
-      const $ = cheerio.load(Application.arrayBufferToUTF8String(buffer));
-      return await parseTags($);
-    } catch (error) {
-      throw new Error(error as string);
-    }
-  }
-
-  async getSearchFilters(): Promise<SearchFilter[]> {
-    const tags = await this.getSearchTags();
-    return [this.getGenresFilter(tags)];
+    const [_, buffer] = await Application.scheduleRequest(request);
+    const $ = cheerio.load(Application.arrayBufferToUTF8String(buffer));
+    return await parseTags($);
   }
 
   async getSearchResults(
-    query: SearchQuery,
+    query: SearchQuery<SearchMetadata>,
     metadata: undefined,
   ): Promise<PagedResults<SearchResultItem>> {
     const queries = [];
     if (query.title) {
       queries.push({ key: "q", value: query.title });
     }
-    queries.push({
-      key: "genre",
-      value: getFilterTagsBySection("genre", query.filters),
-    });
+    queries.push(
+      {
+        key: "genre",
+        value: query.metadata?.genres ?? [],
+      },
+      {
+        key: "type",
+        value: query.metadata?.types ?? [],
+      },
+      {
+        key: "status",
+        value: query.metadata?.statuses ?? [],
+      },
+    );
     const response = await fetchSearchPage([], queries);
     const $ = cheerio.load(Application.arrayBufferToUTF8String(response[1]));
 
@@ -189,18 +183,11 @@ export class MangapillExtension
     return { items, metadata };
   }
 
-  getGenresFilter(tags: TagSection[]): SearchFilter {
-    const tag = tags[0];
-    return {
-      id: tag.id,
-      title: tag.title,
-      type: "multiselect",
-      options: tag.tags.map((x) => ({ id: x.id, value: x.title })),
-      allowExclusion: false,
-      value: {},
-      allowEmptySelection: false,
-      maximum: undefined,
-    };
+  async getAdvancedSearchForm(
+    searchQuery: SearchQuery<SearchMetadata>,
+  ): Promise<AdvancedSearchForm> {
+    const tags = await this.getSearchTags();
+    return new MangapillAdvancedSearchForm(searchQuery, tags);
   }
 }
 
