@@ -78,10 +78,10 @@ export class MangaballSearchForm extends AdvancedSearchForm {
         ToggleRow("nsfw", {
           title: "Show 18+ Content",
           value: this.nsfw,
-          onValueChange: Application.Selector<MangaballSearchForm, (value: boolean) => Promise<void>>(
-            this,
-            "updateNsfw",
-          ),
+          onValueChange: Application.Selector<
+            MangaballSearchForm,
+            (value: boolean) => Promise<void>
+          >(this, "updateNsfw"),
         }),
         SelectRow("demographic", {
           title: "Demographic",
@@ -89,10 +89,10 @@ export class MangaballSearchForm extends AdvancedSearchForm {
           options: STATIC_SEARCH_DETAILS.demographics.map((d) => ({ id: d.id, title: d.label })),
           minItemCount: 1,
           maxItemCount: 1,
-          onValueChange: Application.Selector<MangaballSearchForm, (value: string[]) => Promise<void>>(
-            this,
-            "updateDemographic",
-          ),
+          onValueChange: Application.Selector<
+            MangaballSearchForm,
+            (value: string[]) => Promise<void>
+          >(this, "updateDemographic"),
         }),
       ]),
       ...STATIC_SEARCH_DETAILS.tagCategories.map((cat) =>
@@ -115,12 +115,12 @@ export class MangaballSearchForm extends AdvancedSearchForm {
           })),
           minItemCount: 0,
           maxItemCount: STATIC_SEARCH_DETAILS.originalLanguages.length,
-          onValueChange: Application.Selector<MangaballSearchForm, (value: string[]) => Promise<void>>(
-            this,
-            "updateOriginalLanguages",
-          ),
+          onValueChange: Application.Selector<
+            MangaballSearchForm,
+            (value: string[]) => Promise<void>
+          >(this, "updateOriginalLanguages"),
         }),
-      ])
+      ]),
     ];
   }
 }

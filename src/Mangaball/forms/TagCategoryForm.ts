@@ -23,7 +23,10 @@ export class TagCategoryForm extends Form {
   private tagStateMap: Map<string, TagState>;
   private searchQuery: string;
 
-  constructor(category: TagCategory, initialState: TagCategoryState = { included: [], excluded: [] }) {
+  constructor(
+    category: TagCategory,
+    initialState: TagCategoryState = { included: [], excluded: [] },
+  ) {
     super();
     this.category = category;
     this.searchQuery = "";

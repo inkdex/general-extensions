@@ -32,6 +32,7 @@ import * as cheerio from "cheerio";
 import { type CheerioAPI } from "cheerio";
 import * as htmlparser2 from "htmlparser2";
 
+import { MangaballSearchForm } from "./forms/SearchForm";
 import {
   type SearchAPIResponse,
   STATIC_SEARCH_DETAILS,
@@ -39,7 +40,6 @@ import {
   type ChapterApiResponse,
   type Metadata as MangaballMetadata,
 } from "./models";
-import { MangaballSearchForm } from "./forms/SearchForm";
 import { MainInterceptor } from "./network";
 import { parseApiItemsToDiscoverItems } from "./parsers";
 
@@ -261,7 +261,8 @@ export class MangaballExtension implements MangaballImplementation {
     const page = paginationMeta?.page ?? 1;
     const collectedIds = paginationMeta?.searchCollectedIds ?? [];
 
-    const searchMeta = (query.metadata as { searchMeta?: MangaballMetadata } | undefined)?.searchMeta;
+    const searchMeta = (query.metadata as { searchMeta?: MangaballMetadata } | undefined)
+      ?.searchMeta;
     const nsfw = searchMeta?.nsfw ?? false;
     const tag_included_ids = searchMeta?.tagIncluded ?? [];
     const tag_excluded_ids = searchMeta?.tagExcluded ?? [];
@@ -550,8 +551,13 @@ export class MangaballExtension implements MangaballImplementation {
 
     for (const ch of json.ALL_CHAPTERS ?? []) {
       for (const t of ch.translations ?? []) {
-        if (seen.has(t.id)) continue;
-        seen.add(t.id);
+        const language = (t.language || t.languageName || "").trim();
+        const seenKey = `${t.id}:${language.toLowerCase()}`;
+        if (seen.has(seenKey)) continue;
+        seen.add(seenKey);
+
+        const version = [t.group?._id?.trim(), language].filter(Boolean).join(" ");
+
         chapters.push({
           chapterId: t.id,
           sourceManga,
@@ -559,8 +565,8 @@ export class MangaballExtension implements MangaballImplementation {
           volume: t.volume || 0,
           chapNum: ch.number_float || 0,
           publishDate: t.date ? new Date(t.date) : undefined,
-          langCode: t.languageName || t.language || "",
-          version: t.group?.name || "",
+          langCode: language,
+          version,
         });
       }
     }

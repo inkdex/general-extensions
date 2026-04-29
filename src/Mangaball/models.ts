@@ -71,7 +71,7 @@ export interface ChapterTranslation {
   name: string;
   language: string;
   languageName: string;
-  group?: { name?: string };
+  group?: { _id?: string; name?: string };
   date?: string;
   volume?: number;
 }
