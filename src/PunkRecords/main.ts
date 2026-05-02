@@ -61,7 +61,7 @@ export class PunkRecordsExtension implements PunkRecordsImplementation {
 
   async getDiscoverSectionItems(
     section: DiscoverSection,
-    metadata: unknown | undefined,
+    metadata: unknown,
   ): Promise<PagedResults<DiscoverSectionItem>> {
     void metadata;
 
@@ -88,7 +88,7 @@ export class PunkRecordsExtension implements PunkRecordsImplementation {
 
   async getSearchResults(
     query: SearchQuery,
-    metadata: unknown | undefined,
+    metadata: unknown,
     sortingOption: SortingOption | undefined,
   ): Promise<PagedResults<SearchResultItem>> {
     void metadata;
@@ -104,7 +104,12 @@ export class PunkRecordsExtension implements PunkRecordsImplementation {
       this.fetchCatalogue(),
     ]);
     const fallbackEntry = catalogue.find((manga) => manga.mangaId === mangaId);
-    const manga = this.parser.parseMangaDetails(mangaId, html, fallbackEntry, `${DOMAIN}/logo512.png`);
+    const manga = this.parser.parseMangaDetails(
+      mangaId,
+      html,
+      fallbackEntry,
+      `${DOMAIN}/logo512.png`,
+    );
 
     return {
       ...manga,

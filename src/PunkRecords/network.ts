@@ -10,7 +10,7 @@ export class MainInterceptor extends PaperbackInterceptor {
     return {
       ...request,
       headers: {
-        ...(request.headers ?? {}),
+        ...request.headers,
         referer: `${DOMAIN}/`,
       },
     };

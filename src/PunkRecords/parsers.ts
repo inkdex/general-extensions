@@ -8,6 +8,7 @@ import {
   type SearchResultItem,
   type SourceManga,
 } from "@paperback/types";
+
 import type {
   CatalogueEntry,
   DiscoverItemType,
@@ -100,7 +101,11 @@ export function cleanTitle(title: string): string {
 }
 
 export function normalizeString(value: string): string {
-  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
 }
 
 export function extractAuthorFromKeywords(html: string): string | undefined {
@@ -176,7 +181,9 @@ export class PunkRecordsParser {
       extractTagContent(html, "title") ?? fallbackEntry?.title ?? mangaId,
     );
     const thumbnailUrl =
-      extractMetaContent(html, "property", "og:image") ?? fallbackEntry?.image ?? fallbackThumbnailUrl;
+      extractMetaContent(html, "property", "og:image") ??
+      fallbackEntry?.image ??
+      fallbackThumbnailUrl;
     const synopsis =
       extractMetaContent(html, "name", "description") ?? "Aucune description disponible.";
     const creator = extractAuthorFromKeywords(html);
@@ -203,10 +210,7 @@ export class PunkRecordsParser {
   parseChapterList(html: string, sourceManga: SourceManga): Chapter[] {
     const chapters: Chapter[] = [];
     const seen = new Set<string>();
-    const regex = new RegExp(
-      `href="/mangas/${sourceManga.mangaId}/([^"?#/]+)"[^>]*>([^<]+)<`,
-      "g",
-    );
+    const regex = new RegExp(`href="/mangas/${sourceManga.mangaId}/([^"?#/]+)"[^>]*>([^<]+)<`, "g");
     let match: RegExpExecArray | null;
 
     while ((match = regex.exec(html)) !== null) {
