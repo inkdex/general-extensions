@@ -226,92 +226,92 @@ class SectionSettings extends BaseSettings {
       ),
       ...(this.isEnabled("updatesHot") || this.isEnabled("updatesNew")
         ? [
-          Section(
-            {
-              id: "latestSectionSettings",
-              header: "Latest Section Settings",
-            },
-            [
-              ToggleRow("sectionType", {
-                title: "Horizontal List View",
-                subtitle:
-                  "Enable to display the latest sections as a horizontal list. Disable to show it in a table layout",
-                value: getChapterSectionDiffType(),
-                onValueChange: Application.Selector(
-                  this as SectionSettings,
-                  "handleChapterSectionChange",
-                ),
-              }),
-            ],
-          ),
-        ]
+            Section(
+              {
+                id: "latestSectionSettings",
+                header: "Latest Section Settings",
+              },
+              [
+                ToggleRow("sectionType", {
+                  title: "Horizontal List View",
+                  subtitle:
+                    "Enable to display the latest sections as a horizontal list. Disable to show it in a table layout",
+                  value: getChapterSectionDiffType(),
+                  onValueChange: Application.Selector(
+                    this as SectionSettings,
+                    "handleChapterSectionChange",
+                  ),
+                }),
+              ],
+            ),
+          ]
         : []),
       ...(this.isEnabled("trending_manga") || this.isEnabled("trending_wt")
         ? [
-          Section(
-            {
-              id: "trendingSectionSettings",
-              header: "Trending Section Settings",
-            },
-            [
-              ToggleRow("sectionType", {
-                title: "Horizontal List View",
-                subtitle:
-                  "Enable to display the trending sections as a horizontal list. Disable to show it in a table layout",
-                value: getTrendingSectionDiffType(),
-                onValueChange: Application.Selector(
-                  this as SectionSettings,
-                  "handleTrendingSectionChange",
-                ),
-              }),
-              ToggleRow("allTimes", {
-                title: "Filter Trending Sections by Year",
-                subtitle: "Enable or disable year-based filtering",
-                value: getSectionTimesType(),
-                onValueChange: Application.Selector(
-                  this as SectionSettings,
-                  "handleYearTimesChange",
-                ),
-              }),
-              StepperRow("yearSettings", {
-                title: "Year",
-                subtitle: "Select the year",
-                value: filter.getYearSettings(),
-                minValue: 2023,
-                maxValue: new Date().getFullYear(),
-                stepValue: 1,
-                loopOver: false,
-                onValueChange: Application.Selector(
-                  this as SectionSettings,
-                  "handleYearStatusChange",
-                ),
-                isHidden: !getSectionTimesType(),
-              }),
-            ],
-          ),
-        ]
+            Section(
+              {
+                id: "trendingSectionSettings",
+                header: "Trending Section Settings",
+              },
+              [
+                ToggleRow("sectionType", {
+                  title: "Horizontal List View",
+                  subtitle:
+                    "Enable to display the trending sections as a horizontal list. Disable to show it in a table layout",
+                  value: getTrendingSectionDiffType(),
+                  onValueChange: Application.Selector(
+                    this as SectionSettings,
+                    "handleTrendingSectionChange",
+                  ),
+                }),
+                ToggleRow("allTimes", {
+                  title: "Filter Trending Sections by Year",
+                  subtitle: "Enable or disable year-based filtering",
+                  value: getSectionTimesType(),
+                  onValueChange: Application.Selector(
+                    this as SectionSettings,
+                    "handleYearTimesChange",
+                  ),
+                }),
+                StepperRow("yearSettings", {
+                  title: "Year",
+                  subtitle: "Select the year",
+                  value: filter.getYearSettings(),
+                  minValue: 2023,
+                  maxValue: new Date().getFullYear(),
+                  stepValue: 1,
+                  loopOver: false,
+                  onValueChange: Application.Selector(
+                    this as SectionSettings,
+                    "handleYearStatusChange",
+                  ),
+                  isHidden: !getSectionTimesType(),
+                }),
+              ],
+            ),
+          ]
         : []),
       ...(this.isEnabled("recent")
         ? [
-          Section(
-            {
-              id: "recentSectionSettings",
-              header: "Recent Section Settings",
-            },
-            [
-              ToggleRow("sectionType", {
-                title: "Horizontal List View",
-                subtitle:
-                  "Enable to display the recent rection as a horizontal list. Disable to show it in a table layout",
-                value: getRecentSectionDiffType(),
-                onValueChange: Application.Selector(
-                  this as SectionSettings,
-                  "handleRecentSectionChange",
-                ),
-              }),
-            ],
-          ),
-        ]
+            Section(
+              {
+                id: "recentSectionSettings",
+                header: "Recent Section Settings",
+              },
+              [
+                ToggleRow("sectionType", {
+                  title: "Horizontal List View",
+                  subtitle:
+                    "Enable to display the recent rection as a horizontal list. Disable to show it in a table layout",
+                  value: getRecentSectionDiffType(),
+                  onValueChange: Application.Selector(
+                    this as SectionSettings,
+                    "handleRecentSectionChange",
+                  ),
+                }),
+              ],
+            ),
+          ]
         : []),
       Section(
         {
@@ -377,11 +377,6 @@ class FilterSettings extends BaseSettings {
     id: id,
   }));
 
-  themesMap = filter.themes.map(({ value, id }) => ({
-    title: value,
-    id: id,
-  }));
-
   demogMap = filter.demographic.map(({ value, id }) => ({
     title: value,
     id: id,
@@ -411,19 +406,6 @@ class FilterSettings extends BaseSettings {
             onValueChange: Application.Selector(
               this as FilterSettings,
               "handleHideGenresStatusChange",
-            ),
-          }),
-          SelectRow("hide_theme", {
-            title: "Hide Themes",
-            subtitle: "Hide Some Theme",
-            layout: "list",
-            value: filter.getHiddenThemesSettings(),
-            items: this.themesMap,
-            minItemCount: 0,
-            maxItemCount: this.themesMap.length,
-            onValueChange: Application.Selector(
-              this as FilterSettings,
-              "handleHideThemesStatusChange",
             ),
           }),
           SelectRow("hide_demog", {
@@ -482,11 +464,6 @@ class FilterSettings extends BaseSettings {
     await this.updateValue(id, "hide_genres");
   }
 
-  async handleHideThemesStatusChange(id: string[]) {
-    Application.invalidateDiscoverSections();
-    await this.updateValue(id, "hide_themes");
-  }
-
   async handleHideDemogStatusChange(id: string[]) {
     Application.invalidateDiscoverSections();
     await this.updateValue(id, "hide_demog");
@@ -505,7 +482,6 @@ class FilterSettings extends BaseSettings {
   async resetFilters() {
     Application.invalidateDiscoverSections();
     await this.updateValue([], "hide_genres");
-    await this.updateValue([], "hide_themes");
     await this.updateValue([], "show_only");
     await this.updateValue([], "hide_demog");
   }

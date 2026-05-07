@@ -3,7 +3,7 @@
 
 import type { JSONObject } from "@paperback/types";
 export const DOMAIN = "https://comix.to";
-export const API = `${DOMAIN}/api/v2`;
+export const API = `${DOMAIN}/api/v1`;
 export const NO_IMAGE = `${DOMAIN}/images/no-poster.png`;
 
 type FilterValue = "included" | "excluded";
@@ -30,60 +30,71 @@ export interface ResultManga {
 
 export interface ResultChapter {
   items: ChapterItem[];
-  pagination: { last_page: number };
+  meta: { lastPage: number };
 }
 
 export interface ChapterPages {
-  manga_id: number;
-  images: { url: string }[];
+  mangaId: number;
+  pages: { url: string }[];
 }
 
 export interface MangaItem {
-  manga_id: number;
-  hash_id: string;
+  id: number;
+  hid: string;
   title: string;
-  alt_titles: string[];
+  altTitles: string[];
   synopsis: string;
-  slug: string;
   poster: Poster;
-  original_language: string;
+  originalLanguage: string;
   status: string;
-  latest_chapter: number;
-  chapter_updated_at: number;
-  created_at: number;
-  updated_at: number;
-  rated_avg: number;
-  is_nsfw: boolean;
-  author?: { title: string }[];
-  artist?: { title: string }[];
-  genre: Terms[];
-  theme: Terms[];
-  demographic: Terms[];
+  latestChapter: number;
+  chapterUpdatedAtFormatted: string;
+  createdAtFormatted: string;
+  updatedAtFormatted: string;
+  ratedAvg: number;
+  contentRating: string;
+  type: string;
+  hasChapters: boolean;
+  finalChapter: number;
+  finalVolume: number;
+  startDate: string;
+  endDate: string;
+  year: number;
+  rank: number;
+  followsTotal: number;
+  ratedCount: number;
+  synopsisHtml: string;
+  url: string;
+  uploadUrl: string;
+  editUrl: string;
+  authors?: { title: string }[];
+  artists?: { title: string }[];
+  genres: Terms[];
+  formats: Terms[];
+  demographics: Terms[];
 }
 
 export interface Terms {
-  term_id: number;
+  id: number;
   title: string;
 }
 
 export interface Poster {
-  small: string;
   medium: string;
   large: string;
 }
 
 export interface ChapterItem {
-  chapter_id: number;
-  manga_id: number;
-  is_official: number;
+  id: number;
+  mangaId: number;
+  isOfficial: boolean;
   number: number;
   name: string;
   language: string;
   volume: number;
   votes: number;
-  created_at: number;
-  updated_at: number;
-  scanlation_group?: { name: string } | null;
+  createdAtFormatted: string;
+  group?: { name: string } | null;
 }
 
 export interface Metadata extends JSONObject {
@@ -92,12 +103,12 @@ export interface Metadata extends JSONObject {
 
 export interface ResultFilter {
   items: Filter[];
-  pagination: { last_page: number };
+  meta: { lastPage: number };
 }
 
 export interface Filter {
-  term_id: number;
-  title: string;
+  id: number;
+  label: string;
 }
 
 export type OptionItem = {

@@ -341,8 +341,8 @@ export class ComixHash {
     return encodeURIComponent(str).replace(/\+/g, "%20").replace(/\*/g, "%2A").replace(/%7E/g, "~");
   }
 
-  public static generateHash(path: string, bodySize: number = 0, time: number = 1): string {
-    const baseString = `${path}:${bodySize}:${time}`;
+  public static generateHash(path: string): string {
+    const baseString = `${path}`;
     const encoded = this.encodeURIComponentCustom(baseString);
 
     const initialBytes: number[] = [];

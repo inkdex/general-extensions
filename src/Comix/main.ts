@@ -137,7 +137,6 @@ export class ComixExtension implements ComixImplementation {
     section: DiscoverSection,
     metadata: Metadata,
   ): Promise<PagedResults<DiscoverSectionItem>> {
-    console.log(section.id);
     switch (section.id) {
       case "popular":
         return await parse.parseSection("popular", undefined);
@@ -156,7 +155,7 @@ export class ComixExtension implements ComixImplementation {
           ? await parse.parseSectionSimple("trending_wt", metadata)
           : await parse.parseSectionChapter("trending_wt", metadata);
       case "completed":
-        return await parse.parseSection("completed", metadata);
+        return await parse.parseSectionSimple("completed", metadata);
       case "updatesNew":
         return getChapterSectionDiffType()
           ? await parse.parseSectionSimple("updatesNew", metadata)
