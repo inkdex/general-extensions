@@ -18,10 +18,10 @@ import {
   type Filters,
   type MangaItem,
   type ResultChapter,
-  type ResultFilter,
   type ResultManga,
   API,
   DOMAIN,
+  type Filter,
 } from "./models";
 import { ComixHash } from "./utils/comixHash";
 import { getSectionTimesType } from "./utils/globalFilters";
@@ -80,26 +80,56 @@ export class ApiMaker {
     return JSON.parse(html) as ApiResponse<T>;
   }
 
-  async getJsonMangaApi(section: string, page: number): Promise<ApiResponse<ResultManga>> {
-    const hiddenGenres = [
-      ...filter.getHiddenGenresSettings(),
-      ...filter.getHiddenThemesSettings(),
-      ...filter.getHiddenDemogSettings(),
-    ];
+  async getJsonMangaTopApi(section: string, page: number): Promise<ApiResponse<MangaItem[]>> {
+    const hiddenGenres = [...filter.getHiddenGenresSettings(), ...filter.getHiddenDemogSettings()];
     const types = filter.getShowOnlySettings();
     const days = filter.getLimitSettings()[0];
     const additionalInfo = ["author"];
-    const year = filter.getYearSettings();
     const sections: Record<string, ApiRequestConfig> = {
       popular: {
-        path: "top",
+        path: "manga/top",
         query: {
           type: "trending",
           days: days,
           limit: "15",
           "includes[]": additionalInfo,
           ...(types.length > 0 && { "types[]": types }),
-          ...(hiddenGenres.length > 0 && { "exclude_genres[]": hiddenGenres }),
+          ...(hiddenGenres.length > 0 && { "genres_ex[]": hiddenGenres }),
+        },
+      },
+      follow: {
+        path: "manga/top",
+        query: {
+          type: "follows",
+          days: days,
+          limit: "50",
+          "includes[]": additionalInfo,
+          ...(types.length > 0 && { "types[]": types }),
+          ...(hiddenGenres.length > 0 && { "genres_ex[]": hiddenGenres }),
+        },
+      },
+    };
+    const config = sections[section];
+    if (!config) throw new Error(`${section} not found on API`);
+    return this.APIJson<MangaItem[]>({ path: config.path, query: config.query });
+  }
+
+  async getJsonMangaApi(section: string, page: number): Promise<ApiResponse<ResultManga>> {
+    const hiddenGenres = [...filter.getHiddenGenresSettings(), ...filter.getHiddenDemogSettings()];
+    const types = filter.getShowOnlySettings();
+    const days = filter.getLimitSettings()[0];
+    const additionalInfo = ["author"];
+    const year = filter.getYearSettings();
+    const sections: Record<string, ApiRequestConfig> = {
+      popular: {
+        path: "manga/top",
+        query: {
+          type: "trending",
+          days: days,
+          limit: "15",
+          "includes[]": additionalInfo,
+          ...(types.length > 0 && { "types[]": types }),
+          ...(hiddenGenres.length > 0 && { "genres_ex[]": hiddenGenres }),
         },
       },
       trending_manga: {
@@ -110,7 +140,7 @@ export class ApiMaker {
           limit: "28",
           "includes[]": additionalInfo,
           page: page.toString(),
-          ...(hiddenGenres.length > 0 && { "exclude_genres[]": hiddenGenres }),
+          ...(hiddenGenres.length > 0 && { "genres_ex[]": hiddenGenres }),
           ...(getSectionTimesType() && {
             "release_year[from]": year.toString(),
           }),
@@ -124,21 +154,10 @@ export class ApiMaker {
           limit: "28",
           "includes[]": additionalInfo,
           page: page.toString(),
-          ...(hiddenGenres.length > 0 && { "exclude_genres[]": hiddenGenres }),
+          ...(hiddenGenres.length > 0 && { "genres_ex[]": hiddenGenres }),
           ...(getSectionTimesType() && {
             "release_year[from]": year.toString(),
           }),
-        },
-      },
-      follow: {
-        path: "top",
-        query: {
-          type: "follows",
-          days: days,
-          limit: "50",
-          "includes[]": additionalInfo,
-          ...(types.length > 0 && { "types[]": types }),
-          ...(hiddenGenres.length > 0 && { "exclude_genres[]": hiddenGenres }),
         },
       },
       recent: {
@@ -149,7 +168,7 @@ export class ApiMaker {
           limit: "20",
           "includes[]": additionalInfo,
           ...(types.length > 0 && { "types[]": types }),
-          ...(hiddenGenres.length > 0 && { "exclude_genres[]": hiddenGenres }),
+          ...(hiddenGenres.length > 0 && { "genres_ex[]": hiddenGenres }),
         },
       },
       completed: {
@@ -160,7 +179,7 @@ export class ApiMaker {
           page: page.toString(),
           limit: "20",
           ...(types.length > 0 && { "types[]": types }),
-          ...(hiddenGenres.length > 0 && { "exclude_genres[]": hiddenGenres }),
+          ...(hiddenGenres.length > 0 && { "genres_ex[]": hiddenGenres }),
         },
       },
       updatesHot: {
@@ -171,7 +190,7 @@ export class ApiMaker {
           limit: "20",
           scope: "hot",
           ...(types.length > 0 && { "types[]": types }),
-          ...(hiddenGenres.length > 0 && { "exclude_genres[]": hiddenGenres }),
+          ...(hiddenGenres.length > 0 && { "genres_ex[]": hiddenGenres }),
         },
       },
       updatesNew: {
@@ -180,9 +199,8 @@ export class ApiMaker {
           "order[chapter_updated_at]": "desc",
           page: page.toString(),
           limit: "20",
-          scope: "new",
           ...(types.length > 0 && { "types[]": types }),
-          ...(hiddenGenres.length > 0 && { "exclude_genres[]": hiddenGenres }),
+          ...(hiddenGenres.length > 0 && { "genres_ex[]": hiddenGenres }),
         },
       },
     };
@@ -204,7 +222,7 @@ export class ApiMaker {
     return this.APIJson<MangaItem>({
       path: ["manga", mangaId],
       query: {
-        "includes[]": ["author", "artist", "genre", "theme", "demographic"],
+        "includes[]": ["author", "artist", "genre", "demographic"],
       },
     });
   }
@@ -212,7 +230,7 @@ export class ApiMaker {
   async getJsonChapterApi(chapter: string, page: number) {
     const path = `/manga/${chapter}/chapters`;
     const timeVal = 1;
-    const hashToken = ComixHash.generateHash(path, 0, timeVal);
+    const hashToken = ComixHash.generateHash(path);
     return this.APIJson<ResultChapter>({
       path: ["manga", chapter, "chapters"],
       query: {
@@ -248,14 +266,21 @@ export class ApiMaker {
   }
 
   async getJsonChapPagesApi(chapterId: string) {
-    return this.APIJson<ChapterPages>({ path: ["chapters", chapterId] });
+    const path = `/chapters/${chapterId}`;
+    const hashToken = ComixHash.generateHash(path);
+    return this.APIJson<ChapterPages>({
+      path: ["chapters", chapterId],
+      query: {
+        _: hashToken,
+      },
+    });
   }
 
   async getFiltersApi(filter: string) {
-    return this.APIJson<ResultFilter>({
-      path: "terms",
+    return this.APIJson<Filter[]>({
+      path: "tags/search",
       query: {
-        limit: "100",
+        limit: "50",
         type: filter,
       },
     });
