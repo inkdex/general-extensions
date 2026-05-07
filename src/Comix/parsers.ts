@@ -26,16 +26,16 @@ import {
   type TagMap,
 } from "./models";
 import { ApiMaker } from "./network";
-import { getDefaultMetadata } from "./utils/utilsFunctions";
+import { getDefaultMetadata, getRanking, parseRelativeDate } from "./utils/utilsFunctions";
 
 const api = new ApiMaker();
 export class JsonParser {
   async parseSection(section: string, metadata: Metadata | undefined) {
     const latest: DiscoverSectionItem[] = [];
     const page = metadata?.page ?? 1;
-    const json = await api.getJsonMangaApi(section, page);
-    if (json.status === 200) {
-      for (const item of json.result.items) {
+    const json = await api.getJsonMangaTopApi(section, page);
+    if (json.status.toString() === "ok") {
+      for (const item of json.result) {
         latest.push({
           type:
             section === "follow"
@@ -43,11 +43,11 @@ export class JsonParser {
               : section === "popular"
                 ? "featuredCarouselItem"
                 : "simpleCarouselItem",
-          contentRating: item.is_nsfw ? ContentRating.ADULT : ContentRating.EVERYONE,
-          imageUrl: item.poster.large.length > 0 ? item.poster.large : NO_IMAGE,
-          mangaId: item.hash_id,
+          contentRating: getRanking(item.contentRating),
+          imageUrl: item.poster?.large.length > 0 ? item.poster?.large : NO_IMAGE,
+          mangaId: item.hid,
           title: item.title,
-          subtitle: item.author?.map((author) => author.title).join(" ") ?? "",
+          subtitle: item.authors?.join(" ") ?? "",
         });
       }
     }
@@ -88,17 +88,17 @@ export class JsonParser {
     const latest: DiscoverSectionItem[] = [];
     const page = metadata?.page ?? 1;
     const json = await api.getJsonMangaApi(section, page);
-    if (json.status === 200) {
-      json.result.items.forEach((item) => {
+    if (json.status.toString() === "ok") {
+      for (const item of json.result.items) {
         latest.push({
-          contentRating: item.is_nsfw ? ContentRating.ADULT : ContentRating.EVERYONE,
+          contentRating: getRanking(item.contentRating),
           imageUrl: item.poster.large.length > 0 ? item.poster.large : NO_IMAGE,
-          mangaId: item.hash_id,
-          subtitle: "Chapter " + item.latest_chapter.toString(),
+          mangaId: item?.hid ?? "NULL",
+          subtitle: "Chapter " + item.finalChapter.toString(),
           title: item.title,
           type: "simpleCarouselItem",
         });
-      });
+      }
       return {
         items: latest,
         metadata: json.result.items.length > 0 ? { page: page + 1 } : undefined,
@@ -111,19 +111,19 @@ export class JsonParser {
     const latest: DiscoverSectionItem[] = [];
     const page = metadata?.page ?? 1;
     const json = await api.getJsonMangaApi(section, page);
-    if (json.status === 200) {
-      json.result.items.forEach((item) => {
+    if (json.status.toString() === "ok") {
+      for (const item of json.result.items) {
         latest.push({
-          contentRating: item.is_nsfw ? ContentRating.ADULT : ContentRating.EVERYONE,
+          contentRating: getRanking(item.contentRating),
           imageUrl: item.poster.large.length > 0 ? item.poster.large : NO_IMAGE,
-          chapterId: item.hash_id,
-          mangaId: item.hash_id,
-          subtitle: "Chapter " + item.latest_chapter.toString(),
+          chapterId: item.hid,
+          mangaId: item.hid,
+          subtitle: "Chapter " + item.finalChapter.toString(),
           title: item.title,
           type: "chapterUpdatesCarouselItem",
-          publishDate: new Date(item.chapter_updated_at * 1000),
+          publishDate: parseRelativeDate(item.chapterUpdatedAtFormatted),
         });
-      });
+      }
       return {
         items: latest,
         metadata: json.result.items.length > 0 ? { page: page + 1 } : undefined,
@@ -135,7 +135,7 @@ export class JsonParser {
   async parseChapters(manga: SourceManga): Promise<Chapter[]> {
     const firstPage = await api.getJsonChapterApi(manga.mangaId, 1);
 
-    const totalPages = firstPage.result.pagination.last_page ?? 1;
+    const totalPages = firstPage.result.meta.lastPage ?? 1;
     const requests: Promise<{ page: number; data: ChapterItem[] }>[] = [];
     requests.push(Promise.resolve({ page: 1, data: firstPage.result.items }));
     for (let page = 2; page <= totalPages; page++) {
@@ -151,17 +151,15 @@ export class JsonParser {
     const chaptersArray = allPages.flatMap((p) => p.data);
     return chaptersArray.map((chapter) => {
       return {
-        chapterId: chapter.chapter_id.toString(),
+        chapterId: chapter.id.toString(),
         sourceManga: manga,
         langCode: chapter.language,
         chapNum: chapter.number,
         title: chapter.name,
         volume: chapter.volume,
-        version:
-          chapter.is_official === 1 ? "⭐Official" : (chapter.scanlation_group?.name ?? "Unknown"),
+        version: chapter.isOfficial ? "⭐Official" : (chapter.group?.name ?? "Unknown"),
         sortingIndex: chapter.number,
-        publishDate: new Date(chapter.updated_at * 1000),
-        creationDate: new Date(chapter.created_at * 1000),
+        publishDate: parseRelativeDate(chapter.createdAtFormatted),
         additionalInfo: { vote: chapter.votes.toString() },
       };
     });
@@ -171,21 +169,20 @@ export class JsonParser {
     const pages = await api.getJsonChapPagesApi(chapterId);
     return {
       id: chapterId,
-      mangaId: pages.result.manga_id.toString(),
-      pages: pages.result.images.map((img) => img.url),
+      mangaId: pages.result.mangaId.toString(),
+      pages: pages.result.pages.map((img) => img.url),
     };
   }
 
   async parseMangaDetails(mangaId: string): Promise<SourceManga> {
     const info = await api.getJsonMangaInfoApi(mangaId);
     const manga = info.result;
-    const toTag = (item: { term_id: number; title: string }): Tag => ({
-      id: item.term_id.toString(),
+    const toTag = (item: { id: number; title: string }): Tag => ({
+      id: item.id.toString(),
       title: item.title,
     });
-    const demographicArray: Tag[] = manga.demographic.map(toTag);
-    const genreArray: Tag[] = manga.genre.map(toTag);
-    const themeArray: Tag[] = manga.theme.map(toTag);
+    const demographicArray: Tag[] = manga.demographics.map(toTag);
+    const genreArray: Tag[] = manga.genres.map(toTag);
 
     const tags: TagSection[] = [
       {
@@ -198,25 +195,20 @@ export class JsonParser {
         tags: genreArray,
         id: "genres",
       },
-      {
-        title: "themes",
-        tags: themeArray,
-        id: "themes",
-      },
     ];
     const mangaInfo = {
       thumbnailUrl: manga.poster.large.length > 0 ? manga.poster.large : NO_IMAGE,
       synopsis: manga.synopsis,
       primaryTitle: manga.title,
-      secondaryTitles: manga.alt_titles,
-      contentRating: manga.is_nsfw ? ContentRating.ADULT : ContentRating.EVERYONE,
+      secondaryTitles: manga.altTitles,
+      contentRating: manga.contentRating !== "safe" ? ContentRating.ADULT : ContentRating.EVERYONE,
       status: manga.status,
       bannerUrl: manga.poster.medium.length > 0 ? manga.poster.medium : NO_IMAGE,
-      artist: manga.artist?.map((artist) => artist.title).join(" ") ?? "",
-      author: manga.author?.map((author) => author.title).join(" ") ?? "",
-      rating: manga.rated_avg / 10,
+      artist: manga.artists?.map((artist) => artist.title).join(" ") ?? "",
+      author: manga.authors?.map((author) => author.title).join(" ") ?? "",
+      rating: manga.ratedAvg / 10,
       tagGroups: tags,
-      shareUrl: `${DOMAIN}/title/${manga.hash_id}`,
+      shareUrl: `${DOMAIN}/title/${manga.hid}`,
     };
     return { mangaId: mangaId, mangaInfo: mangaInfo };
   }
@@ -230,17 +222,31 @@ export class JsonParser {
       if (!filter || typeof filter !== "object") return [];
       return Object.entries(filter).flatMap(([key, value]) => {
         if (value === "included") return [key];
-        if (value === "excluded") return ["-" + key];
         return [];
       });
     }
-    function buildFilter(type: Filters["type"], ...sources: (string | TagMap)[]): Filters[] {
-      const values = sources.flatMap(mapTags);
+    function mapTagsExcluded(filter: string | TagMap) {
+      if (!filter || typeof filter !== "object") return [];
+      return Object.entries(filter).flatMap(([key, value]) => {
+        if (value === "excluded") return [key];
+        return [];
+      });
+    }
+    function buildFilter(
+      exclued: boolean,
+      type: Filters["type"],
+      ...sources: (string | TagMap)[]
+    ): Filters[] {
+      let values = [];
+      if (exclued) {
+        values = sources.flatMap(mapTagsExcluded);
+      } else {
+        values = sources.flatMap(mapTags);
+      }
       return values.length ? [{ type, filters: values }] : [];
     }
     const page = metadata?.page ?? 1;
     const genres = query.metadata?.genres ?? {};
-    const themes = query.metadata?.themes ?? {};
     const formats = query.metadata?.formats ?? {};
     const demographic = query.metadata?.demographic ?? {};
     const status = query.metadata?.status ?? {};
@@ -248,10 +254,12 @@ export class JsonParser {
     const mode = query.metadata?.mode ?? "and";
     const [sortBy, orderBy] = sortingOption.id.split("$");
     const filters: Filters[] = [
-      ...buildFilter("genres[]", genres, themes, formats),
-      ...buildFilter("types[]", types),
-      ...buildFilter("demographics[]", demographic),
-      ...buildFilter("statuses[]", status),
+      ...buildFilter(false, "genres_in[]", genres),
+      ...buildFilter(true, "genres_ex[]", genres),
+      ...buildFilter(false, "types[]", types),
+      ...buildFilter(false, "formats[]", formats),
+      ...buildFilter(false, "demographics[]", demographic),
+      ...buildFilter(false, "statuses[]", status),
     ];
     const search = await api.getJsonSearchApi(
       query.title,
@@ -262,13 +270,13 @@ export class JsonParser {
       orderBy,
     );
     const items: SearchResultItem[] = [];
-    if (search.status === 200) {
+    if (search.status.toString() === "ok") {
       search.result.items.forEach((item) => {
         items.push({
-          mangaId: item.hash_id,
+          mangaId: item.hid,
           title: item.title,
           imageUrl: item.poster.large.length > 0 ? item.poster.large : NO_IMAGE,
-          contentRating: item.is_nsfw ? ContentRating.ADULT : ContentRating.EVERYONE,
+          contentRating: getRanking(item.contentRating),
         });
       });
       return {
@@ -285,10 +293,10 @@ export class JsonParser {
   async parseFilterUpdate(type: string): Promise<{ id: string; value: string }[]> {
     const filter = await api.getFiltersApi(type);
     const filters: { id: string; value: string }[] = [];
-    filter.result.items.forEach((filter) => {
+    filter.result.forEach((filter) => {
       filters.push({
-        id: filter.term_id.toString(),
-        value: filter.title,
+        id: filter.id.toString(),
+        value: filter.label,
       });
     });
     return filters;
