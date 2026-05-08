@@ -46,7 +46,7 @@ export class JsonParser {
           imageUrl: item.poster?.large.length > 0 ? item.poster?.large : NO_IMAGE,
           mangaId: item.hid,
           title: item.title,
-          subtitle: item.authors?.join(" ") ?? "",
+          subtitle: item.authors?.map((author) => author.title).join(" ") ?? "",
         });
       }
     }

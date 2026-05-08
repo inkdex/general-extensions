@@ -71,8 +71,6 @@ export class globalFilters {
   }
 
   async updateFilters(force: boolean) {
-    console.log("update");
-    console.log(force);
     const lastFilterFetch = Number(Application.getState("last-filter-fetch") ?? 0);
     const cached = lastFilterFetch + 172800 > new Date().valueOf() / 1000;
     if (cached && !force) {
@@ -98,7 +96,6 @@ export class globalFilters {
     this.genres = [...newValue].sort((a, b) =>
       a.value.toLowerCase().localeCompare(b.value.toLowerCase()),
     );
-    console.log(JSON.stringify(newValue));
     Application.setState(JSON.stringify(newValue), "genre");
   }
   private setDemographicFilter(newValue: OptionItem[]) {
