@@ -25,7 +25,6 @@ import {
   type MangaProviding,
   type PagedResults,
   type Request,
-  type SearchFilter,
   type SearchQuery,
   type SearchResultItem,
   type SearchResultsProviding,
@@ -33,6 +32,11 @@ import {
   type Tag,
   type TagSection,
 } from "@paperback/types";
+import {
+  SearchFilterForm,
+  type SearchFilter,
+  type SearchFilterValue,
+} from "@paperback/types/lib/compat/0.8";
 import * as cheerio from "cheerio";
 import { type CheerioAPI } from "cheerio";
 
@@ -375,7 +379,7 @@ export class MangaFoxExtension implements MangaFoxImplementation {
 
   // Populates search
   async getSearchResults(
-    query: SearchQuery,
+    query: SearchQuery<SearchFilterValue[]>,
     metadata: { page?: number; collectedIds?: string[] } | undefined,
   ): Promise<PagedResults<SearchResultItem>> {
     const collectedIds = metadata?.collectedIds ?? [];
@@ -403,7 +407,7 @@ export class MangaFoxExtension implements MangaFoxImplementation {
     };
 
     // Handle genres
-    const genresFilter = query.filters?.find((f) => f.id === "genres")?.value as Record<
+    const genresFilter = query.metadata?.find((f) => f.id === "genres")?.value as Record<
       string,
       "included" | "excluded"
     >;
@@ -494,6 +498,11 @@ export class MangaFoxExtension implements MangaFoxImplementation {
       items: searchResults,
       metadata: nextPage ? { page: nextPage, collectedIds } : undefined,
     };
+  }
+
+  async getAdvancedSearchForm(query: SearchQuery<SearchFilterValue[]>) {
+    // TODO: Replace compat wrapper with proper search form implementation
+    return new SearchFilterForm(query.metadata, this.getSearchFilters());
   }
 
   // Populates the title details

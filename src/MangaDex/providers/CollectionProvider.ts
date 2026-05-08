@@ -11,6 +11,7 @@ import {
 
 import { parseMangaDetails } from "../MangaDexParser";
 import { getAccessToken } from "../MangaDexSettings";
+import type { MangaDetailsResponse, MangaStatusResponse, SearchResponse } from "../models";
 import { MANGADEX_API } from "../utils/CommonUtil";
 
 /**
@@ -91,7 +92,7 @@ export class CollectionProvider {
 
     const statusjson = JSON.parse(
       Application.arrayBufferToUTF8String(buffer),
-    ) as MangaDex.MangaStatusResponse;
+    ) as MangaStatusResponse;
 
     if (statusjson.result === "error") {
       throw new Error(JSON.stringify(statusjson.errors)); // Assuming the API has it even if not listed
@@ -122,9 +123,7 @@ export class CollectionProvider {
         method: "get",
       });
 
-      const json = JSON.parse(
-        Application.arrayBufferToUTF8String(buffer),
-      ) as MangaDex.SearchResponse;
+      const json = JSON.parse(Application.arrayBufferToUTF8String(buffer)) as SearchResponse;
 
       if (json.result === "error") {
         throw new Error(JSON.stringify(json.errors));
@@ -136,7 +135,7 @@ export class CollectionProvider {
             result: "ok",
             response: "entity",
             data: item,
-          } as MangaDex.MangaDetailsResponse),
+          } as MangaDetailsResponse),
         );
       }
 

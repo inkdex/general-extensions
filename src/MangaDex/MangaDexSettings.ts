@@ -22,6 +22,13 @@ import { UpdateFilterSettingsForm } from "./forms/UpdateFilterSettingsForm";
 import { WebsiteSettingsForm } from "./forms/WebsiteSettingsForm";
 import { WebsiteStatusForm } from "./forms/WebsiteStatusForm";
 import { MDImageQuality, MDLanguages, MDRatings, ROMANIZED_CODES } from "./MangaDexHelper";
+import type {
+  AccessToken,
+  AuthError,
+  AuthResponse,
+  ScanlationGroupItem,
+  TokenBody,
+} from "./models";
 import { MangaProvider } from "./providers/MangaProvider";
 import { State } from "./utils/StateUtil";
 
@@ -210,7 +217,7 @@ export function saveCropImagesEnabled(enabled: boolean): void {
 // ============================
 // Authentication & User Settings
 // ============================
-export function getAccessToken(): MangaDex.AccessToken | undefined {
+export function getAccessToken(): AccessToken | undefined {
   const accessToken = Application.getSecureState("access_token") as string | undefined;
   const refreshToken = Application.getSecureState("refresh_token") as string | undefined;
 
@@ -226,7 +233,7 @@ export function getAccessToken(): MangaDex.AccessToken | undefined {
 export function saveAccessToken(
   accessToken: string | undefined,
   refreshToken: string | undefined,
-): MangaDex.AccessToken | undefined {
+): AccessToken | undefined {
   Application.setSecureState(accessToken, "access_token");
   Application.setSecureState(refreshToken, "refresh_token");
 
@@ -239,15 +246,15 @@ export function saveAccessToken(
   };
 }
 
-function parseAccessToken(accessToken: string): MangaDex.TokenBody {
+function parseAccessToken(accessToken: string): TokenBody {
   const tokenBodyBase64 = accessToken.split(".")[1];
   if (!tokenBodyBase64) throw new Error("Invalid access token format");
 
   const tokenBodyJSON = Application.base64Decode(tokenBodyBase64);
-  return JSON.parse(tokenBodyJSON as string) as MangaDex.TokenBody;
+  return JSON.parse(tokenBodyJSON as string) as TokenBody;
 }
 
-async function _authEndpointRequest(payload: string): Promise<MangaDex.AuthResponse> {
+async function _authEndpointRequest(payload: string): Promise<AuthResponse> {
   const [response, buffer] = await Application.scheduleRequest({
     method: "POST",
     url: `https://auth.mangadex.org/realms/mangadex/protocol/openid-connect/token`,
@@ -266,7 +273,7 @@ async function _authEndpointRequest(payload: string): Promise<MangaDex.AuthRespo
   }
 
   const data = Application.arrayBufferToUTF8String(buffer);
-  const json = JSON.parse(data) as MangaDex.AuthResponse | MangaDex.AuthError;
+  const json = JSON.parse(data) as AuthResponse | AuthError;
 
   if ("error" in json) {
     throw new Error(`Auth failed: ${json.error}: ${json.error_description || ""}`);
@@ -275,9 +282,9 @@ async function _authEndpointRequest(payload: string): Promise<MangaDex.AuthRespo
   return json;
 }
 
-const authRequestCache: Record<string, Promise<MangaDex.AuthResponse>> = {};
+const authRequestCache: Record<string, Promise<AuthResponse>> = {};
 
-export function authEndpointRequest(payload: string): Promise<MangaDex.AuthResponse> {
+export function authEndpointRequest(payload: string): Promise<AuthResponse> {
   const cacheKey = payload;
   if (!(cacheKey in authRequestCache)) {
     authRequestCache[cacheKey] = _authEndpointRequest(payload).finally(() => {
@@ -354,19 +361,18 @@ export function setShowSearchRatingInSubtitle(enabled: boolean): void {
 // ============================
 // Group Blocking Settings
 // ============================
-export function getBlockedGroups(): Record<string, MangaDex.ScanlationGroupItem> {
+export function getBlockedGroups(): Record<string, ScanlationGroupItem> {
   return (
-    (Application.getState("blocked_groups") as
-      | Record<string, MangaDex.ScanlationGroupItem>
-      | undefined) ?? {}
+    (Application.getState("blocked_groups") as Record<string, ScanlationGroupItem> | undefined) ??
+    {}
   );
 }
 
-export function saveBlockedGroups(groups: Record<string, MangaDex.ScanlationGroupItem>): void {
+export function saveBlockedGroups(groups: Record<string, ScanlationGroupItem>): void {
   Application.setState(groups, "blocked_groups");
 }
 
-export function blockGroup(group: MangaDex.ScanlationGroupItem): void {
+export function blockGroup(group: ScanlationGroupItem): void {
   const blockedGroups = getBlockedGroups();
   blockedGroups[group.id] = group;
   saveBlockedGroups(blockedGroups);
@@ -539,7 +545,7 @@ export class MangaDexSettingsForm extends Form {
 
   private resetState = new State<boolean>(this, "reset_trigger", false);
 
-  private blockedGroupsState = new State<Record<string, MangaDex.ScanlationGroupItem>>(
+  private blockedGroupsState = new State<Record<string, ScanlationGroupItem>>(
     this,
     "blocked_groups",
     getBlockedGroups(),

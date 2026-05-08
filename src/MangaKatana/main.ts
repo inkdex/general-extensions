@@ -19,13 +19,17 @@ import {
   type MangaProviding,
   type PagedResults,
   type Request,
-  type SearchFilter,
   type SearchQuery,
   type SearchResultItem,
   type SearchResultsProviding,
   type SourceManga,
   type TagSection,
 } from "@paperback/types";
+import {
+  SearchFilterForm,
+  type SearchFilter,
+  type SearchFilterValue,
+} from "@paperback/types/lib/compat/0.8";
 import * as cheerio from "cheerio";
 import { type CheerioAPI } from "cheerio";
 
@@ -363,7 +367,7 @@ export class MangaKatanaExtension implements MangaKatanaImplementation {
   }
 
   async getSearchResults(
-    query: SearchQuery,
+    query: SearchQuery<SearchFilterValue[]>,
     metadata: Katana.Metadata | undefined,
   ): Promise<PagedResults<SearchResultItem>> {
     const page = (metadata as { page?: number } | undefined)?.page ?? 1;
@@ -387,7 +391,7 @@ export class MangaKatanaExtension implements MangaKatanaImplementation {
       };
     } else {
       // Extract the genre ID from the filters
-      const genreFilter = query.filters?.find((f) => f.id === "genres");
+      const genreFilter = query.metadata?.find((f) => f.id === "genres");
       const genreValue = genreFilter?.value;
 
       // Get all included genre IDs
@@ -444,6 +448,11 @@ export class MangaKatanaExtension implements MangaKatanaImplementation {
       console.error(`Error fetching search results: `, error);
       throw new Error("Tap to retry search");
     }
+  }
+
+  async getAdvancedSearchForm(query: SearchQuery<SearchFilterValue[]>) {
+    // TODO: Replace compat wrapper with proper search form implementation
+    return new SearchFilterForm(query.metadata, this.getSearchFilters());
   }
 
   // Populates the chapter list

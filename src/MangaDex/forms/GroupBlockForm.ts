@@ -22,6 +22,7 @@ import {
   setGroupBlockingEnabled,
   unblockGroup,
 } from "../MangaDexSettings";
+import type { ScanlationGroupItem, ScanlationGroupResponse } from "../models";
 import { MANGADEX_API } from "../utils/CommonUtil";
 import { State } from "../utils/StateUtil";
 
@@ -35,20 +36,20 @@ export class GroupBlockForm extends Form {
   // Search state
   private searchTerm = "";
   private lastSearchTerm = "";
-  private searchResults: MangaDex.ScanlationGroupItem[] = [];
+  private searchResults: ScanlationGroupItem[] = [];
   private currentOffset = 0;
   private isLoading = false;
   private isPaginationLoading = false;
   private hasSearched = false;
 
   // Blocking state
-  private blockedGroups: Record<string, MangaDex.ScanlationGroupItem>;
+  private blockedGroups: Record<string, ScanlationGroupItem>;
   private groupsToBlock: string[] = [];
   private groupsToUnblock: string[] = [];
   private totalResultsCount = 0;
 
   // Settings state
-  private groupBlockingEnabledState = new State<boolean>(
+  private groupBlockingEnabledState: State<boolean> = new State<boolean>(
     this,
     "group_blocking_enabled",
     getGroupBlockingEnabled(),
@@ -59,12 +60,10 @@ export class GroupBlockForm extends Form {
     getFuzzyBlockingEnabled(),
   );
 
-  private onBlockedGroupsChange?: (
-    groups: Record<string, MangaDex.ScanlationGroupItem>,
-  ) => Promise<void>;
+  private onBlockedGroupsChange?: (groups: Record<string, ScanlationGroupItem>) => Promise<void>;
 
   constructor(
-    onBlockedGroupsChange?: (groups: Record<string, MangaDex.ScanlationGroupItem>) => Promise<void>,
+    onBlockedGroupsChange?: (groups: Record<string, ScanlationGroupItem>) => Promise<void>,
   ) {
     super();
     this.blockedGroups = getBlockedGroups();
@@ -387,7 +386,7 @@ export class GroupBlockForm extends Form {
 
       const data = JSON.parse(
         Application.arrayBufferToUTF8String(buffer),
-      ) as MangaDex.ScanlationGroupResponse;
+      ) as ScanlationGroupResponse;
 
       this.searchResults = data.data;
       this.currentOffset = offset;

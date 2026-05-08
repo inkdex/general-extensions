@@ -8,6 +8,7 @@ import {
   type Tag,
   type TagSection,
 } from "@paperback/types";
+import type { SearchFilterValue } from "@paperback/types/lib/compat/0.8";
 
 import { MDImageQuality, ROMANIZED_CODES } from "./MangaDexHelper";
 import {
@@ -25,11 +26,23 @@ import {
   getShowVolume,
   getTitleLanguages,
 } from "./MangaDexSettings";
+import type {
+  AltTitle,
+  ChapterAttributes,
+  CoverArtResponse,
+  DatumAttributes,
+  Links,
+  MangaDetailsResponse,
+  MangaItem,
+  Relationship,
+  StatisticsResponse,
+  Status,
+} from "./models";
 import { COVER_BASE_URL, MANGADEX_DOMAIN } from "./utils/CommonUtil";
 import { relevanceScore } from "./utils/titleRelevanceScore";
 
 // Type for manga item with additional processing
-type MangaItemWithAdditionalInfo = MangaDex.MangaItem & {
+type MangaItemWithAdditionalInfo = MangaItem & {
   mangaId: string;
   title: string;
   imageUrl: string;
@@ -42,7 +55,7 @@ type MangaItemDetails = {
   preferredLanguageTitle?: string;
   secondaryTitles: string[];
   synopsis: string;
-  status: MangaDex.Status;
+  status: Status;
   contentRating: ContentRating;
   tagGroups: TagSection[];
   shareUrl: string;
@@ -85,7 +98,7 @@ const getFirstLanguageMatch = (
 };
 
 const getFirstLanguageMatchFromAlt = (
-  altTitles: MangaDex.AltTitle[] | undefined,
+  altTitles: AltTitle[] | undefined,
   languages: string[],
 ): string | undefined => {
   if (!altTitles) return undefined;
@@ -107,11 +120,11 @@ const getFirstValue = (
  * Handles relevance sorting and thumbnail formatting
  */
 export const parseMangaList = async (
-  object: MangaDex.MangaItem[],
+  object: MangaItem[],
   thumbnailSelector: () => string,
-  query?: SearchQuery,
-  ratingJson?: MangaDex.StatisticsResponse,
-  chapterDetailsMap?: Record<string, MangaDex.ChapterAttributes>,
+  query?: SearchQuery<SearchFilterValue[]>,
+  ratingJson?: StatisticsResponse,
+  chapterDetailsMap?: Record<string, ChapterAttributes>,
 ): Promise<MangaItemWithAdditionalInfo[]> => {
   const results: { manga: MangaItemWithAdditionalInfo; relevance: number }[] = [];
 
@@ -138,7 +151,7 @@ export const parseMangaList = async (
     const title = Application.decodeHTMLEntities(titleMatch);
 
     let coverFileName = manga.relationships
-      .filter((x): x is MangaDex.Relationship => x.type.valueOf() === "cover_art")
+      .filter((x): x is Relationship => x.type.valueOf() === "cover_art")
       .map((x) => x.attributes?.fileName)[0];
 
     if (useCustomCovers) {
@@ -206,7 +219,7 @@ export const parseMangaList = async (
       // Score all alternative titles and take the max
       const altTitles: string[] =
         mangaDetails.altTitles
-          ?.flatMap((x: MangaDex.AltTitle) => Object.values(x) as string[])
+          ?.flatMap((x: AltTitle) => Object.values(x) as string[])
           .map((x: string) => Application.decodeHTMLEntities(x)) || [];
       for (const alt of altTitles) {
         const altScore = relevanceScore(alt, query.title);
@@ -242,24 +255,24 @@ export const parseMangaList = async (
  */
 export const parseMangaDetails = (
   mangaId: string,
-  json: MangaDex.MangaDetailsResponse,
-  ratingJson?: MangaDex.StatisticsResponse,
-  coversJson?: MangaDex.CoverArtResponse,
+  json: MangaDetailsResponse,
+  ratingJson?: StatisticsResponse,
+  coversJson?: CoverArtResponse,
 ): SourceManga => {
-  const mangaDetails: MangaDex.DatumAttributes = json.data.attributes;
+  const mangaDetails: DatumAttributes = json.data.attributes;
 
   const mangaItemDetails = parseMangaItemDetails(mangaId, mangaDetails);
 
   let author: string | undefined =
     json.data.relationships
-      .filter((x): x is MangaDex.Relationship => x.type.valueOf() === "author")
+      .filter((x): x is Relationship => x.type.valueOf() === "author")
       .map((x) => x.attributes?.name)
       .filter(Boolean)
       .join(", ") || undefined;
 
   let artist: string | undefined =
     json.data.relationships
-      .filter((x): x is MangaDex.Relationship => x.type.valueOf() === "artist")
+      .filter((x): x is Relationship => x.type.valueOf() === "artist")
       .map((x) => x.attributes?.name)
       .filter(Boolean)
       .join(", ") || undefined;
@@ -285,7 +298,7 @@ export const parseMangaDetails = (
   let image = "";
 
   let coverFileName = json.data.relationships
-    .filter((x): x is MangaDex.Relationship => x.type.valueOf() === "cover_art")
+    .filter((x): x is Relationship => x.type.valueOf() === "cover_art")
     .map((x) => x.attributes?.fileName)[0];
 
   if (getCustomCoversEnabled()) {
@@ -333,7 +346,7 @@ export const parseMangaDetails = (
 
 export function parseMangaItemDetails(
   mangaId: string,
-  mangaDetails: MangaDex.DatumAttributes,
+  mangaDetails: DatumAttributes,
 ): MangaItemDetails {
   const languages = getTitleLanguages();
 
@@ -364,7 +377,7 @@ export function parseMangaItemDetails(
   }
 
   const secondaryTitles: string[] = mangaDetails.altTitles.flatMap(
-    (x: MangaDex.AltTitle) => Object.values(x) as string[],
+    (x: AltTitle) => Object.values(x) as string[],
   );
 
   const descriptionMatch =
@@ -377,9 +390,9 @@ export function parseMangaItemDetails(
 
   const desc = Application.decodeHTMLEntities(descriptionMatch)?.replace(/\[\/?[bus]]/g, "") ?? "";
 
-  const hasAniList = Boolean((mangaDetails.links as MangaDex.Links | undefined)?.al);
-  const hasMangaUpdates = Boolean((mangaDetails.links as MangaDex.Links | undefined)?.mu);
-  const hasMyAnimeList = Boolean((mangaDetails.links as MangaDex.Links | undefined)?.mal);
+  const hasAniList = Boolean((mangaDetails.links as Links | undefined)?.al);
+  const hasMangaUpdates = Boolean((mangaDetails.links as Links | undefined)?.mu);
+  const hasMyAnimeList = Boolean((mangaDetails.links as Links | undefined)?.mal);
 
   let synopsis = desc;
   if (hasAniList || hasMangaUpdates || hasMyAnimeList) {
@@ -425,7 +438,7 @@ export function parseMangaItemDetails(
 /**
  * Formats chapter title with volume and chapter numbers based on settings
  */
-export function parseChapterTitle(attributes: Partial<MangaDex.ChapterAttributes>): string {
+export function parseChapterTitle(attributes: Partial<ChapterAttributes>): string {
   const title = attributes.title?.trim() || "";
   const showVolume = getShowVolume();
   const showChapter = getShowChapter();

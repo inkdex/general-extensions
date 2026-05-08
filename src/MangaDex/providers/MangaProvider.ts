@@ -5,6 +5,7 @@ import { URL, type SourceManga } from "@paperback/types";
 
 import { parseMangaDetails } from "../MangaDexParser";
 import { getCoverArtworkEnabled } from "../MangaDexSettings";
+import type { CoverArtResponse, MangaDetailsResponse, StatisticsResponse } from "../models";
 import { checkId, fetchJSON, MANGADEX_API } from "../utils/CommonUtil";
 
 /**
@@ -28,7 +29,7 @@ export class MangaProvider {
       method: "GET",
     };
 
-    const json = await fetchJSON<MangaDex.MangaDetailsResponse>(request);
+    const json = await fetchJSON<MangaDetailsResponse>(request);
 
     // Handle MangaDex API error responses with proper typing
     if (json.result === "error" && Array.isArray(json.errors) && json.errors.length === 1) {
@@ -49,9 +50,9 @@ export class MangaProvider {
       method: "GET",
     };
 
-    const ratingJson = await fetchJSON<MangaDex.StatisticsResponse>(request);
+    const ratingJson = await fetchJSON<StatisticsResponse>(request);
 
-    let coversJson: MangaDex.CoverArtResponse | undefined;
+    let coversJson: CoverArtResponse | undefined;
 
     if (getCoverArtworkEnabled()) {
       request = {
@@ -65,7 +66,7 @@ export class MangaProvider {
         method: "GET",
       };
 
-      coversJson = await fetchJSON<MangaDex.CoverArtResponse>(request);
+      coversJson = await fetchJSON<CoverArtResponse>(request);
     }
 
     return parseMangaDetails(mangaId, json, ratingJson, coversJson);
