@@ -18,7 +18,7 @@
   },
   "devDependencies": {
     "@paperback/toolchain": "^1.0.0-alpha.85",
-    "@paperback/types": "^1.0.0-alpha.85",
+    "@paperback/types": "^1.0.0-alpha.86",
     "@types/chai": "^5.2.3",
     "@types/upng-js": "^2.1.5",
     "chai": "^6.2.2",
