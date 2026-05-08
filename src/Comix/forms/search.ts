@@ -51,7 +51,7 @@ export class ComixAdvancedSearchForm extends AdvancedSearchForm {
           ),
         }),
       ]),
-      Section("types", [
+      Section("demographic", [
         TriStateSelectRow("demographic", {
           title: "Demographic",
           layout: "list",
@@ -62,7 +62,7 @@ export class ComixAdvancedSearchForm extends AdvancedSearchForm {
           onValueChange: Application.Selector(this as ComixAdvancedSearchForm, "handleDemogChange"),
         }),
       ]),
-      Section("demographic", [
+      Section("status", [
         TriStateSelectRow("status", {
           title: "Status",
           layout: "list",
@@ -76,7 +76,7 @@ export class ComixAdvancedSearchForm extends AdvancedSearchForm {
           ),
         }),
       ]),
-      Section("status", [
+      Section("types", [
         TriStateSelectRow("types", {
           title: "Types",
           layout: "list",

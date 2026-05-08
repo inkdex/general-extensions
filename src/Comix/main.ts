@@ -177,13 +177,6 @@ export class ComixExtension implements ComixImplementation {
     sortingOption: SortingOption,
   ): Promise<PagedResults<SearchResultItem>> {
     let sorting = sortingOption;
-    if (sorting === undefined) {
-      sorting = {
-        id: "views_30d$desc#empty",
-        label: "Any",
-      };
-    }
-    sorting.id = sorting.id.split(searchQuery.title.length > 1 ? "#title" : "#empty")[0];
     if (searchQuery.metadata === undefined) {
       searchQuery.metadata = getDefaultMetadata();
     }

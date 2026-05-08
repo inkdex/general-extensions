@@ -38,7 +38,7 @@ export function getDefaultMetadata(genresFilter: string = ""): SearchMetadata {
     genres: getExcludedGenreObject,
     themes: getExcludedThemesObject,
     demographic: getExcludedDemographicObject,
-    type: getShowOnlyObject,
+    types: getShowOnlyObject,
   };
 }
 
