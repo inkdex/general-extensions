@@ -3,26 +3,31 @@
 
 export class ComixHash {
   private static KEYS: string[] = [
-    "13YDu67uDgFczo3DnuTIURqas4lfMEPADY6Jaeqky+w=",
-    "yEy7wBfBc+gsYPiQL/4Dfd0pIBZFzMwrtlRQGwMXy3Q=",
-    "yrP+EVA1Dw==",
-    "vZ23RT7pbSlxwiygkHd1dhToIku8SNHPC6V36L4cnwM=",
-    "QX0sLahOByWLcWGnv6l98vQudWqdRI3DOXBdit9bxCE=",
-    "WJwgqCmf",
-    "BkWI8feqSlDZKMq6awfzWlUypl88nz65KVRmpH0RWIc=",
-    "v7EIpiQQjd2BGuJzMbBA0qPWDSS+wTJRQ7uGzZ6rJKs=",
-    "1SUReYlCRA==",
-    "RougjiFHkSKs20DZ6BWXiWwQUGZXtseZIyQWKz5eG34=",
-    "LL97cwoDoG5cw8QmhI+KSWzfW+8VehIh+inTxnVJ2ps=",
-    "52iDqjzlqe8=",
-    "U9LRYFL2zXU4TtALIYDj+lCATRk/EJtH7/y7qYYNlh8=",
-    "e/GtffFDTvnw7LBRixAD+iGixjqTq9kIZ1m0Hj+s6fY=",
-    "xb2XwHNB",
+    "JxTcdyiA5GZxnbrmthXBQfU2IMTKcY1+3nNhbq98Sgo=", // 0  RC4 key  round 1
+    "3PordjODbhqla382Cxapmo/1JiABJQcjiJj1+48gTJ4=", // 1  mutKey   round 1
+    "OaKvnI5ARA==", // 2  prefKey  round 1
+
+    "MHNBHYWA7lvy867fXgvGcJwWDk79KqUJUVFsh3RwnnI=", // 3  RC4 key  round 2
+    "8i0Cru/VJBSVB2Y1GcMDVpzx2WepOcfnWdd81yxICl4=", // 4  mutKey   round 2
+    "Fyskubz8VvA=", // 5  prefKey  round 2
+
+    "B46L1x+UeWP+19cRpQ+OZvdLAK9EHID8g3mSgn57tew=", // 6  RC4 key  round 3
+    "DTSTmUt6LpDUw9r1lSQqyb3YlFTzruT8tk8wUGkwehQ=", // 7  mutKey   round 3
+    "vY/meeI=", // 8  prefKey  round 3
+
+    "7xWfIF5THL5LAnRgAARg+4mjWHPU9n3PQwvzbaMNi+Q=", // 9  RC4 key  round 4
+    "bewtiTuV+HJk56xxkf2iCljLgruCpBmN9BgE8i6gc9M=", // 10 mutKey   round 4
+    "/Xcb2zAu8AU=", // 11 prefKey  round 4
+
+    "WgeCQ3T8R51uTwVSiVa7Zy0dN6JOg6Z5JleMS+HV8Aw=", // 12 RC4 key  round 5
+    "yXayUVFrrcW56jQCEfZzuCidjpnWKjTDUNT7XeX9i7k=", // 13 mutKey   round 5
+    "tSLco2w=", // 14 prefKey  round 5
   ];
 
   private static getKeyBytes(index: number): number[] {
     const b64 = this.KEYS[index];
     if (!b64) return [];
+
     try {
       const decoded = Application.base64Decode(b64);
       if (typeof decoded === "string") {
@@ -39,9 +44,10 @@ export class ComixHash {
   }
 
   private static rc4(key: number[], data: number[]): number[] {
-    if (key.length === 0) return data;
+    if (key.length === 0) return [...data];
 
     const s = Array.from({ length: 256 }, (_, i) => i);
+
     let j = 0;
 
     for (let i = 0; i < 256; i++) {
@@ -51,290 +57,257 @@ export class ComixHash {
 
     let i = 0;
     j = 0;
-    const out: number[] = [];
+
+    const out = new Array<number>(data.length);
 
     for (let k = 0; k < data.length; k++) {
       i = (i + 1) % 256;
       j = (j + s[i]) % 256;
+
       [s[i], s[j]] = [s[j], s[i]];
-      const val = s[(s[i] + s[j]) % 256];
-      out.push(data[k] ^ val);
+
+      out[k] = data[k] ^ s[(s[i] + s[j]) % 256];
     }
 
     return out;
-  }
-
-  private static mutS(e: number) {
-    return (e + 143) % 256;
-  }
-  private static mutL(e: number) {
-    return ((e >>> 1) | (e << 7)) & 255;
-  }
-  private static mutC(e: number) {
-    return (e + 115) % 256;
-  }
-  private static mutM(e: number) {
-    return e ^ 177;
-  }
-  private static mutF(e: number) {
-    return (e - 188 + 256) % 256;
-  }
-  private static mutG(e: number) {
-    return ((e << 2) | (e >>> 6)) & 255;
-  }
-  private static mutH(e: number) {
-    return (e - 42 + 256) % 256;
-  }
-  private static mutDollar(e: number) {
-    return ((e << 4) | (e >>> 4)) & 255;
-  }
-  private static mutB(e: number) {
-    return (e - 12 + 256) % 256;
-  }
-  private static mutUnderscore(e: number) {
-    return (e - 20 + 256) % 256;
-  }
-  private static mutY(e: number) {
-    return ((e >>> 1) | (e << 7)) & 255;
-  }
-  private static mutK(e: number) {
-    return (e - 241 + 256) % 256;
   }
 
   private static getMutKey(mk: number[], idx: number): number {
-    if (!mk.length) return 0;
-    return mk[idx % 32] ?? 0;
+    return mk.length > 0 && idx % 32 < mk.length ? mk[idx % 32] : 0;
+  }
+
+  private static opShiftRight7Left1(e: number): number {
+    e &= 255;
+    return ((e >>> 7) | (e << 1)) & 255;
+  }
+
+  private static opShiftLeft1Right7(e: number): number {
+    e &= 255;
+    return ((e << 1) | (e >>> 7)) & 255;
+  }
+
+  private static opShiftRight2Left6(e: number): number {
+    e &= 255;
+    return ((e >>> 2) | (e << 6)) & 255;
+  }
+
+  private static opShiftLeft4Right4(e: number): number {
+    e &= 255;
+    return ((e << 4) | (e >>> 4)) & 255;
+  }
+
+  private static opShiftRight4Left4(e: number): number {
+    e &= 255;
+    return ((e >>> 4) | (e << 4)) & 255;
+  }
+
+  private static mutate(
+    data: number[],
+    mutKey: number[],
+    prefKey: number[],
+    prefKeyLimit: number,
+    round: number,
+  ): number[] {
+    const out: number[] = [];
+
+    for (let o = 0; o < data.length; o++) {
+      if (o < prefKeyLimit && o < prefKey.length) {
+        out.push(prefKey[o]);
+      }
+
+      let n = data[o] ^ this.getMutKey(mutKey, o);
+
+      switch (round) {
+        case 1:
+          switch (o % 10) {
+            case 0:
+              n = this.opShiftRight7Left1(n);
+              break;
+            case 1:
+              n ^= 37;
+              break;
+            case 2:
+              n ^= 81;
+              break;
+            case 3:
+              n ^= 147;
+              break;
+            case 4:
+              n = this.opShiftRight2Left6(n);
+              break;
+            case 5:
+            case 8:
+              n = this.opShiftRight4Left4(n);
+              break;
+            case 6:
+              n ^= 218;
+              break;
+            case 7:
+              n = (n + 159) & 255;
+              break;
+            case 9:
+              n ^= 180;
+              break;
+          }
+          break;
+
+        case 2:
+          switch (o % 10) {
+            case 0:
+            case 9:
+              n ^= 180;
+              break;
+            case 1:
+              n = this.opShiftLeft1Right7(n);
+              break;
+            case 2:
+              n ^= 147;
+              break;
+            case 3:
+              n = this.opShiftRight7Left1(n);
+              break;
+            case 4:
+              n = this.opShiftRight2Left6(n);
+              break;
+            case 5:
+              n = this.opShiftRight4Left4(n);
+              break;
+            case 6:
+            case 8:
+              n = (n + 159) & 255;
+              break;
+            case 7:
+              n = (n + 34) & 255;
+              break;
+          }
+          break;
+
+        case 3:
+          switch (o % 10) {
+            case 0:
+              n ^= 81;
+              break;
+            case 1:
+              n = this.opShiftRight4Left4(n);
+              break;
+            case 2:
+            case 9:
+              n = this.opShiftLeft4Right4(n);
+              break;
+            case 3:
+              n ^= 37;
+              break;
+            case 4:
+              n = (n + 159) & 255;
+              break;
+            case 5:
+              n = this.opShiftLeft1Right7(n);
+              break;
+            case 6:
+              n ^= 180;
+              break;
+            case 7:
+              n = (n + 34) & 255;
+              break;
+            case 8:
+              n = this.opShiftRight2Left6(n);
+              break;
+          }
+          break;
+
+        case 4:
+          switch (o % 10) {
+            case 0:
+            case 7:
+              n ^= 218;
+              break;
+            case 1:
+            case 4:
+              n = this.opShiftLeft1Right7(n);
+              break;
+            case 2:
+              n = this.opShiftRight7Left1(n);
+              break;
+            case 3:
+              n = (n + 159) & 255;
+              break;
+            case 5:
+            case 8:
+              n ^= 180;
+              break;
+            case 6:
+              n ^= 147;
+              break;
+            case 9:
+              n ^= 37;
+              break;
+          }
+          break;
+
+        case 5:
+          switch (o % 10) {
+            case 0:
+              n = this.opShiftLeft4Right4(n);
+              break;
+            case 1:
+            case 3:
+              n ^= 147;
+              break;
+            case 2:
+              n = (n + 34) & 255;
+              break;
+            case 4:
+            case 9:
+              n ^= 218;
+              break;
+            case 5:
+            case 7:
+              n = this.opShiftLeft1Right7(n);
+              break;
+            case 6:
+              n ^= 180;
+              break;
+            case 8:
+              n = this.opShiftRight2Left6(n);
+              break;
+          }
+          break;
+      }
+
+      out.push(n & 255);
+    }
+
+    return out;
   }
 
   private static round1(data: number[]): number[] {
-    const enc = this.rc4(this.getKeyBytes(0), data);
-    const mutKey = this.getKeyBytes(1);
-    const prefKey = this.getKeyBytes(2);
+    const mut = this.mutate(data, this.getKeyBytes(1), this.getKeyBytes(2), 7, 1);
 
-    const out: number[] = [];
-
-    for (let i = 0; i < enc.length; i++) {
-      if (i < 7 && i < prefKey.length) out.push(prefKey[i]);
-
-      let v = enc[i] ^ this.getMutKey(mutKey, i);
-
-      switch (i % 10) {
-        case 0:
-        case 9:
-          v = this.mutC(v);
-          break;
-        case 1:
-          v = this.mutB(v);
-          break;
-        case 2:
-          v = this.mutY(v);
-          break;
-        case 3:
-          v = this.mutDollar(v);
-          break;
-        case 4:
-        case 6:
-          v = this.mutH(v);
-          break;
-        case 5:
-          v = this.mutS(v);
-          break;
-        case 7:
-          v = this.mutK(v);
-          break;
-        case 8:
-          v = this.mutL(v);
-          break;
-      }
-
-      out.push(v & 255);
-    }
-
-    return out;
+    return this.rc4(this.getKeyBytes(0), mut);
   }
 
   private static round2(data: number[]): number[] {
-    const enc = this.rc4(this.getKeyBytes(3), data);
-    const mutKey = this.getKeyBytes(4);
-    const prefKey = this.getKeyBytes(5);
+    const mut = this.mutate(data, this.getKeyBytes(4), this.getKeyBytes(5), 8, 2);
 
-    const out: number[] = [];
-
-    for (let i = 0; i < enc.length; i++) {
-      if (i < 6 && i < prefKey.length) out.push(prefKey[i]);
-
-      let v = enc[i] ^ this.getMutKey(mutKey, i);
-
-      switch (i % 10) {
-        case 0:
-        case 8:
-          v = this.mutC(v);
-          break;
-        case 1:
-          v = this.mutB(v);
-          break;
-        case 2:
-        case 6:
-          v = this.mutDollar(v);
-          break;
-        case 3:
-          v = this.mutH(v);
-          break;
-        case 4:
-        case 9:
-          v = this.mutS(v);
-          break;
-        case 5:
-          v = this.mutK(v);
-          break;
-        case 7:
-          v = this.mutUnderscore(v);
-          break;
-      }
-
-      out.push(v & 255);
-    }
-
-    return out;
+    return this.rc4(this.getKeyBytes(3), mut);
   }
 
   private static round3(data: number[]): number[] {
-    const enc = this.rc4(this.getKeyBytes(6), data);
-    const mutKey = this.getKeyBytes(7);
-    const prefKey = this.getKeyBytes(8);
+    const mut = this.mutate(data, this.getKeyBytes(7), this.getKeyBytes(8), 5, 3);
 
-    const out: number[] = [];
-
-    for (let i = 0; i < enc.length; i++) {
-      if (i < 7 && i < prefKey.length) out.push(prefKey[i]);
-
-      let v = enc[i] ^ this.getMutKey(mutKey, i);
-
-      switch (i % 10) {
-        case 0:
-          v = this.mutC(v);
-          break;
-        case 1:
-          v = this.mutF(v);
-          break;
-        case 2:
-        case 8:
-          v = this.mutS(v);
-          break;
-        case 3:
-          v = this.mutG(v);
-          break;
-        case 4:
-          v = this.mutY(v);
-          break;
-        case 5:
-          v = this.mutM(v);
-          break;
-        case 6:
-          v = this.mutDollar(v);
-          break;
-        case 7:
-          v = this.mutK(v);
-          break;
-        case 9:
-          v = this.mutB(v);
-          break;
-      }
-
-      out.push(v & 255);
-    }
-
-    return out;
+    return this.rc4(this.getKeyBytes(6), mut);
   }
 
   private static round4(data: number[]): number[] {
-    const enc = this.rc4(this.getKeyBytes(9), data);
-    const mutKey = this.getKeyBytes(10);
-    const prefKey = this.getKeyBytes(11);
+    const mut = this.mutate(data, this.getKeyBytes(10), this.getKeyBytes(11), 8, 4);
 
-    const out: number[] = [];
-
-    for (let i = 0; i < enc.length; i++) {
-      if (i < 8 && i < prefKey.length) out.push(prefKey[i]);
-
-      let v = enc[i] ^ this.getMutKey(mutKey, i);
-
-      switch (i % 10) {
-        case 0:
-          v = this.mutB(v);
-          break;
-        case 1:
-        case 9:
-          v = this.mutM(v);
-          break;
-        case 2:
-        case 7:
-          v = this.mutL(v);
-          break;
-        case 3:
-        case 5:
-          v = this.mutS(v);
-          break;
-        case 4:
-        case 6:
-          v = this.mutUnderscore(v);
-          break;
-        case 8:
-          v = this.mutY(v);
-          break;
-      }
-
-      out.push(v & 255);
-    }
-
-    return out;
+    return this.rc4(this.getKeyBytes(9), mut);
   }
 
   private static round5(data: number[]): number[] {
-    const enc = this.rc4(this.getKeyBytes(12), data);
-    const mutKey = this.getKeyBytes(13);
-    const prefKey = this.getKeyBytes(14);
+    const mut = this.mutate(data, this.getKeyBytes(13), this.getKeyBytes(14), 5, 5);
 
-    const out: number[] = [];
-
-    for (let i = 0; i < enc.length; i++) {
-      if (i < 6 && i < prefKey.length) out.push(prefKey[i]);
-
-      let v = enc[i] ^ this.getMutKey(mutKey, i);
-
-      switch (i % 10) {
-        case 0:
-          v = this.mutUnderscore(v);
-          break;
-        case 1:
-        case 7:
-          v = this.mutS(v);
-          break;
-        case 2:
-          v = this.mutC(v);
-          break;
-        case 3:
-        case 5:
-          v = this.mutM(v);
-          break;
-        case 4:
-          v = this.mutB(v);
-          break;
-        case 6:
-          v = this.mutF(v);
-          break;
-        case 8:
-          v = this.mutDollar(v);
-          break;
-        case 9:
-          v = this.mutG(v);
-          break;
-      }
-
-      out.push(v & 255);
-    }
-
-    return out;
+    return this.rc4(this.getKeyBytes(12), mut);
   }
 
   private static encodeURIComponentCustom(str: string): string {
@@ -342,13 +315,9 @@ export class ComixHash {
   }
 
   public static generateHash(path: string): string {
-    const baseString = `${path}`;
-    const encoded = this.encodeURIComponentCustom(baseString);
+    const encoded = this.encodeURIComponentCustom(path);
 
-    const initialBytes: number[] = [];
-    for (let i = 0; i < encoded.length; i++) {
-      initialBytes.push(encoded.charCodeAt(i));
-    }
+    const initialBytes = Array.from(new TextEncoder().encode(encoded)).map((b) => b & 0xff);
 
     const r1 = this.round1(initialBytes);
     const r2 = this.round2(r1);
@@ -359,14 +328,15 @@ export class ComixHash {
     const encodedResult = Application.base64Encode(new Uint8Array(r5).buffer);
 
     let b64: string;
+
     if (typeof encodedResult === "string") {
       b64 = encodedResult;
     } else {
-      const view = new Uint8Array(encodedResult);
-      b64 = "";
-      for (let i = 0; i < view.length; i++) b64 += String.fromCharCode(view[i]);
+      b64 = Array.from(new Uint8Array(encodedResult))
+        .map((b) => String.fromCharCode(b))
+        .join("");
     }
 
-    return b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    return b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
   }
 }
