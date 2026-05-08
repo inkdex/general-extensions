@@ -1,8 +1,9 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 /* Copyright © 2026 Inkdex */
 
-import type { Request, SearchFilter, SortingOption } from "@paperback/types";
+import type { Request, SortingOption } from "@paperback/types";
 import { URL } from "@paperback/types";
+import type { SearchFilter, SearchFilterValue } from "@paperback/types/lib/compat/0.8";
 
 import { fetchJSON } from "../../services/network";
 import { DOMAIN } from "../shared/models";
@@ -94,11 +95,8 @@ export async function buildSearchFilters(): Promise<SearchFilter[]> {
   ];
 }
 
-type FilterValue = string | Record<string, "included" | "excluded">;
-type FilterEntry = { id: string; value: FilterValue };
-
 // returns ids of all "included" options from a multiselect filter
-export function readMultiselectFilter(filters: FilterEntry[], filterId: string): string[] {
+export function readMultiselectFilter(filters: SearchFilterValue[], filterId: string): string[] {
   const entry = filters.find((f) => f.id === filterId);
   if (!entry) return [];
   const val = entry.value;
@@ -110,7 +108,7 @@ export function readMultiselectFilter(filters: FilterEntry[], filterId: string):
 
 // returns the selected option id, or the fallback if unset
 export function readDropdownFilter(
-  filters: FilterEntry[],
+  filters: SearchFilterValue[],
   filterId: string,
   fallback: string,
 ): string {
