@@ -54,7 +54,7 @@ export class ComixHash {
     let i = 0;
     j = 0;
 
-    const out = new Array<number>(data.length);
+    const out = Array.from<number>({ length: data.length });
 
     for (let k = 0; k < data.length; k++) {
       i = (i + 1) % 256;
