@@ -17,7 +17,7 @@
     "prepare": "husky"
   },
   "devDependencies": {
-    "@paperback/toolchain": "^1.0.0-alpha.85",
+    "@paperback/toolchain": "^1.0.0-alpha.86",
     "@paperback/types": "^1.0.0-alpha.86",
     "@types/chai": "^5.2.3",
     "@types/upng-js": "^2.1.5",
