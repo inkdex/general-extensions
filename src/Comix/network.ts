@@ -80,7 +80,7 @@ export class ApiMaker {
     return JSON.parse(html) as ApiResponse<T>;
   }
 
-  async getJsonMangaTopApi(section: string, page: number): Promise<ApiResponse<MangaItem[]>> {
+  async getJsonMangaTopApi(section: string): Promise<ApiResponse<MangaItem[]>> {
     const hiddenGenres = [...filter.getHiddenGenresSettings(), ...filter.getHiddenDemogSettings()];
     const types = filter.getShowOnlySettings();
     const days = filter.getLimitSettings()[0];

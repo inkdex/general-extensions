@@ -15,7 +15,7 @@ export interface ApiRequestConfig {
 }
 
 export interface ApiResponse<T> {
-  status: number;
+  status: string;
   result: T;
 }
 
@@ -99,11 +99,6 @@ export interface ChapterItem {
 
 export interface Metadata extends JSONObject {
   page: number;
-}
-
-export interface ResultFilter {
-  items: Filter[];
-  meta: { lastPage: number };
 }
 
 export interface Filter {
