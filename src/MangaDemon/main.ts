@@ -16,12 +16,16 @@ import {
   type Extension,
   type MangaProviding,
   type PagedResults,
-  type SearchFilter,
   type SearchQuery,
   type SearchResultsProviding,
   type SortingOption,
   type SourceManga,
 } from "@paperback/types";
+import {
+  SearchFilterForm,
+  type SearchFilter,
+  type SearchFilterValue,
+} from "@paperback/types/lib/compat/0.8";
 import * as cheerio from "cheerio";
 
 import {
@@ -293,7 +297,7 @@ class MangaDemonExtension
 
   // Handles search queries and filter/sort options
   async getSearchResults(
-    query: SearchQuery,
+    query: SearchQuery<SearchFilterValue[]>,
     metadata: { page?: number } | undefined,
     sortingOption: SortingOption | undefined,
   ): Promise<PagedResults<SearchResultItem>> {
@@ -328,8 +332,8 @@ class MangaDemonExtension
     let statusNotAll = false;
     const genreIds: string[] = [];
     let statusValue: string | undefined = undefined;
-    if (query.filters) {
-      for (const filter of query.filters) {
+    if (query.metadata) {
+      for (const filter of query.metadata) {
         if (filter.id === "genre" && typeof filter.value === "object") {
           for (const [genreId, state] of Object.entries(filter.value)) {
             if (state === "included") {
@@ -485,6 +489,11 @@ class MangaDemonExtension
         metadata: hasNextPage ? { page: page + 1 } : undefined,
       };
     }
+  }
+
+  async getAdvancedSearchForm(query: SearchQuery<SearchFilterValue[]>) {
+    // TODO: Replace compat wrapper with proper search form implementation
+    return new SearchFilterForm(query.metadata, this.getSearchFilters());
   }
 
   // Returns available search filters (genres, status, etc.)

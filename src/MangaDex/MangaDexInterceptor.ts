@@ -6,6 +6,7 @@ import jpeg from "jpeg-js";
 import UPNG from "upng-js";
 
 import { getAccessToken, getCropImagesEnabled, saveAccessToken } from "./MangaDexSettings";
+import type { AuthError, AuthResponse } from "./models";
 import { MANGADEX_DOMAIN } from "./utils/CommonUtil";
 
 type UPNGImage = { width: number; height: number };
@@ -86,7 +87,7 @@ export class MangaDexInterceptor extends PaperbackInterceptor {
             }
 
             const data = Application.arrayBufferToUTF8String(buffer);
-            const json = JSON.parse(data) as MangaDex.AuthResponse | MangaDex.AuthError;
+            const json = JSON.parse(data) as AuthResponse | AuthError;
 
             if ("error" in json) {
               return;

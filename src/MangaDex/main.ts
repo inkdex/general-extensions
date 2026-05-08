@@ -20,7 +20,6 @@ import {
   type MangaProgressProviding,
   type MangaProviding,
   type PagedResults,
-  type SearchFilter,
   type SearchQuery,
   type SearchResultItem,
   type SearchResultsProviding,
@@ -31,8 +30,14 @@ import {
   type TrackedMangaChapterReadAction,
   type UpdateManager,
 } from "@paperback/types";
+import {
+  SearchFilterForm,
+  type SearchFilter,
+  type SearchFilterValue,
+} from "@paperback/types/lib/compat/0.8";
 
 import { MangaDexInterceptor } from "./MangaDexInterceptor";
+import type { Metadata } from "./models";
 import { ChapterProvider } from "./providers/ChapterProvider";
 import { CollectionProvider } from "./providers/CollectionProvider";
 import { DiscoverProvider } from "./providers/DiscoverProvider";
@@ -93,18 +98,23 @@ export class MangaDexExtension implements MangaDexImplementation {
   }
 
   async getSearchResults(
-    query: SearchQuery,
-    metadata: MangaDex.Metadata,
+    query: SearchQuery<SearchFilterValue[]>,
+    metadata: Metadata,
     sortingOption: SortingOption | undefined,
   ): Promise<PagedResults<SearchResultItem>> {
     return this.searchProvider.getSearchResults(query, metadata, sortingOption);
+  }
+
+  async getAdvancedSearchForm(query: SearchQuery<SearchFilterValue[]>) {
+    // TODO: Replace compat wrapper with proper search form implementation
+    return new SearchFilterForm(query.metadata, this.getSearchFilters());
   }
 
   getSearchTags(): TagSection[] {
     return this.searchProvider.getSearchTags();
   }
 
-  async getSortingOptions(query: SearchQuery): Promise<SortingOption[]> {
+  async getSortingOptions(query: SearchQuery<SearchFilterValue[]>): Promise<SortingOption[]> {
     return this.searchProvider.getSortingOptions(query);
   }
 
@@ -170,7 +180,7 @@ export class MangaDexExtension implements MangaDexImplementation {
 
   async getDiscoverSectionItems(
     section: DiscoverSection,
-    metadata: MangaDex.Metadata | undefined,
+    metadata: Metadata | undefined,
   ): Promise<PagedResults<DiscoverSectionItem>> {
     return this.discoverProvider.getDiscoverSectionItems(section, metadata);
   }

@@ -15,6 +15,13 @@ import {
 
 import { parseMangaDetails } from "../MangaDexParser";
 import { getAccessToken, getUpdateBatchSize } from "../MangaDexSettings";
+import type {
+  MangaDetailsResponse,
+  MangaRatingResponse,
+  MangaStatusResponse,
+  SearchResponse,
+  StatisticsResponse,
+} from "../models";
 import { ChapterProvider } from "../providers/ChapterProvider";
 import { MangaProvider } from "../providers/MangaProvider";
 import { fetchJSON, MANGADEX_API } from "../utils/CommonUtil";
@@ -175,7 +182,7 @@ export class LibraryMangaListForm extends Form {
         .addPathComponent("status")
         .toString();
 
-      const statusResponse = await fetchJSON<MangaDex.MangaStatusResponse>({
+      const statusResponse = await fetchJSON<MangaStatusResponse>({
         url: statusUrl,
         method: "GET",
       });
@@ -216,7 +223,7 @@ export class LibraryMangaListForm extends Form {
         };
 
         try {
-          const json = await fetchJSON<MangaDex.SearchResponse>(request);
+          const json = await fetchJSON<SearchResponse>(request);
 
           if (json.data) {
             const ratingRequest = {
@@ -228,7 +235,7 @@ export class LibraryMangaListForm extends Form {
               method: "GET",
             };
 
-            const ratingJson = await fetchJSON<MangaDex.StatisticsResponse>(ratingRequest);
+            const ratingJson = await fetchJSON<StatisticsResponse>(ratingRequest);
 
             try {
               const ratingUrl = new URL(MANGADEX_API)
@@ -236,7 +243,7 @@ export class LibraryMangaListForm extends Form {
                 .setQueryItem("manga[]", batchIds)
                 .toString();
 
-              const ratingResponse = await fetchJSON<MangaDex.MangaRatingResponse>({
+              const ratingResponse = await fetchJSON<MangaRatingResponse>({
                 url: ratingUrl,
                 method: "GET",
               });
@@ -257,7 +264,7 @@ export class LibraryMangaListForm extends Form {
               const index = mangaIdToIndexMap.get(mangaData.id);
               if (index !== undefined) {
                 try {
-                  const mangaDetailsResponse: MangaDex.MangaDetailsResponse = {
+                  const mangaDetailsResponse: MangaDetailsResponse = {
                     result: "ok",
                     data: mangaData,
                     response: "entity",

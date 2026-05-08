@@ -19,6 +19,12 @@ import {
   getTrackingContentRatings,
   getTrackingEnabled,
 } from "../MangaDexSettings";
+import type {
+  MangaRatingResponse,
+  MangaReadResponse,
+  MangaStatusGetResponse,
+  MangaStatusUpdateResponse,
+} from "../models";
 import { fetchJSON, MANGADEX_API } from "../utils/CommonUtil";
 import { ChapterProvider } from "./ChapterProvider";
 
@@ -54,7 +60,7 @@ export class ProgressProvider {
     const chapterPreloadingEnabled = getChapterPreloadingEnabled();
 
     try {
-      const statusResponse = await fetchJSON<MangaDex.MangaStatusGetResponse>({
+      const statusResponse = await fetchJSON<MangaStatusGetResponse>({
         url: statusUrl,
         method: "GET",
       });
@@ -73,7 +79,7 @@ export class ProgressProvider {
           .setQueryItem("manga[]", [sourceManga.mangaId])
           .toString();
 
-        const ratingResponse = await fetchJSON<MangaDex.MangaRatingResponse>({
+        const ratingResponse = await fetchJSON<MangaRatingResponse>({
           url: ratingUrl,
           method: "GET",
         });
@@ -96,7 +102,7 @@ export class ProgressProvider {
           .toString();
 
         readChapterIds = new Set<string>();
-        const readResponse = await fetchJSON<MangaDex.MangaReadResponse>({
+        const readResponse = await fetchJSON<MangaReadResponse>({
           url: readUrl,
           method: "GET",
         });
@@ -147,7 +153,7 @@ export class ProgressProvider {
         .addPathComponent("read")
         .toString();
 
-      const readStatus = await fetchJSON<MangaDex.MangaReadResponse>({
+      const readStatus = await fetchJSON<MangaReadResponse>({
         url,
         method: "GET",
       });
@@ -289,7 +295,7 @@ export class ProgressProvider {
           .addPathComponent("status")
           .toString();
 
-        const statusResponse = await fetchJSON<MangaDex.MangaStatusGetResponse>({
+        const statusResponse = await fetchJSON<MangaStatusGetResponse>({
           url: statusUrl,
           method: "GET",
         });
@@ -314,7 +320,7 @@ export class ProgressProvider {
         }
 
         if (newStatus) {
-          await fetchJSON<MangaDex.MangaStatusUpdateResponse>({
+          await fetchJSON<MangaStatusUpdateResponse>({
             url: statusUrl,
             method: "POST",
             headers: { "Content-Type": "application/json" },
