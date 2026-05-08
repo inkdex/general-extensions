@@ -6,6 +6,7 @@ import {
   LabelRow,
   SelectRow,
   Section,
+  TriStateSelectRow,
   type SearchQuery,
   type Tag,
   type TagSection,
@@ -17,8 +18,7 @@ export class MgekoAdvancedSearchForm extends AdvancedSearchForm {
   private readonly genreOptions: Tag[] = [];
   private readonly statusOptions: Tag[] = [];
   private readonly typeOptions: Tag[] = [];
-  private genreIncluded: string[];
-  private genreExcluded: string[];
+  private genres: Record<string, "included" | "excluded">;
   private status: string;
   private type: string;
   private isQuerySearch: boolean;
@@ -42,13 +42,7 @@ export class MgekoAdvancedSearchForm extends AdvancedSearchForm {
     this.isQuerySearch = (searchQuery.title?.trim().length ?? 0) !== 0;
 
     const meta = searchQuery.metadata ?? {};
-    const genres = meta.genres ?? {};
-    this.genreIncluded = Object.entries(genres)
-      .filter(([, v]) => v === "included")
-      .map(([k]) => k);
-    this.genreExcluded = Object.entries(genres)
-      .filter(([, v]) => v === "excluded")
-      .map(([k]) => k);
+    this.genres = { ...meta.genres };
     this.status = meta.status ?? "";
     this.type = meta.type ?? "";
   }
@@ -67,26 +61,16 @@ export class MgekoAdvancedSearchForm extends AdvancedSearchForm {
     }
     return [
       Section("genres", [
-        SelectRow("genre_included", {
-          title: "Include Genres",
-          value: this.genreIncluded,
-          options: this.genreOptions,
-          minItemCount: 0,
-          maxItemCount: this.genreOptions.length,
+        TriStateSelectRow("genres", {
+          title: "Genres",
+          layout: "flow",
+          value: this.genres,
+          items: this.genreOptions,
+          allowExclusion: true,
+          allowEmptySelection: true,
           onValueChange: Application.Selector(
             this as MgekoAdvancedSearchForm,
-            "handleGenreIncludedChange",
-          ),
-        }),
-        SelectRow("genre_excluded", {
-          title: "Exclude Genres",
-          value: this.genreExcluded,
-          options: this.genreOptions,
-          minItemCount: 0,
-          maxItemCount: this.genreOptions.length,
-          onValueChange: Application.Selector(
-            this as MgekoAdvancedSearchForm,
-            "handleGenreExcludedChange",
+            "handleGenresChange",
           ),
         }),
       ]),
@@ -116,12 +100,8 @@ export class MgekoAdvancedSearchForm extends AdvancedSearchForm {
     ];
   }
 
-  async handleGenreIncludedChange(value: string[]): Promise<void> {
-    this.genreIncluded = value;
-  }
-
-  async handleGenreExcludedChange(value: string[]): Promise<void> {
-    this.genreExcluded = value;
+  async handleGenresChange(value: Record<string, "included" | "excluded">): Promise<void> {
+    this.genres = value;
   }
 
   async handleStatusChange(value: string[]): Promise<void> {
@@ -132,19 +112,9 @@ export class MgekoAdvancedSearchForm extends AdvancedSearchForm {
     this.type = value[0] ?? "";
   }
 
-  override async formDidSubmit(): Promise<void> {
-    const overlap = this.genreIncluded.filter((id) => this.genreExcluded.includes(id));
-    if (overlap.length > 0) {
-      throw new Error("A genre cannot be both included and excluded");
-    }
-  }
-
   override getSearchQueryMetadata(): SearchMetadata {
-    const genres: { [id: string]: "included" | "excluded" } = {};
-    for (const id of this.genreIncluded) genres[id] = "included";
-    for (const id of this.genreExcluded) genres[id] = "excluded";
     const result: SearchMetadata = {};
-    if (Object.keys(genres).length > 0) result.genres = genres;
+    if (Object.keys(this.genres).length > 0) result.genres = this.genres;
     if (this.status) result.status = this.status;
     if (this.type) result.type = this.type;
     return result;
