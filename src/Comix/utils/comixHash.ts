@@ -3,25 +3,21 @@
 
 export class ComixHash {
   private static KEYS: string[] = [
-    "JxTcdyiA5GZxnbrmthXBQfU2IMTKcY1+3nNhbq98Sgo=", // 0  RC4 key  round 1
-    "3PordjODbhqla382Cxapmo/1JiABJQcjiJj1+48gTJ4=", // 1  mutKey   round 1
-    "OaKvnI5ARA==", // 2  prefKey  round 1
-
-    "MHNBHYWA7lvy867fXgvGcJwWDk79KqUJUVFsh3RwnnI=", // 3  RC4 key  round 2
-    "8i0Cru/VJBSVB2Y1GcMDVpzx2WepOcfnWdd81yxICl4=", // 4  mutKey   round 2
-    "Fyskubz8VvA=", // 5  prefKey  round 2
-
-    "B46L1x+UeWP+19cRpQ+OZvdLAK9EHID8g3mSgn57tew=", // 6  RC4 key  round 3
-    "DTSTmUt6LpDUw9r1lSQqyb3YlFTzruT8tk8wUGkwehQ=", // 7  mutKey   round 3
-    "vY/meeI=", // 8  prefKey  round 3
-
-    "7xWfIF5THL5LAnRgAARg+4mjWHPU9n3PQwvzbaMNi+Q=", // 9  RC4 key  round 4
-    "bewtiTuV+HJk56xxkf2iCljLgruCpBmN9BgE8i6gc9M=", // 10 mutKey   round 4
-    "/Xcb2zAu8AU=", // 11 prefKey  round 4
-
-    "WgeCQ3T8R51uTwVSiVa7Zy0dN6JOg6Z5JleMS+HV8Aw=", // 12 RC4 key  round 5
-    "yXayUVFrrcW56jQCEfZzuCidjpnWKjTDUNT7XeX9i7k=", // 13 mutKey   round 5
-    "tSLco2w=", // 14 prefKey  round 5
+    "JxTcdyiA5GZxnbrmthXBQfU2IMTKcY1+3nNhbq98Sgo=",
+    "3PordjODbhqla382Cxapmo/1JiABJQcjiJj1+48gTJ4=",
+    "OaKvnI5ARA==",
+    "MHNBHYWA7lvy867fXgvGcJwWDk79KqUJUVFsh3RwnnI=",
+    "8i0Cru/VJBSVB2Y1GcMDVpzx2WepOcfnWdd81yxICl4=",
+    "Fyskubz8VvA=",
+    "B46L1x+UeWP+19cRpQ+OZvdLAK9EHID8g3mSgn57tew=",
+    "DTSTmUt6LpDUw9r1lSQqyb3YlFTzruT8tk8wUGkwehQ=",
+    "vY/meeI=",
+    "7xWfIF5THL5LAnRgAARg+4mjWHPU9n3PQwvzbaMNi+Q=",
+    "bewtiTuV+HJk56xxkf2iCljLgruCpBmN9BgE8i6gc9M=",
+    "/Xcb2zAu8AU=",
+    "WgeCQ3T8R51uTwVSiVa7Zy0dN6JOg6Z5JleMS+HV8Aw=",
+    "yXayUVFrrcW56jQCEfZzuCidjpnWKjTDUNT7XeX9i7k=",
+    "tSLco2w=",
   ];
 
   private static getKeyBytes(index: number): number[] {

@@ -139,9 +139,9 @@ export class ComixExtension implements ComixImplementation {
   ): Promise<PagedResults<DiscoverSectionItem>> {
     switch (section.id) {
       case "popular":
-        return await parse.parseSection("popular", undefined);
+        return await parse.parseSection("popular");
       case "follow":
-        return await parse.parseSection("follow", undefined);
+        return await parse.parseSection("follow");
       case "recent":
         return getRecentSectionDiffType()
           ? await parse.parseSectionSimple("recent", metadata)

@@ -30,11 +30,10 @@ import { getDefaultMetadata, getRanking, parseRelativeDate } from "./utils/utils
 
 const api = new ApiMaker();
 export class JsonParser {
-  async parseSection(section: string, metadata: Metadata | undefined) {
+  async parseSection(section: string) {
     const latest: DiscoverSectionItem[] = [];
-    const page = metadata?.page ?? 1;
-    const json = await api.getJsonMangaTopApi(section, page);
-    if (json.status.toString() === "ok") {
+    const json = await api.getJsonMangaTopApi(section);
+    if (json.status === "ok") {
       for (const item of json.result) {
         latest.push({
           type:
@@ -53,7 +52,7 @@ export class JsonParser {
     }
     return {
       items: latest,
-      metadata: section === "follow" || section === "popular" ? undefined : { page: page + 1 },
+      metadata: undefined,
     };
   }
   async parseGenreSection(
@@ -88,7 +87,7 @@ export class JsonParser {
     const latest: DiscoverSectionItem[] = [];
     const page = metadata?.page ?? 1;
     const json = await api.getJsonMangaApi(section, page);
-    if (json.status.toString() === "ok") {
+    if (json.status === "ok") {
       for (const item of json.result.items) {
         latest.push({
           contentRating: getRanking(item.contentRating),
@@ -111,7 +110,7 @@ export class JsonParser {
     const latest: DiscoverSectionItem[] = [];
     const page = metadata?.page ?? 1;
     const json = await api.getJsonMangaApi(section, page);
-    if (json.status.toString() === "ok") {
+    if (json.status === "ok") {
       for (const item of json.result.items) {
         latest.push({
           contentRating: getRanking(item.contentRating),
@@ -233,12 +232,12 @@ export class JsonParser {
       });
     }
     function buildFilter(
-      exclued: boolean,
+      excluded: boolean,
       type: Filters["type"],
       ...sources: (string | TagMap)[]
     ): Filters[] {
       let values = [];
-      if (exclued) {
+      if (excluded) {
         values = sources.flatMap(mapTagsExcluded);
       } else {
         values = sources.flatMap(mapTags);
@@ -254,10 +253,9 @@ export class JsonParser {
     const mode = query.metadata?.mode ?? "and";
     const [sortBy, orderBy] = sortingOption.id.split("$");
     const filters: Filters[] = [
-      ...buildFilter(false, "genres_in[]", genres),
-      ...buildFilter(true, "genres_ex[]", genres),
+      ...buildFilter(false, "genres_in[]", genres, formats),
+      ...buildFilter(true, "genres_ex[]", genres, formats),
       ...buildFilter(false, "types[]", types),
-      ...buildFilter(false, "formats[]", formats),
       ...buildFilter(false, "demographics[]", demographic),
       ...buildFilter(false, "statuses[]", status),
     ];
