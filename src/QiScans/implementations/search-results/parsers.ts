@@ -1,8 +1,9 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 /* Copyright © 2026 Inkdex */
 
-import type { Request, SearchFilter, SearchResultItem, SortingOption } from "@paperback/types";
+import type { Request, SearchResultItem, SortingOption } from "@paperback/types";
 import { ContentRating, URL } from "@paperback/types";
+import type { SearchFilter, SearchFilterValue } from "@paperback/types/lib/compat/0.8";
 
 import { fetchJSON } from "../../services/network";
 import { DOMAIN_API } from "../shared/models";
@@ -15,11 +16,6 @@ export const SORT_OPTIONS: SortingOption[] = [
   { id: "popular", label: "Popular" },
   { id: "alphabetical", label: "A-Z" },
 ];
-
-export type FilterEntry = {
-  id: string;
-  value: string;
-};
 
 async function fetchGenres(): Promise<QIScansSeriesGenre[]> {
   const url = new URL(DOMAIN_API)
@@ -77,13 +73,13 @@ export async function buildSearchFilters(): Promise<SearchFilter[]> {
 }
 
 export function readDropdownFilter(
-  filters: FilterEntry[],
+  filters: SearchFilterValue[],
   filterId: string,
   fallback: string,
 ): string {
   const entry = filters.find((filter) => filter.id === filterId);
   if (!entry) return fallback;
-  return entry.value.trim() ? entry.value.trim() : fallback;
+  return typeof entry.value === "string" && entry.value.trim() ? entry.value.trim() : fallback;
 }
 
 function formatSearchSubtitle(type?: string, status?: string): string {

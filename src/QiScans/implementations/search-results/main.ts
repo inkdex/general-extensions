@@ -4,12 +4,16 @@
 import type {
   PagedResults,
   Request,
-  SearchFilter,
   SearchQuery,
   SearchResultItem,
   SortingOption,
 } from "@paperback/types";
 import { URL } from "@paperback/types";
+import {
+  SearchFilterForm,
+  type SearchFilter,
+  type SearchFilterValue,
+} from "@paperback/types/lib/compat/0.8";
 
 import { fetchJSON } from "../../services/network";
 import { DOMAIN_API, PAGE_SIZE } from "../shared/models";
@@ -21,11 +25,10 @@ import {
   readDropdownFilter,
   SORT_OPTIONS,
 } from "./parsers";
-import type { FilterEntry } from "./parsers";
 
 export class SearchProvider {
   async getSearchResults(
-    query: SearchQuery,
+    query: SearchQuery<SearchFilterValue[]>,
     metadata?: Metadata,
     sortingOption?: SortingOption,
   ): Promise<PagedResults<SearchResultItem>> {
@@ -55,7 +58,7 @@ export class SearchProvider {
           .setQueryItem("sort", sortingOption?.id ?? "latest");
 
     if (!searchTerm) {
-      const filters = (query.filters ?? []) as FilterEntry[];
+      const filters = query.metadata ?? [];
       const status = readDropdownFilter(filters, "status", "");
       const type = readDropdownFilter(filters, "type", "");
       const genre = readDropdownFilter(filters, "genre", "");
@@ -101,5 +104,10 @@ export class SearchProvider {
 
   async getSortingOptions(): Promise<SortingOption[]> {
     return SORT_OPTIONS;
+  }
+
+  async getAdvancedSearchForm(query: SearchQuery<SearchFilterValue[]>) {
+    // TODO: Replace compat wrapper with proper search form implementation
+    return new SearchFilterForm(query.metadata, this.getSearchFilters());
   }
 }
