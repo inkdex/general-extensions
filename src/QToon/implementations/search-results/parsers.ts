@@ -1,14 +1,15 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 /* Copyright © 2026 Inkdex */
 
-import type { SearchFilter, SearchResultItem, SortingOption } from "@paperback/types";
+import type { SearchResultItem, SortingOption } from "@paperback/types";
 import { ContentRating } from "@paperback/types";
+import type { SearchFilter, SearchFilterValue } from "@paperback/types/lib/compat/0.8";
 
-import type { FilterEntry, QToonComic } from "../shared/models";
+import type { QToonComic } from "../shared/models";
 import { comicId } from "../shared/utils";
 
 export function readDropdownFilter(
-  filters: FilterEntry[],
+  filters: SearchFilterValue[],
   filterId: string,
   fallback: string,
 ): string {

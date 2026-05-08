@@ -4,16 +4,20 @@
 import type {
   PagedResults,
   Request,
-  SearchFilter,
   SearchQuery,
   SearchResultItem,
   SortingOption,
 } from "@paperback/types";
 import { URL } from "@paperback/types";
+import {
+  SearchFilterForm,
+  type SearchFilter,
+  type SearchFilterValue,
+} from "@paperback/types/lib/compat/0.8";
 
 import { fetchEncryptedJSON } from "../../services/network";
 import { DOMAIN_API } from "../shared/models";
-import type { FilterEntry, QToonComicsList, SearchMetadata } from "../shared/models";
+import type { QToonComicsList, SearchMetadata } from "../shared/models";
 import {
   buildSearchFilters,
   parseQToonSearchResults,
@@ -30,13 +34,18 @@ export class SearchProvider {
     return SORT_OPTIONS;
   }
 
+  async getAdvancedSearchForm(query: SearchQuery<SearchFilterValue[]>) {
+    // TODO: Replace compat wrapper with proper search form implementation
+    return new SearchFilterForm(query.metadata, this.getSearchFilters());
+  }
+
   async getSearchResults(
-    query: SearchQuery,
+    query: SearchQuery<SearchFilterValue[]>,
     metadata?: SearchMetadata,
     sortingOption?: SortingOption,
   ): Promise<PagedResults<SearchResultItem>> {
     const page = metadata?.page ?? 1;
-    const filters = (query.filters ?? []) as FilterEntry[];
+    const filters = query.metadata ?? [];
     const title = query.title?.trim() ?? "";
     const tag = readDropdownFilter(filters, "tag", "-1");
     const status = readDropdownFilter(filters, "serialStatus", "-1");
