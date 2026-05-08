@@ -24,6 +24,14 @@ import {
   getSeasonalEnabled,
   getTagSectionsEnabled,
 } from "../MangaDexSettings";
+import type {
+  ChapterData,
+  ChapterResponse,
+  CustomListResponse,
+  Metadata,
+  Relationship,
+  SearchResponse,
+} from "../models";
 import { fetchJSON, MANGADEX_API, SEASONAL_LIST } from "../utils/CommonUtil";
 
 /**
@@ -168,7 +176,7 @@ export class DiscoverProvider {
    */
   async getDiscoverSectionItems(
     section: DiscoverSection,
-    metadata: MangaDex.Metadata | undefined,
+    metadata: Metadata | undefined,
   ): Promise<PagedResults<DiscoverSectionItem>> {
     const sectionId = section.id;
 
@@ -205,7 +213,7 @@ export class DiscoverProvider {
       method: "GET",
     };
 
-    const json = await fetchJSON<MangaDex.CustomListResponse>(request);
+    const json = await fetchJSON<CustomListResponse>(request);
 
     return new URL(MANGADEX_API)
       .addPathComponent("manga")
@@ -215,8 +223,8 @@ export class DiscoverProvider {
       .setQueryItem(
         "ids[]",
         json.data.relationships
-          .filter((x: MangaDex.Relationship) => x.type.valueOf() === "manga")
-          .map((x: MangaDex.Relationship) => x.id),
+          .filter((x: Relationship) => x.type.valueOf() === "manga")
+          .map((x: Relationship) => x.id),
       )
       .toString();
   }
@@ -233,7 +241,7 @@ export class DiscoverProvider {
       url: await this.getCustomListRequestURL(SEASONAL_LIST, ratings),
       method: "GET",
     };
-    const json = await fetchJSON<MangaDex.SearchResponse>(request);
+    const json = await fetchJSON<SearchResponse>(request);
     if (json.data === undefined) {
       throw new Error(`Failed to create results for ${section.title}, check MangaDex status`);
     }
@@ -259,7 +267,7 @@ export class DiscoverProvider {
    */
   async getPopularDiscoverSectionItems(
     section: DiscoverSection,
-    metadata: MangaDex.Metadata | undefined,
+    metadata: Metadata | undefined,
   ): Promise<PagedResults<DiscoverSectionItem>> {
     const offset: number = metadata?.offset ?? 0;
     const collectedIds: string[] = metadata?.collectedIds ?? [];
@@ -280,13 +288,13 @@ export class DiscoverProvider {
         .toString(),
       method: "GET",
     };
-    const json = await fetchJSON<MangaDex.SearchResponse>(request);
+    const json = await fetchJSON<SearchResponse>(request);
     if (json.data === undefined) {
       throw new Error(`Failed to create results for ${section.title}, check MangaDex status`);
     }
 
     const items = await parseMangaList(json.data, getDiscoverThumbnail);
-    const nextMetadata: MangaDex.Metadata | undefined =
+    const nextMetadata: Metadata | undefined =
       items.length < 100 ? undefined : { offset: offset + 100, collectedIds };
     return {
       items: items.map((x) => ({ ...x, type: "prominentCarouselItem" })),
@@ -299,7 +307,7 @@ export class DiscoverProvider {
    */
   async getLatestUpdatesDiscoverSectionItems(
     section: DiscoverSection,
-    metadata: MangaDex.Metadata | undefined,
+    metadata: Metadata | undefined,
   ): Promise<PagedResults<DiscoverSectionItem>> {
     const offset: number = metadata?.offset ?? 0;
     const collectedIds: string[] = metadata?.collectedIds ?? [];
@@ -319,7 +327,7 @@ export class DiscoverProvider {
       method: "GET",
     };
 
-    const chapters = await fetchJSON<MangaDex.ChapterResponse>(chapterRequest);
+    const chapters = await fetchJSON<ChapterResponse>(chapterRequest);
 
     const request = {
       url: new URL(MANGADEX_API)
@@ -334,19 +342,19 @@ export class DiscoverProvider {
       method: "GET",
     };
 
-    const json = await fetchJSON<MangaDex.SearchResponse>(request);
+    const json = await fetchJSON<SearchResponse>(request);
     if (json.data === undefined) {
       throw new Error(`Failed to create results for ${section.title}, check MangaDex status`);
     }
 
     const items = await parseMangaList(json.data, getDiscoverThumbnail);
 
-    const chapterIdToChapter: Record<string, MangaDex.ChapterData> = {};
+    const chapterIdToChapter: Record<string, ChapterData> = {};
     for (const chapter of chapters.data) {
       chapterIdToChapter[chapter.id] = chapter;
     }
 
-    const nextMetadata: MangaDex.Metadata | undefined =
+    const nextMetadata: Metadata | undefined =
       chapters.data.length < 100 ? undefined : { offset: offset + 100, collectedIds };
     return {
       items: items
@@ -374,7 +382,7 @@ export class DiscoverProvider {
    */
   async getRecentlyAddedDiscoverSectionItems(
     section: DiscoverSection,
-    metadata: MangaDex.Metadata | undefined,
+    metadata: Metadata | undefined,
   ): Promise<PagedResults<DiscoverSectionItem>> {
     const offset: number = metadata?.offset ?? 0;
     const collectedIds: string[] = metadata?.collectedIds ?? [];
@@ -395,13 +403,13 @@ export class DiscoverProvider {
         .toString(),
       method: "GET",
     };
-    const json = await fetchJSON<MangaDex.SearchResponse>(request);
+    const json = await fetchJSON<SearchResponse>(request);
     if (json.data === undefined) {
       throw new Error(`Failed to create results for ${section.title}, check MangaDex status`);
     }
 
     const items = await parseMangaList(json.data, getDiscoverThumbnail);
-    const nextMetadata: MangaDex.Metadata | undefined =
+    const nextMetadata: Metadata | undefined =
       items.length < 100 ? undefined : { offset: offset + 100, collectedIds };
     return {
       items: items.map((x) => ({ ...x, type: "simpleCarouselItem" })),

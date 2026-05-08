@@ -16,6 +16,13 @@ import {
 } from "@paperback/types";
 
 import { getSelectedCover, removeSelectedCover, setSelectedCover } from "../MangaDexSettings";
+import type {
+  CoverArtItem,
+  CoverArtResponse,
+  MangaRatingUpdateResponse,
+  MangaReadResponse,
+  MangaStatusUpdateResponse,
+} from "../models";
 import { ChapterProvider } from "../providers/ChapterProvider";
 import { MangaProvider } from "../providers/MangaProvider";
 import { COVER_BASE_URL, fetchJSON, MANGADEX_API } from "../utils/CommonUtil";
@@ -31,7 +38,7 @@ export class MangaProgressForm extends Form {
   private isCoversLoaded: boolean = false;
   private isCoversLoading: boolean = false;
   private coversLoadError: string | null = null;
-  private covers: MangaDex.CoverArtItem[] | null = null;
+  private covers: CoverArtItem[] | null = null;
   private selectedCoverId: string | undefined;
 
   constructor(
@@ -54,9 +61,7 @@ export class MangaProgressForm extends Form {
     this.selectedCoverId = selectedCover?.id;
   }
 
-  override get requiresExplicitSubmission(): boolean {
-    return true;
-  }
+  override requiresExplicitSubmission = true;
 
   /**
    * Helper to determine if text will be too long for UI layout
@@ -505,7 +510,7 @@ export class MangaProgressForm extends Form {
         .toString();
 
       this.readChapterIds = new Set<string>();
-      const readResponse = await fetchJSON<MangaDex.MangaReadResponse>({
+      const readResponse = await fetchJSON<MangaReadResponse>({
         url: readUrl,
         method: "GET",
       });
@@ -548,7 +553,7 @@ export class MangaProgressForm extends Form {
         .setQueryItem("order[createdAt]", "desc")
         .toString();
 
-      const coversResponse = await fetchJSON<MangaDex.CoverArtResponse>({
+      const coversResponse = await fetchJSON<CoverArtResponse>({
         url: coversUrl,
         method: "GET",
       });
@@ -654,7 +659,7 @@ export class MangaProgressForm extends Form {
         };
 
         try {
-          const statusResponse = await fetchJSON<MangaDex.MangaStatusUpdateResponse>(statusRequest);
+          const statusResponse = await fetchJSON<MangaStatusUpdateResponse>(statusRequest);
           if (statusResponse.result !== "ok") {
             throw new Error(
               `Failed to update reading status: ${JSON.stringify(statusResponse.errors)}`,
@@ -673,7 +678,7 @@ export class MangaProgressForm extends Form {
 
         if (this.currentRating > 0) {
           try {
-            const ratingResponse = await fetchJSON<MangaDex.MangaRatingUpdateResponse>({
+            const ratingResponse = await fetchJSON<MangaRatingUpdateResponse>({
               url: ratingUrl,
               method: "POST",
               headers: {
@@ -694,7 +699,7 @@ export class MangaProgressForm extends Form {
           }
         } else if (this.currentRating === 0) {
           try {
-            const ratingResponse = await fetchJSON<MangaDex.MangaRatingUpdateResponse>({
+            const ratingResponse = await fetchJSON<MangaRatingUpdateResponse>({
               url: ratingUrl,
               method: "DELETE",
             });

@@ -29,6 +29,13 @@ import {
   getSkipUnreadChapters,
   getUpdateBatchSize,
 } from "../MangaDexSettings";
+import type {
+  ChapterDetailsResponse,
+  ChapterRelationship,
+  ChapterResponse,
+  MangaItem,
+  SearchResponse,
+} from "../models";
 import { checkId, fetchJSON, MANGADEX_API } from "../utils/CommonUtil";
 import { relevanceScore } from "../utils/titleRelevanceScore";
 import { MangaProvider } from "./MangaProvider";
@@ -129,7 +136,7 @@ export class ChapterProvider {
             .toString(),
           method: "GET",
         };
-        const unfilteredJson = await fetchJSON<MangaDex.ChapterResponse>(unfilteredRequest);
+        const unfilteredJson = await fetchJSON<ChapterResponse>(unfilteredRequest);
 
         if (unfilteredJson.data && unfilteredJson.data.length > 0) {
           for (const chapterData of unfilteredJson.data) {
@@ -152,8 +159,8 @@ export class ChapterProvider {
           if (unfilteredJson.data && unfilteredJson.data.length > 0) {
             const chapterData = unfilteredJson.data[0];
             const mangaItem = chapterData.relationships?.find(
-              (rel: MangaDex.ChapterRelationship) => rel.type === "manga",
-            ) as MangaDex.MangaItem | undefined;
+              (rel: ChapterRelationship) => rel.type === "manga",
+            ) as MangaItem | undefined;
 
             if (mangaItem?.attributes && mangaItem.id) {
               const mangaDetails = mangaItem.attributes;
@@ -195,7 +202,7 @@ export class ChapterProvider {
         method: "GET",
       };
 
-      const json = await fetchJSON<MangaDex.ChapterResponse>(request);
+      const json = await fetchJSON<ChapterResponse>(request);
 
       offset += 500;
 
@@ -246,8 +253,8 @@ export class ChapterProvider {
         const volume = Number(chapterDetails.volume);
         const langCode = MDLanguages.getFlagCode(chapterDetails.translatedLanguage);
         const group = chapter.relationships
-          .filter((x: MangaDex.ChapterRelationship) => x.type.valueOf() === "scanlation_group")
-          .map((x: MangaDex.ChapterRelationship) => x.attributes?.name)
+          .filter((x: ChapterRelationship) => x.type.valueOf() === "scanlation_group")
+          .map((x: ChapterRelationship) => x.attributes?.name)
           .join(", ");
         const pages = Number(chapterDetails.pages);
         const identifier = `${volume}-${chapNum}-${chapterDetails.translatedLanguage}`;
@@ -323,7 +330,7 @@ export class ChapterProvider {
       method: "GET",
     };
 
-    const json = await fetchJSON<MangaDex.ChapterDetailsResponse>(request);
+    const json = await fetchJSON<ChapterDetailsResponse>(request);
     const serverUrl = json.baseUrl;
     const chapterDetails = json.chapter;
 
@@ -386,7 +393,7 @@ export class ChapterProvider {
           method: "GET",
         };
 
-        const json = await fetchJSON<MangaDex.SearchResponse>(request);
+        const json = await fetchJSON<SearchResponse>(request);
 
         if (json.data) {
           for (const mangaData of json.data) {

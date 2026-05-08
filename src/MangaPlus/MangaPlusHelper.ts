@@ -1,14 +1,19 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 /* Copyright © 2026 Inkdex */
 
-import { ContentRating, type Chapter as SourceChapter, type SourceManga } from "@paperback/types";
+import {
+  ContentRating,
+  type JSONObject,
+  type Chapter as SourceChapter,
+  type SourceManga,
+} from "@paperback/types";
 
 export interface MangaPlusResponse {
   success?: SuccessResult;
   error?: ErrorResult;
 }
 
-export interface MangaPlusMetadata {
+export interface MangaPlusMetadata extends JSONObject {
   page?: number;
 }
 

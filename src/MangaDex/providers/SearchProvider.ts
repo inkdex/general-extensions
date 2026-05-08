@@ -4,12 +4,12 @@
 import {
   URL,
   type PagedResults,
-  type SearchFilter,
   type SearchQuery,
   type SearchResultItem,
   type SortingOption,
   type TagSection,
 } from "@paperback/types";
+import type { SearchFilter, SearchFilterValue } from "@paperback/types/lib/compat/0.8";
 
 import tagJSON from "../external/tag.json";
 import { parseMangaList } from "../MangaDexParser";
@@ -21,6 +21,13 @@ import {
   getShowSearchRatingInSubtitle,
   getShowVolume,
 } from "../MangaDexSettings";
+import type {
+  ChapterAttributes,
+  ChapterResponse,
+  Metadata,
+  SearchResponse,
+  StatisticsResponse,
+} from "../models";
 import { fetchJSON, MANGADEX_API } from "../utils/CommonUtil";
 
 /**
@@ -107,8 +114,8 @@ export class SearchProvider {
    * Executes manga search with filters and returns results
    */
   async getSearchResults(
-    query: SearchQuery,
-    metadata: MangaDex.Metadata,
+    query: SearchQuery<SearchFilterValue[]>,
+    metadata: Metadata,
     sortingOption: SortingOption | undefined,
   ): Promise<PagedResults<SearchResultItem>> {
     const ratings: string[] = getRatings();
@@ -144,7 +151,7 @@ export class SearchProvider {
 
     const includedTags = [];
     const excludedTags = [];
-    for (const filter of query.filters) {
+    for (const filter of query.metadata ?? []) {
       if (filter.id.startsWith("tags")) {
         if (filter.id.includes("rating")) {
           const tags = (filter.value ?? {}) as Record<string, "included" | "excluded">;
@@ -195,9 +202,9 @@ export class SearchProvider {
         .toString(),
       method: "GET",
     };
-    const json = await fetchJSON<MangaDex.SearchResponse>(request);
+    const json = await fetchJSON<SearchResponse>(request);
 
-    let ratingJson: MangaDex.StatisticsResponse | undefined = undefined;
+    let ratingJson: StatisticsResponse | undefined = undefined;
     if (getShowSearchRatingInSubtitle() && json.data && json.data.length > 0) {
       const mangaIds = json.data.map((manga) => manga.id);
       const ratingRequest = {
@@ -208,10 +215,10 @@ export class SearchProvider {
           .toString(),
         method: "GET",
       };
-      ratingJson = await fetchJSON<MangaDex.StatisticsResponse>(ratingRequest);
+      ratingJson = await fetchJSON<StatisticsResponse>(ratingRequest);
     }
 
-    const chapterDetailsMap: Record<string, MangaDex.ChapterAttributes> = {};
+    const chapterDetailsMap: Record<string, ChapterAttributes> = {};
     const chapterIds = json.data
       .map((manga) => manga.attributes.latestUploadedChapter)
       .filter((id): id is string => !!id);
@@ -225,7 +232,7 @@ export class SearchProvider {
           .toString(),
         method: "GET",
       };
-      const chaptersResponse = await fetchJSON<MangaDex.ChapterResponse>(chapterDetailsRequest);
+      const chaptersResponse = await fetchJSON<ChapterResponse>(chapterDetailsRequest);
       if (chaptersResponse.data) {
         for (const chapter of chaptersResponse.data) {
           chapterDetailsMap[chapter.id] = chapter.attributes;
@@ -240,13 +247,13 @@ export class SearchProvider {
       ratingJson,
       chapterDetailsMap,
     );
-    const nextMetadata: MangaDex.Metadata | undefined =
+    const nextMetadata: Metadata | undefined =
       results.length < 100 ? undefined : { offset: offset + 100 };
 
     return { items: results, metadata: nextMetadata };
   }
 
-  async getSortingOptions(_query: SearchQuery): Promise<SortingOption[]> {
+  async getSortingOptions(_query: SearchQuery<SearchFilterValue[]>): Promise<SortingOption[]> {
     return [
       { id: "", label: "Latest Upload" },
       { id: "order[relevance]-desc", label: "Best Match" },

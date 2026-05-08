@@ -13,10 +13,10 @@ import {
   type DiscoverSectionItem,
   type DiscoverSectionProviding,
   type Extension,
+  type Metadata,
   type PagedResults,
   type Request,
   type Response,
-  type SearchFilter,
   type SearchQuery,
   type SearchResultItem,
   type SearchResultsProviding,
@@ -257,24 +257,8 @@ export class MangaPlusExtension
     return { items: titles };
   }
 
-  async getSearchFilters(): Promise<SearchFilter[]> {
-    // TODO: Implement search filters
-    // const genres = await this.getSearchTags();
-    // const filters: SearchFilter[] = [];
-
-    // filters.push({
-    //   id: "0",
-    //   title: "Genres",
-    //   type: "dropdown",
-    //   options: genres.map((genre) => ({ id: genre.id, value: genre.title })),
-    //   value: "ALL",
-    // });
-
-    return Promise.resolve([]);
-  }
-
   async getSearchResults(
-    query: SearchQuery,
+    query: SearchQuery<Metadata>,
     metadata: MangaPlusMetadata,
   ): Promise<PagedResults<SearchResultItem>> {
     const title = query.title ?? "";
@@ -321,7 +305,7 @@ export class MangaPlusExtension
       });
     }
 
-    return { items: titles, metadata: metadata };
+    return { items: titles, metadata };
   }
 
   // Utility
@@ -415,10 +399,13 @@ export class MangaPlusExtension
     }
 
     return {
-      items: result.items.map((item) => ({
-        type: "simpleCarouselItem",
-        ...item,
-      })),
+      items: result.items.map(
+        (item) =>
+          ({
+            type: "simpleCarouselItem",
+            ...item,
+          }) as DiscoverSectionItem,
+      ),
       metadata: metadata,
     };
   }
