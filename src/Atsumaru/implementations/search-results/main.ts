@@ -4,12 +4,16 @@
 import type {
   PagedResults,
   Request,
-  SearchFilter,
   SearchQuery,
   SearchResultItem,
   SortingOption,
 } from "@paperback/types";
 import { URL } from "@paperback/types";
+import {
+  SearchFilterForm,
+  type SearchFilter,
+  type SearchFilterValue,
+} from "@paperback/types/lib/compat/0.8";
 
 import { DOMAIN } from "../../main";
 import { fetchJSON } from "../../services/network";
@@ -98,8 +102,13 @@ export class SearchProvider {
     ];
   }
 
+  async getAdvancedSearchForm(query: SearchQuery<SearchFilterValue[]>) {
+    // TODO: Replace compat wrapper with proper search form implementation
+    return new SearchFilterForm(query.metadata, this.getSearchFilters());
+  }
+
   async getSearchResults(
-    query: SearchQuery,
+    query: SearchQuery<SearchFilterValue[]>,
     metadata?: { page?: number },
     sortingOption?: SortingOption,
   ): Promise<PagedResults<SearchResultItem>> {
@@ -108,7 +117,7 @@ export class SearchProvider {
   }
 
   private async getFilteredResults(
-    query: SearchQuery,
+    query: SearchQuery<SearchFilterValue[]>,
     page: number,
     sortingOption?: SortingOption,
   ): Promise<PagedResults<SearchResultItem>> {
