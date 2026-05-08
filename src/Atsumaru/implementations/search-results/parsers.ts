@@ -2,17 +2,18 @@
 /* Copyright © 2026 Inkdex */
 
 import type { SearchQuery } from "@paperback/types";
+import type { SearchFilterValue } from "@paperback/types/lib/compat/0.8";
 
 import type { ExtractedFilters } from "../shared/models";
 
-export function extractSearchFilters(query: SearchQuery): ExtractedFilters {
+export function extractSearchFilters(query: SearchQuery<SearchFilterValue[]>): ExtractedFilters {
   const includedTags: string[] = [];
   const excludedTags: string[] = [];
   const selectedTypes: string[] = [];
   const selectedStatuses: string[] = [];
 
   // extract tags
-  const tagsFilter = query.filters?.find((f) => f.id === "tags");
+  const tagsFilter = query.metadata?.find((f) => f.id === "tags");
   if (tagsFilter?.value && typeof tagsFilter.value === "object") {
     const tagValue = tagsFilter.value as Record<string, string>;
     Object.entries(tagValue).forEach(([id, status]) => {
@@ -22,7 +23,7 @@ export function extractSearchFilters(query: SearchQuery): ExtractedFilters {
   }
 
   // extract types
-  const typesFilter = query.filters?.find((f) => f.id === "types");
+  const typesFilter = query.metadata?.find((f) => f.id === "types");
   if (typesFilter?.value && typeof typesFilter.value === "object") {
     const typeValue = typesFilter.value as Record<string, string>;
     Object.keys(typeValue).forEach((id) => {
@@ -31,7 +32,7 @@ export function extractSearchFilters(query: SearchQuery): ExtractedFilters {
   }
 
   // extract statuses
-  const statusesFilter = query.filters?.find((f) => f.id === "statuses");
+  const statusesFilter = query.metadata?.find((f) => f.id === "statuses");
   if (statusesFilter?.value && typeof statusesFilter.value === "object") {
     const statusValue = statusesFilter.value as Record<string, string>;
     Object.keys(statusValue).forEach((id) => {
