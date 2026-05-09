@@ -1,49 +1,44 @@
 import {
+  type AdvancedSearchForm,
   BasicRateLimiter,
   CloudflareError,
   ContentRating,
   CookieStorageInterceptor,
   DiscoverSectionType,
   Form,
+  URL,
   type Chapter,
   type ChapterDetails,
-  type ChapterProviding,
-  type CloudflareBypassRequestProviding,
   type Cookie,
   type DiscoverSection,
   type DiscoverSectionItem,
-  type DiscoverSectionProviding,
-  type Extension,
-  type MangaProviding,
+  type ExtensionImpl,
   type PagedResults,
   type Request,
-  type SearchFilter,
   type SearchQuery,
   type SearchResultItem,
-  type SearchResultsProviding,
-  type SettingsFormProviding,
   type SortingOption,
   type SourceManga,
   type TagSection,
 } from "@paperback/types";
 import * as cheerio from "cheerio";
-import { URLBuilder } from "../utils/url-builder/base";
-import { getLanguages, MangaFireSettingsForm } from "./forms";
+
+import { getLanguages, MangaFireAdvancedSearchForm, MangaFireSettingsForm } from "./forms";
 import { FireInterceptor } from "./interceptors";
-import { Genres, type ImageData, type Metadata, type PageResponse, type Result } from "./models";
+import {
+  Genres,
+  type ImageData,
+  type PageMetadata,
+  type PageResponse,
+  type Result,
+  type SearchMetadata,
+} from "./models";
+import type MangaFireConfig from "./pbconfig";
 import genVrf from "./utils/genVrf";
 
 const baseUrl = "https://mangafire.to";
 
-type MangaFireImplementation = Extension &
-  SearchResultsProviding &
-  MangaProviding &
-  ChapterProviding &
-  SettingsFormProviding &
-  DiscoverSectionProviding &
-  CloudflareBypassRequestProviding;
-
-export class MangaFireExtension implements MangaFireImplementation {
+export class MangaFireExtension implements ExtensionImpl<typeof MangaFireConfig> {
   requestManager = new FireInterceptor("main");
   cookieStorageInterceptor = new CookieStorageInterceptor({
     storage: "stateManager",
@@ -100,7 +95,7 @@ export class MangaFireExtension implements MangaFireImplementation {
 
   async getDiscoverSectionItems(
     section: DiscoverSection,
-    metadata: Metadata | undefined,
+    metadata: PageMetadata | undefined,
   ): Promise<PagedResults<DiscoverSectionItem>> {
     switch (section.id) {
       case "popular_section":
@@ -230,100 +225,11 @@ export class MangaFireExtension implements MangaFireImplementation {
     }
   }
 
-  async getSearchFilters(): Promise<SearchFilter[]> {
-    const filters: SearchFilter[] = [];
-    const searchDetails = await this.getSearchDetails();
-    filters.push({
-      id: "type",
-      type: "dropdown",
-      options: [
-        { id: "all", value: "All" },
-        ...(searchDetails?.types?.map((t) => ({
-          id: t.id,
-          value: t.label,
-        })) || []),
-      ],
-      value: "all",
-      title: "Type Filter",
-    });
-
-    filters.push({
-      id: "genres",
-      type: "multiselect",
-      options:
-        searchDetails?.genres?.map((g) => ({
-          id: g.id,
-          value: g.label,
-        })) || [],
-      allowExclusion: true,
-      value: {},
-      title: "Genre Filter",
-      allowEmptySelection: false,
-      maximum: undefined,
-    });
-
-    filters.push({
-      id: "status",
-      type: "dropdown",
-      options: [
-        { id: "all", value: "All" },
-        ...(searchDetails?.status?.map((s) => ({
-          id: s.id,
-          value: s.label,
-        })) || []),
-      ],
-      value: "all",
-      title: "Status Filter",
-    });
-
-    filters.push({
-      id: "language",
-      type: "dropdown",
-      options: [
-        { id: "all", value: "All" },
-        ...(searchDetails?.languages?.map((l) => ({
-          id: l.id,
-          value: l.label,
-        })) || []),
-      ],
-      value: "all",
-      title: "Language Filter",
-    });
-
-    filters.push({
-      id: "year",
-      type: "dropdown",
-      options: [
-        { id: "all", value: "All" },
-        ...(searchDetails?.years?.map((y) => ({
-          id: y.id,
-          value: y.label,
-        })) || []),
-      ],
-      value: "all",
-      title: "Year Filter",
-    });
-
-    filters.push({
-      id: "length",
-      type: "dropdown",
-      options: [
-        { id: "all", value: "All" },
-        ...(searchDetails?.lengths?.map((l) => ({
-          id: l.id,
-          value: l.label,
-        })) || []),
-      ],
-      value: "all",
-      title: "Length Filter",
-    });
-
-    return filters;
+  async getAdvancedSearchForm(query: SearchQuery<SearchMetadata>): Promise<AdvancedSearchForm> {
+    return new MangaFireAdvancedSearchForm(query, await this.getSearchDetails());
   }
 
-  async getSortingOptions(query: SearchQuery): Promise<SortingOption[]> {
-    void query;
-
+  async getSortingOptions(): Promise<SortingOption[]> {
     const searchDetails = await this.getSearchDetails();
     const sortingOptions: SortingOption[] =
       searchDetails?.sorts?.map((sort) => ({
@@ -335,7 +241,7 @@ export class MangaFireExtension implements MangaFireImplementation {
   }
 
   async getSearchResults(
-    query: SearchQuery,
+    query: SearchQuery<SearchMetadata>,
     metadata: { page?: number } | undefined,
     sortingOption?: SortingOption,
   ): Promise<PagedResults<SearchResultItem>> {
@@ -347,57 +253,45 @@ export class MangaFireExtension implements MangaFireImplementation {
     // ALL: https://mangafire.to/filter?keyword=one+peice&sort=recently_updated
     // Exclude: https://mangafire.to/filter?keyword=&genre%5B%5D=-9&sort=recently_updated
     const vrf = await genVrf(query.title);
-    const searchUrl = new URLBuilder(baseUrl)
-      .addPath("filter")
-      .addQuery("keyword", query.title)
-      .addQuery("page", page.toString())
-      .addQuery("genre_mode", "and")
-      .addQuery("vrf", vrf);
+    const searchUrl = new URL(baseUrl)
+      .addPathComponent("filter")
+      .setQueryItem("keyword", query.title)
+      .setQueryItem("page", page.toString())
+      .setQueryItem("genre_mode", "and")
+      .setQueryItem("vrf", vrf);
 
-    const getFilterValue = (id: string) => query.filters.find((filter) => filter.id == id)?.value;
+    const meta = query.metadata ?? {};
+    const { type, genres, status, language, year, length } = meta;
 
-    const type = getFilterValue("type");
-    const genres = getFilterValue("genres") as Record<string, "included" | "excluded"> | undefined;
-    const status = getFilterValue("status");
-    const languages = getFilterValue("language");
-    const year = getFilterValue("year");
-    const length = getFilterValue("length");
-
-    if (type && type != "all") {
-      searchUrl.addQuery("type[]", type);
+    if (type) {
+      searchUrl.setQueryItem("type[]", type);
     }
 
-    let url = searchUrl.build();
+    let url = searchUrl.toString();
 
-    if (genres && typeof genres === "object") {
-      const includedGenres: string[] = [];
-      const excludedGenres: string[] = [];
-
+    if (genres) {
       Object.entries(genres).forEach(([id, value]) => {
         if (value === "included") {
-          includedGenres.push(id);
           url += `&genre[]=${id}`;
         } else if (value === "excluded") {
-          const excludedId = `-${id}`;
-          excludedGenres.push(excludedId);
-          url += `&genre[]=${excludedId}`;
+          url += `&genre[]=-${id}`;
         }
       });
     }
 
-    if (status && status !== "all" && typeof status === "string") {
+    if (status) {
       url += `&status[]=${status}`;
     }
 
-    if (languages && languages !== "all" && typeof languages === "string") {
-      url += `&language[]=${languages}`;
+    if (language) {
+      url += `&language[]=${language}`;
     }
 
-    if (year && year !== "all" && typeof year === "string") {
+    if (year) {
       url += `&year[]=${year}`;
     }
 
-    if (length && length !== "all" && typeof length === "string") {
+    if (length) {
       url += `&length[]=${length}`;
     }
 
@@ -449,7 +343,7 @@ export class MangaFireExtension implements MangaFireImplementation {
 
   async getMangaDetails(mangaId: string): Promise<SourceManga> {
     const request = {
-      url: new URLBuilder(baseUrl).addPath("manga").addPath(mangaId).build(),
+      url: new URL(baseUrl).addPathComponent("manga").addPathComponent(mangaId).toString(),
       method: "GET",
     };
 
@@ -551,14 +445,14 @@ export class MangaFireExtension implements MangaFireImplementation {
       const vrf = await genVrf(`${mangaId}@chapter@${language}`);
 
       const readRequest: Request = {
-        url: new URLBuilder(baseUrl)
-          .addPath("ajax")
-          .addPath("read")
-          .addPath(mangaId)
-          .addPath("chapter")
-          .addPath(language)
-          .addQuery("vrf", vrf)
-          .build(),
+        url: new URL(baseUrl)
+          .addPathComponent("ajax")
+          .addPathComponent("read")
+          .addPathComponent(mangaId)
+          .addPathComponent("chapter")
+          .addPathComponent(language)
+          .setQueryItem("vrf", vrf)
+          .toString(),
         method: "GET",
       };
 
@@ -586,13 +480,13 @@ export class MangaFireExtension implements MangaFireImplementation {
         });
 
         const mangaRequest: Request = {
-          url: new URLBuilder(baseUrl)
-            .addPath("ajax")
-            .addPath("manga")
-            .addPath(mangaId)
-            .addPath("chapter")
-            .addPath(language)
-            .build(),
+          url: new URL(baseUrl)
+            .addPathComponent("ajax")
+            .addPathComponent("manga")
+            .addPathComponent(mangaId)
+            .addPathComponent("chapter")
+            .addPathComponent(language)
+            .toString(),
           method: "GET",
         };
 
@@ -643,13 +537,13 @@ export class MangaFireExtension implements MangaFireImplementation {
     try {
       const vrf = await genVrf(`chapter@${chapter.chapterId}`);
 
-      const url = new URLBuilder(baseUrl)
-        .addPath("ajax")
-        .addPath("read")
-        .addPath("chapter")
-        .addPath(chapter.chapterId)
-        .addQuery("vrf", vrf)
-        .build();
+      const url = new URL(baseUrl)
+        .addPathComponent("ajax")
+        .addPathComponent("read")
+        .addPathComponent("chapter")
+        .addPathComponent(chapter.chapterId)
+        .setQueryItem("vrf", vrf)
+        .toString();
 
       const request: Request = { url, method: "GET" };
 
@@ -681,13 +575,13 @@ export class MangaFireExtension implements MangaFireImplementation {
 
     // Example: https://mangafire.to/filter?keyword=&language[]=en&sort=recently_updated&page=1
     const request = {
-      url: new URLBuilder(baseUrl)
-        .addPath("filter")
-        .addQuery("keyword", "")
-        .addQuery("language[]", "en")
-        .addQuery("sort", "recently_updated")
-        .addQuery("page", page.toString())
-        .build(),
+      url: new URL(baseUrl)
+        .addPathComponent("filter")
+        .setQueryItem("keyword", "")
+        .setQueryItem("language[]", "en")
+        .setQueryItem("sort", "recently_updated")
+        .setQueryItem("page", page.toString())
+        .toString(),
       method: "GET",
     };
 
@@ -736,13 +630,13 @@ export class MangaFireExtension implements MangaFireImplementation {
     const collectedIds = metadata?.collectedIds ?? [];
 
     const request = {
-      url: new URLBuilder(baseUrl)
-        .addPath("filter")
-        .addQuery("keyword", "")
-        .addQuery("language[]", "en")
-        .addQuery("sort", "most_viewed")
-        .addQuery("page", page.toString())
-        .build(),
+      url: new URL(baseUrl)
+        .addPathComponent("filter")
+        .setQueryItem("keyword", "")
+        .setQueryItem("language[]", "en")
+        .setQueryItem("sort", "most_viewed")
+        .setQueryItem("page", page.toString())
+        .toString(),
       method: "GET",
     };
 
@@ -796,7 +690,7 @@ export class MangaFireExtension implements MangaFireImplementation {
     const collectedIds = metadata?.collectedIds ?? [];
 
     const request = {
-      url: new URLBuilder(baseUrl).addPath("added").build(),
+      url: new URL(baseUrl).addPathComponent("added").toString(),
       method: "GET",
     };
 
@@ -850,12 +744,7 @@ export class MangaFireExtension implements MangaFireImplementation {
         type: "genresCarouselItem",
         searchQuery: {
           title: "",
-          filters: [
-            {
-              id: type.id,
-              value: type.label,
-            },
-          ],
+          metadata: { type: type.id } satisfies SearchMetadata,
         },
         name: type.label,
       })),
@@ -868,12 +757,9 @@ export class MangaFireExtension implements MangaFireImplementation {
         type: "genresCarouselItem",
         searchQuery: {
           title: "",
-          filters: [
-            {
-              id: item.type,
-              value: item.type === "genres" ? { [item.id]: "included" } : item.id,
-            },
-          ],
+          metadata: (item.type === "genres"
+            ? { genres: { [item.id]: "included" } }
+            : { type: item.id }) satisfies SearchMetadata,
         },
         name: item.name,
       })),
@@ -889,12 +775,7 @@ export class MangaFireExtension implements MangaFireImplementation {
         type: "genresCarouselItem",
         searchQuery: {
           title: "",
-          filters: [
-            {
-              id: lang.id,
-              value: lang.label,
-            },
-          ],
+          metadata: { language: lang.id } satisfies SearchMetadata,
         },
         name: `${getLanguageFlag(lang.id)} ${lang.label}`,
       })),
