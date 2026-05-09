@@ -1,7 +1,8 @@
-export interface Metadata {
+export type PageMetadata = {
   offset?: number;
   collectedIds?: string[];
-}
+};
+
 export interface Result {
   status: number;
   result: { html: string; title_format: string };
@@ -22,6 +23,27 @@ export interface SearchFilter {
   id: string;
   value: string;
 }
+
+export type SearchOption = { id: string; label: string };
+
+export type SearchDetails = {
+  types: SearchOption[];
+  genres: SearchOption[];
+  status: SearchOption[];
+  languages: SearchOption[];
+  years: SearchOption[];
+  lengths: SearchOption[];
+  sorts: SearchOption[];
+};
+
+export type SearchMetadata = {
+  genres?: { [id: string]: "included" | "excluded" };
+  type?: string;
+  status?: string;
+  language?: string;
+  year?: string;
+  length?: string;
+};
 
 // Represents each image entry in the "images" array
 // Each entry is an array where:
