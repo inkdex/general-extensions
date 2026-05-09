@@ -3,6 +3,7 @@
 
 import {
   AdvancedSearchForm,
+  ButtonRow,
   Form,
   Section,
   SelectRow,
@@ -11,7 +12,15 @@ import {
   type Tag,
 } from "@paperback/types";
 
-import type { SearchDetails, SearchMetadata } from "./models";
+import {
+  SEARCH_DETAILS_CACHE_KEY,
+  VRF_CHAPTER_CACHE_KEY,
+  VRF_SEARCH_CACHE_KEY,
+  type SearchDetails,
+  type SearchMetadata,
+  type SearchOption,
+} from "./models";
+import { cacheClear } from "./utils/cache";
 import { MFLanguages } from "./utils/language";
 
 export function getLanguages(): string[] {
@@ -41,7 +50,7 @@ export class MangaFireAdvancedSearchForm extends AdvancedSearchForm {
   constructor(searchQuery: SearchQuery<SearchMetadata>, searchDetails: SearchDetails | undefined) {
     super();
 
-    const toTags = (options: { id: string; label: string }[] | undefined): Tag[] =>
+    const toTags = (options: SearchOption[] | undefined): Tag[] =>
       (options ?? []).map((option) => ({ id: option.id, title: option.label }));
 
     this.genreOptions = toTags(searchDetails?.genres);
@@ -225,6 +234,31 @@ export class MangaFireSettingsForm extends Form {
           }),
         ],
       ),
+      Section(
+        {
+          id: "cache",
+          footer: "Clear cached data if search filters appear stale or the source returns errors.",
+        },
+        [
+          ButtonRow("clearSearchFilterCache", {
+            title: "Clear Search Filter Cache",
+            onSelect: Application.Selector(this as MangaFireSettingsForm, "clearSearchFilterCache"),
+          }),
+          ButtonRow("clearVrfCache", {
+            title: "Clear VRF Cache",
+            onSelect: Application.Selector(this as MangaFireSettingsForm, "clearVrfCache"),
+          }),
+        ],
+      ),
     ];
+  }
+
+  async clearSearchFilterCache(): Promise<void> {
+    cacheClear(SEARCH_DETAILS_CACHE_KEY);
+  }
+
+  async clearVrfCache(): Promise<void> {
+    cacheClear(VRF_CHAPTER_CACHE_KEY);
+    cacheClear(VRF_SEARCH_CACHE_KEY);
   }
 }

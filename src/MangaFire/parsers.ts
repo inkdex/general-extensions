@@ -12,17 +12,17 @@ import {
 } from "@paperback/types";
 import { type CheerioAPI } from "cheerio";
 
-import { DOMAIN, type PageResponse, type SearchDetails } from "./models";
+import { DOMAIN, type PageResponse, type SearchDetails, type SearchOption } from "./models";
 import { MFLanguages } from "./utils/language";
 
 export const parseSearchDetails = ($: CheerioAPI): SearchDetails => {
-  const types: { id: string; label: string }[] = [];
-  const genres: { id: string; label: string }[] = [];
-  const status: { id: string; label: string }[] = [];
-  const languages: { id: string; label: string }[] = [];
-  const years: { id: string; label: string }[] = [];
-  const lengths: { id: string; label: string }[] = [];
-  const sorts: { id: string; label: string }[] = [];
+  const types: SearchOption[] = [];
+  const genres: SearchOption[] = [];
+  const status: SearchOption[] = [];
+  const languages: SearchOption[] = [];
+  const years: SearchOption[] = [];
+  const lengths: SearchOption[] = [];
+  const sorts: SearchOption[] = [];
 
   $(".dropdown:has(button .value[data-placeholder='Type']) .dropdown-menu.noclose.c1 li").each(
     (_, element) => {

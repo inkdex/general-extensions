@@ -4,56 +4,8 @@
 import { type CookieStorageInterceptor } from "@paperback/types";
 import * as cheerio from "cheerio";
 
-import { DOMAIN } from "../models";
-
-const SEARCH_CACHE_KEY = "mangafire_search_vrf_cache";
-const CHAPTER_CACHE_KEY = "mangafire_chapter_vrf_cache";
-const CACHE_MAX_ENTRIES = 20;
-const CACHE_TTL_MS = 5 * 60 * 1000;
-
-interface CacheEntry {
-  value: string;
-  expiresAt: number;
-}
-
-type Cache = Record<string, CacheEntry>;
-
-function readCache(stateKey: string): Cache {
-  return (Application.getState(stateKey) as Cache | undefined) ?? {};
-}
-
-function cacheGet(stateKey: string, key: string): string | undefined {
-  const cache = readCache(stateKey);
-  const entry = cache[key];
-  if (!entry) return undefined;
-  if (entry.expiresAt < Date.now()) {
-    delete cache[key];
-    Application.setState(cache, stateKey);
-    return undefined;
-  }
-  return entry.value;
-}
-
-function cacheSet(stateKey: string, key: string, value: string): void {
-  const cache = readCache(stateKey);
-  const now = Date.now();
-
-  for (const k of Object.keys(cache)) {
-    if (cache[k].expiresAt < now) delete cache[k];
-  }
-
-  cache[key] = { value, expiresAt: now + CACHE_TTL_MS };
-
-  const keys = Object.keys(cache);
-  if (keys.length > CACHE_MAX_ENTRIES) {
-    keys.sort((a, b) => cache[a].expiresAt - cache[b].expiresAt);
-    for (let i = 0; i < keys.length - CACHE_MAX_ENTRIES; i++) {
-      delete cache[keys[i]];
-    }
-  }
-
-  Application.setState(cache, stateKey);
-}
+import { DOMAIN, VRF_CHAPTER_CACHE_KEY, VRF_SEARCH_CACHE_KEY } from "../models";
+import { cacheGet, cacheSet } from "./cache";
 
 interface CaptureOptions {
   triggerUrl: string;
@@ -147,7 +99,7 @@ export async function getSearchVrfUrl(
   query: string,
   cookieInterceptor: CookieStorageInterceptor,
 ): Promise<string> {
-  const cached = cacheGet(SEARCH_CACHE_KEY, query);
+  const cached = cacheGet(VRF_SEARCH_CACHE_KEY, query);
   if (cached) return cached;
 
   const trigger = `
@@ -165,7 +117,7 @@ export async function getSearchVrfUrl(
     cookieInterceptor,
   });
 
-  cacheSet(SEARCH_CACHE_KEY, query, captured);
+  cacheSet(VRF_SEARCH_CACHE_KEY, query, captured);
   return captured;
 }
 
@@ -173,7 +125,7 @@ export async function getChapterPagesVrfUrl(
   chapterUrlPath: string,
   cookieInterceptor: CookieStorageInterceptor,
 ): Promise<string> {
-  const cached = cacheGet(CHAPTER_CACHE_KEY, chapterUrlPath);
+  const cached = cacheGet(VRF_CHAPTER_CACHE_KEY, chapterUrlPath);
   if (cached) return cached;
 
   const triggerUrl = chapterUrlPath.startsWith("http")
@@ -186,7 +138,7 @@ export async function getChapterPagesVrfUrl(
     cookieInterceptor,
   });
 
-  cacheSet(CHAPTER_CACHE_KEY, chapterUrlPath, captured);
+  cacheSet(VRF_CHAPTER_CACHE_KEY, chapterUrlPath, captured);
   return captured;
 }
 
