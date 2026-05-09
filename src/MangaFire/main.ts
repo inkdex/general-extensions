@@ -34,7 +34,7 @@ import {
   type SearchMetadata,
 } from "./models";
 import type MangaFireConfig from "./pbconfig";
-import genVrf from "./utils/genVrf";
+import { captureChapterPagesVrf, captureSearchVrf, extractVrf } from "./utils/webViewHelper";
 
 const baseUrl = "https://mangafire.to";
 
@@ -252,13 +252,16 @@ export class MangaFireExtension implements ExtensionImpl<typeof MangaFireConfig>
     // With pages: https://mangafire.to/filter?page=2&keyword=one%20piece
     // ALL: https://mangafire.to/filter?keyword=one+peice&sort=recently_updated
     // Exclude: https://mangafire.to/filter?keyword=&genre%5B%5D=-9&sort=recently_updated
-    const vrf = await genVrf(query.title);
     const searchUrl = new URL(baseUrl)
       .addPathComponent("filter")
       .setQueryItem("keyword", query.title)
       .setQueryItem("page", page.toString())
-      .setQueryItem("genre_mode", "and")
-      .setQueryItem("vrf", vrf);
+      .setQueryItem("genre_mode", "and");
+
+    if (query.title.trim()) {
+      const captured = await captureSearchVrf(query.title, this.cookieStorageInterceptor);
+      searchUrl.setQueryItem("vrf", extractVrf(captured));
+    }
 
     const meta = query.metadata ?? {};
     const { type, genres, status, language, year, length } = meta;
@@ -442,54 +445,18 @@ export class MangaFireExtension implements ExtensionImpl<typeof MangaFireConfig>
 
     const chapters: Chapter[] = [];
     for (const language of languages) {
-      const vrf = await genVrf(`${mangaId}@chapter@${language}`);
-
-      const readRequest: Request = {
+      const mangaRequest: Request = {
         url: new URL(baseUrl)
           .addPathComponent("ajax")
-          .addPathComponent("read")
+          .addPathComponent("manga")
           .addPathComponent(mangaId)
           .addPathComponent("chapter")
           .addPathComponent(language)
-          .setQueryItem("vrf", vrf)
           .toString(),
         method: "GET",
       };
 
       try {
-        // Find chapterId mapping first
-        const [readResponse, readBuffer] = await Application.scheduleRequest(readRequest);
-        await this.checkCloudflareStatus(readResponse.status);
-        const readJson = JSON.parse(Application.arrayBufferToUTF8String(readBuffer)) as Result;
-        const readHtml =
-          typeof readJson?.result === "string" ? readJson.result : readJson?.result?.html || "";
-
-        if (!readHtml) continue;
-        const $read = cheerio.load(readHtml);
-
-        // Map of chapter number to chapter ID
-        const chapterIdMap: Map<number, string> = new Map();
-
-        $read("li").each((_, el) => {
-          const li = $read(el);
-          const link = li.find("a");
-          const chapterNumber = link.attr("data-number");
-          const chapterId = link.attr("data-id");
-          if (!chapterNumber || !chapterId) return;
-          chapterIdMap.set(parseFloat(chapterNumber), chapterId);
-        });
-
-        const mangaRequest: Request = {
-          url: new URL(baseUrl)
-            .addPathComponent("ajax")
-            .addPathComponent("manga")
-            .addPathComponent(mangaId)
-            .addPathComponent("chapter")
-            .addPathComponent(language)
-            .toString(),
-          method: "GET",
-        };
-
         const [mangaResponse, mangaBuffer] = await Application.scheduleRequest(mangaRequest);
         await this.checkCloudflareStatus(mangaResponse.status);
 
@@ -505,17 +472,22 @@ export class MangaFireExtension implements ExtensionImpl<typeof MangaFireConfig>
           const li = $manga(el);
           const chapterNumber = li.attr("data-number");
           if (!chapterNumber) return;
-          const chapterId = chapterIdMap.get(parseFloat(chapterNumber));
-          if (!chapterId) return;
 
           const link = li.find("a");
+          const href = link.attr("href");
+          if (!href) return;
+
+          const chapterUrlPath = href.startsWith("http")
+            ? href.replace(/^https?:\/\/[^/]+/, "")
+            : href;
+
           const dateText = li.find("span").last().text().trim();
           const title =
             link.find("span").first().text().trim().split(`${chapterNumber}:`)[1]?.trim() ||
             undefined;
 
           chapters.push({
-            chapterId: chapterId,
+            chapterId: chapterUrlPath,
             title: title,
             sourceManga,
             chapNum: parseFloat(String(chapterNumber)),
@@ -535,19 +507,12 @@ export class MangaFireExtension implements ExtensionImpl<typeof MangaFireConfig>
 
   async getChapterDetails(chapter: Chapter): Promise<ChapterDetails> {
     try {
-      const vrf = await genVrf(`chapter@${chapter.chapterId}`);
-
-      const url = new URL(baseUrl)
-        .addPathComponent("ajax")
-        .addPathComponent("read")
-        .addPathComponent("chapter")
-        .addPathComponent(chapter.chapterId)
-        .setQueryItem("vrf", vrf)
-        .toString();
+      const url = await captureChapterPagesVrf(chapter.chapterId, this.cookieStorageInterceptor);
 
       const request: Request = { url, method: "GET" };
 
-      const [_, buffer] = await Application.scheduleRequest(request);
+      const [response, buffer] = await Application.scheduleRequest(request);
+      await this.checkCloudflareStatus(response.status);
       const json: PageResponse = JSON.parse(
         Application.arrayBufferToUTF8String(buffer),
       ) as PageResponse;
@@ -599,7 +564,10 @@ export class MangaFireExtension implements ExtensionImpl<typeof MangaFireConfig>
       const subtitle = latestChapterMatch ? `Ch. ${latestChapterMatch[1]}` : undefined;
 
       const chapterLink = unit.find(".content[data-name='chap'] a").first();
-      const chapterId = chapterLink.attr("href")?.split("/").pop() || "";
+      const chapterHref = chapterLink.attr("href") || "";
+      const chapterId = chapterHref.startsWith("http")
+        ? chapterHref.replace(/^https?:\/\/[^/]+/, "")
+        : chapterHref;
 
       if (title && mangaId && !collectedIds.includes(mangaId)) {
         collectedIds.push(mangaId);
