@@ -26,7 +26,7 @@ import * as cheerio from "cheerio";
 import { getLanguages, MangaFireAdvancedSearchForm, MangaFireSettingsForm } from "./forms";
 import {
   DOMAIN,
-  Genres,
+  SEARCH_DETAILS_CACHE_KEY,
   type PageMetadata,
   type PageResponse,
   type Result,
@@ -47,6 +47,7 @@ import {
   popularHasNextPage,
 } from "./parsers";
 import type MangaFireConfig from "./pbconfig";
+import { cacheGet, cacheSet } from "./utils/cache";
 import { MFLanguages } from "./utils/language";
 import { extractVrf, getChapterPagesVrfUrl, getSearchVrfUrl } from "./utils/webViewHelper";
 
@@ -140,6 +141,9 @@ export class MangaFireExtension implements ExtensionImpl<typeof MangaFireConfig>
   }
 
   private async getSearchDetails(): Promise<SearchDetails | undefined> {
+    const cached = cacheGet(SEARCH_DETAILS_CACHE_KEY, "default");
+    if (cached) return JSON.parse(cached) as SearchDetails;
+
     try {
       const request = {
         url: `${DOMAIN}/filter`,
@@ -147,7 +151,9 @@ export class MangaFireExtension implements ExtensionImpl<typeof MangaFireConfig>
       };
 
       const $ = await this.fetchCheerio(request);
-      return parseSearchDetails($);
+      const details = parseSearchDetails($);
+      cacheSet(SEARCH_DETAILS_CACHE_KEY, "default", JSON.stringify(details));
+      return details;
     } catch (error) {
       console.error("Error fetching search details:", error);
     }
@@ -394,16 +400,17 @@ export class MangaFireExtension implements ExtensionImpl<typeof MangaFireConfig>
   }
 
   async getFilterSection(): Promise<PagedResults<DiscoverSectionItem>> {
+    const searchDetails = await this.getSearchDetails();
+    const genres = searchDetails?.genres ?? [];
+
     return {
-      items: Genres.map((item) => ({
+      items: genres.map((genre) => ({
         type: "genresCarouselItem",
         searchQuery: {
           title: "",
-          metadata: (item.type === "genres"
-            ? { genres: { [item.id]: "included" } }
-            : { type: item.id }) satisfies SearchMetadata,
+          metadata: { genres: { [genre.id]: "included" } } satisfies SearchMetadata,
         },
-        name: item.name,
+        name: genre.label,
       })),
     };
   }
