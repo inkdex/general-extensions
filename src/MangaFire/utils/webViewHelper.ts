@@ -1,7 +1,10 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later */
+/* Copyright © 2026 Inkdex */
+
 import { type CookieStorageInterceptor } from "@paperback/types";
 import * as cheerio from "cheerio";
 
-const baseUrl = "https://mangafire.to";
+import { DOMAIN } from "../models";
 
 const SEARCH_CACHE_KEY = "mangafire_search_vrf_cache";
 const CHAPTER_CACHE_KEY = "mangafire_chapter_vrf_cache";
@@ -125,7 +128,7 @@ async function captureVrfUrl(opts: CaptureOptions): Promise<string> {
   const result = await Application.executeInWebView({
     source: {
       html,
-      baseUrl: `${baseUrl}/`,
+      baseUrl: `${DOMAIN}/`,
       loadCSS: false,
       loadImages: false,
     },
@@ -140,7 +143,7 @@ async function captureVrfUrl(opts: CaptureOptions): Promise<string> {
   return result.result;
 }
 
-export async function captureSearchVrf(
+export async function getSearchVrfUrl(
   query: string,
   cookieInterceptor: CookieStorageInterceptor,
 ): Promise<string> {
@@ -156,7 +159,7 @@ export async function captureSearchVrf(
   `;
 
   const captured = await captureVrfUrl({
-    triggerUrl: `${baseUrl}/home`,
+    triggerUrl: `${DOMAIN}/home`,
     matcher: "ajax/manga/search\\?",
     trigger,
     cookieInterceptor,
@@ -166,7 +169,7 @@ export async function captureSearchVrf(
   return captured;
 }
 
-export async function captureChapterPagesVrf(
+export async function getChapterPagesVrfUrl(
   chapterUrlPath: string,
   cookieInterceptor: CookieStorageInterceptor,
 ): Promise<string> {
@@ -175,7 +178,7 @@ export async function captureChapterPagesVrf(
 
   const triggerUrl = chapterUrlPath.startsWith("http")
     ? chapterUrlPath
-    : `${baseUrl}${chapterUrlPath.startsWith("/") ? "" : "/"}${chapterUrlPath}`;
+    : `${DOMAIN}${chapterUrlPath.startsWith("/") ? "" : "/"}${chapterUrlPath}`;
 
   const captured = await captureVrfUrl({
     triggerUrl,

@@ -1,11 +1,13 @@
-export type PageMetadata = {
-  offset?: number;
-  collectedIds?: string[];
-};
+/* SPDX-License-Identifier: GPL-3.0-or-later */
+/* Copyright © 2026 Inkdex */
+
+export const DOMAIN = "https://mangafire.to";
+
+export type PageMetadata = { page?: number; collectedIds?: string[] };
 
 export interface Result {
   status: number;
-  result: { html: string; title_format: string };
+  result: string | { html: string; title_format: string };
 }
 
 export interface PageResponse {
