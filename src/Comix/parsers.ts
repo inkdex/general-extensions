@@ -90,7 +90,7 @@ export class ComixParser {
           contentRating: getRanking(item.contentRating),
           imageUrl: item.poster.large.length > 0 ? item.poster.large : NO_IMAGE,
           mangaId: item?.hid ?? "NULL",
-          subtitle: "Chapter " + item.finalChapter.toString(),
+          subtitle: `Chapter ${item.finalChapter || item.latestChapter}`,
           title: item.title,
           type: "simpleCarouselItem",
         });
@@ -112,7 +112,7 @@ export class ComixParser {
           imageUrl: item.poster.large.length > 0 ? item.poster.large : NO_IMAGE,
           chapterId: item.hid,
           mangaId: item.hid,
-          subtitle: "Chapter " + item.finalChapter.toString(),
+          subtitle: `Chapter ${item.finalChapter || item.latestChapter}`,
           title: item.title,
           type: "chapterUpdatesCarouselItem",
           publishDate: parseRelativeDate(item.chapterUpdatedAtFormatted),
@@ -205,6 +205,7 @@ export class ComixParser {
           title: item.title,
           imageUrl: item.poster.large.length > 0 ? item.poster.large : NO_IMAGE,
           contentRating: getRanking(item.contentRating),
+          subtitle: `Chapter ${item.finalChapter || item.latestChapter}`,
         });
       });
       return {
