@@ -5,6 +5,7 @@ import {
   type Chapter,
   type ChapterDetails,
   ContentRating,
+  CookieStorageInterceptor,
   type DiscoverSectionItem,
   type PagedResults,
   type SearchQuery,
@@ -131,15 +132,18 @@ export class JsonParser {
     return { items: latest, metadata: undefined };
   }
 
-  async parseChapters(manga: SourceManga): Promise<Chapter[]> {
-    const firstPage = await api.getJsonChapterApi(manga.mangaId, 1);
+  async parseChapters(
+    manga: SourceManga,
+    cookieStorageInterceptor: CookieStorageInterceptor,
+  ): Promise<Chapter[]> {
+    const firstPage = await api.getJsonChapterApi(manga.mangaId, 1, cookieStorageInterceptor);
 
     const totalPages = firstPage.result.meta.lastPage ?? 1;
     const requests: Promise<{ page: number; data: ChapterItem[] }>[] = [];
     requests.push(Promise.resolve({ page: 1, data: firstPage.result.items }));
     for (let page = 2; page <= totalPages; page++) {
       requests.push(
-        api.getJsonChapterApi(manga.mangaId, page).then((r) => ({
+        api.getJsonChapterApi(manga.mangaId, page, cookieStorageInterceptor).then((r) => ({
           page,
           data: r.result.items,
         })),
@@ -164,12 +168,19 @@ export class JsonParser {
     });
   }
 
-  async parseChapterDetails(chapterId: string): Promise<ChapterDetails> {
-    const pages = await api.getJsonChapPagesApi(chapterId);
+  async parseChapterDetails(
+    chapterId: string,
+    cookieInterceptor: CookieStorageInterceptor,
+  ): Promise<ChapterDetails> {
+    const pages = await api.getJsonChapPagesApi(chapterId, cookieInterceptor);
+    const { baseUrl, items } = pages.result.pages;
+    const base = baseUrl.replace(/\/$/, "");
     return {
       id: chapterId,
       mangaId: pages.result.mangaId.toString(),
-      pages: pages.result.pages.map((img) => img.url),
+      pages: items.map((img) =>
+        img.url.startsWith("http") ? img.url : `${base}/${img.url.replace(/^\//, "")}`,
+      ),
     };
   }
 

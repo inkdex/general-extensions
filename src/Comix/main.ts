@@ -231,10 +231,10 @@ export class ComixExtension implements ComixImplementation {
   }
 
   getChapters(sourceManga: SourceManga): Promise<Chapter[]> {
-    return parse.parseChapters(sourceManga);
+    return parse.parseChapters(sourceManga, this.cookieStorageInterceptor);
   }
   getChapterDetails(chapter: Chapter): Promise<ChapterDetails> {
-    return parse.parseChapterDetails(chapter.chapterId);
+    return parse.parseChapterDetails(chapter.chapterId, this.cookieStorageInterceptor);
   }
 }
 
