@@ -35,7 +35,7 @@ export interface ResultChapter {
 
 export interface ChapterPages {
   mangaId: number;
-  pages: { url: string }[];
+  pages: { baseUrl: string; items: { url: string }[] };
 }
 
 export interface MangaItem {

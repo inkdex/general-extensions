@@ -8,6 +8,7 @@ import {
   type Request,
   type Response,
   CloudflareError,
+  CookieStorageInterceptor,
 } from "@paperback/types";
 
 import { filter } from "./main";
@@ -23,8 +24,8 @@ import {
   DOMAIN,
   type Filter,
 } from "./models";
-import { ComixHash } from "./utils/comixHash";
 import { getSectionTimesType } from "./utils/globalFilters";
+import { apiViaWebView } from "./utils/webViewSigner";
 
 export class MainInterceptor extends PaperbackInterceptor {
   override async interceptRequest(request: Request): Promise<Request> {
@@ -78,6 +79,20 @@ export class ApiMaker {
     this.apiLink = url.toString();
     const html = await this.getDataFromRequest();
     return JSON.parse(html) as ApiResponse<T>;
+  }
+
+  private buildApiPath(api: ApiRequestConfig): string {
+    const parts = (Array.isArray(api.path) ? api.path : [api.path]).join("/");
+    const qs = api.query
+      ? Object.entries(api.query)
+          .flatMap(([k, v]) =>
+            (Array.isArray(v) ? v : [v]).map(
+              (x) => `${encodeURIComponent(k)}=${encodeURIComponent(x)}`,
+            ),
+          )
+          .join("&")
+      : "";
+    return "/" + parts + (qs ? "?" + qs : "");
   }
 
   async getJsonMangaTopApi(section: string): Promise<ApiResponse<MangaItem[]>> {
@@ -227,20 +242,22 @@ export class ApiMaker {
     });
   }
 
-  async getJsonChapterApi(chapter: string, page: number) {
-    const path = `/manga/${chapter}/chapters`;
-    const timeVal = 1;
-    const hashToken = ComixHash.generateHash(path);
-    return this.APIJson<ResultChapter>({
-      path: ["manga", chapter, "chapters"],
-      query: {
-        page: page.toString(),
-        limit: "100",
-        "order[number]": "desc",
-        time: timeVal.toString(),
-        _: hashToken,
-      },
-    });
+  async getJsonChapterApi(
+    chapter: string,
+    page: number,
+    cookieStorageInterceptor: CookieStorageInterceptor,
+  ) {
+    return apiViaWebView<ResultChapter>(
+      this.buildApiPath({
+        path: ["manga", chapter, "chapters"],
+        query: {
+          page: page.toString(),
+          limit: "100",
+          "order[number]": "desc",
+        },
+      }),
+      cookieStorageInterceptor,
+    );
   }
 
   async getJsonSearchApi(
@@ -265,15 +282,11 @@ export class ApiMaker {
     return this.APIJson<ResultManga>({ path: "manga", query: query });
   }
 
-  async getJsonChapPagesApi(chapterId: string) {
-    const path = `/chapters/${chapterId}`;
-    const hashToken = ComixHash.generateHash(path);
-    return this.APIJson<ChapterPages>({
-      path: ["chapters", chapterId],
-      query: {
-        _: hashToken,
-      },
-    });
+  async getJsonChapPagesApi(chapterId: string, cookieStorageInterceptor: CookieStorageInterceptor) {
+    return apiViaWebView<ChapterPages>(
+      this.buildApiPath({ path: ["chapters", chapterId] }),
+      cookieStorageInterceptor,
+    );
   }
 
   async getFiltersApi(filter: string) {
