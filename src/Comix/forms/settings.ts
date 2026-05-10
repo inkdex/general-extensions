@@ -16,14 +16,7 @@ import {
   ToggleRow,
 } from "@paperback/types";
 
-import { filter } from "../main";
-import {
-  discoverySections,
-  getChapterSectionDiffType,
-  getRecentSectionDiffType,
-  getSectionTimesType,
-  getTrendingSectionDiffType,
-} from "../utils/globalFilters";
+import { ComixFilter, discoverySections } from "../utils/filter";
 
 function getDeletedDiscoverySections() {
   return (
@@ -172,13 +165,20 @@ class AddSectionSelect {
 }
 
 export class MainSettings extends BaseSettings {
+  constructor(
+    private filter: ComixFilter,
+    private onRefresh: () => Promise<void>,
+  ) {
+    super();
+  }
+
   override getSections() {
     return [
       Section("settings", [
         NavigationRow("Contents", {
           title: "Contents",
           subtitle: "Contents Tags Settings",
-          form: new FilterSettings(),
+          form: new FilterSettings(this.filter),
         }),
         ButtonRow("reload_genres", {
           title: "Reload all Filters",
@@ -189,18 +189,22 @@ export class MainSettings extends BaseSettings {
         NavigationRow("HomeSections", {
           title: "Home Sections",
           subtitle: "Home Sections Settings",
-          form: new SectionSettings(),
+          form: new SectionSettings(this.filter),
         }),
       ]),
     ];
   }
   async refreshFilters() {
-    await filter.updateFilters(true);
+    await this.onRefresh();
     this.reloadForm();
   }
 }
 
 class SectionSettings extends BaseSettings {
+  constructor(private filter: ComixFilter) {
+    super();
+  }
+
   override getSections() {
     return [
       Section(
@@ -212,7 +216,7 @@ class SectionSettings extends BaseSettings {
             title: "Time Range",
             subtitle: "Defines the time range for retrieving top-ranked content on Sections",
             layout: "list",
-            value: filter.getLimitSettings(),
+            value: this.filter.getLimitSettings(),
             items: this.limitMap,
             minItemCount: 1,
             maxItemCount: 1,
@@ -236,7 +240,7 @@ class SectionSettings extends BaseSettings {
                   title: "Horizontal List View",
                   subtitle:
                     "Enable to display the latest sections as a horizontal list. Disable to show it in a table layout",
-                  value: getChapterSectionDiffType(),
+                  value: this.filter.getChapterSectionDiffType(),
                   onValueChange: Application.Selector(
                     this as SectionSettings,
                     "handleChapterSectionChange",
@@ -258,7 +262,7 @@ class SectionSettings extends BaseSettings {
                   title: "Horizontal List View",
                   subtitle:
                     "Enable to display the trending sections as a horizontal list. Disable to show it in a table layout",
-                  value: getTrendingSectionDiffType(),
+                  value: this.filter.getTrendingSectionDiffType(),
                   onValueChange: Application.Selector(
                     this as SectionSettings,
                     "handleTrendingSectionChange",
@@ -267,7 +271,7 @@ class SectionSettings extends BaseSettings {
                 ToggleRow("allTimes", {
                   title: "Filter Trending Sections by Year",
                   subtitle: "Enable or disable year-based filtering",
-                  value: getSectionTimesType(),
+                  value: this.filter.getSectionTimesType(),
                   onValueChange: Application.Selector(
                     this as SectionSettings,
                     "handleYearTimesChange",
@@ -276,7 +280,7 @@ class SectionSettings extends BaseSettings {
                 StepperRow("yearSettings", {
                   title: "Year",
                   subtitle: "Select the year",
-                  value: filter.getYearSettings(),
+                  value: this.filter.getYearSettings(),
                   minValue: 2023,
                   maxValue: new Date().getFullYear(),
                   stepValue: 1,
@@ -285,7 +289,7 @@ class SectionSettings extends BaseSettings {
                     this as SectionSettings,
                     "handleYearStatusChange",
                   ),
-                  isHidden: !getSectionTimesType(),
+                  isHidden: !this.filter.getSectionTimesType(),
                 }),
               ],
             ),
@@ -303,7 +307,7 @@ class SectionSettings extends BaseSettings {
                   title: "Horizontal List View",
                   subtitle:
                     "Enable to display the recent rection as a horizontal list. Disable to show it in a table layout",
-                  value: getRecentSectionDiffType(),
+                  value: this.filter.getRecentSectionDiffType(),
                   onValueChange: Application.Selector(
                     this as SectionSettings,
                     "handleRecentSectionChange",
@@ -328,10 +332,9 @@ class SectionSettings extends BaseSettings {
       ),
     ];
   }
-  limitMap = filter.sectionLimit.map(({ value, id }) => ({
-    title: value,
-    id: id,
-  }));
+  get limitMap() {
+    return this.filter.sectionLimit.map(({ value, id }) => ({ title: value, id }));
+  }
   async handleYearStatusChange(id: number) {
     Application.invalidateDiscoverSections();
     await this.updateValue(id, "year_settings");
@@ -372,20 +375,21 @@ class SectionSettings extends BaseSettings {
 }
 
 class FilterSettings extends BaseSettings {
-  genresMap = filter.genres.map(({ value, id }) => ({
-    title: value,
-    id: id,
-  }));
+  constructor(private filter: ComixFilter) {
+    super();
+  }
 
-  demogMap = filter.demographic.map(({ value, id }) => ({
-    title: value,
-    id: id,
-  }));
+  get genresMap() {
+    return this.filter.genres.map(({ value, id }) => ({ title: value, id }));
+  }
 
-  typeMap = filter.contentType.map(({ value, id }) => ({
-    title: value,
-    id: id,
-  }));
+  get demogMap() {
+    return this.filter.demographic.map(({ value, id }) => ({ title: value, id }));
+  }
+
+  get typeMap() {
+    return this.filter.contentType.map(({ value, id }) => ({ title: value, id }));
+  }
 
   override getSections() {
     return [
@@ -399,7 +403,7 @@ class FilterSettings extends BaseSettings {
             title: "Hide Genres",
             subtitle: "Hide Some Genre",
             layout: "list",
-            value: filter.getHiddenGenresSettings(),
+            value: this.filter.getHiddenGenresSettings(),
             items: this.genresMap,
             minItemCount: 0,
             maxItemCount: this.genresMap.length,
@@ -412,7 +416,7 @@ class FilterSettings extends BaseSettings {
             title: "Hide Demographic Type",
             subtitle: "Hide Some Demographic Type",
             layout: "list",
-            value: filter.getHiddenDemogSettings(),
+            value: this.filter.getHiddenDemogSettings(),
             items: this.demogMap,
             minItemCount: 0,
             maxItemCount: this.demogMap.length,
@@ -433,7 +437,7 @@ class FilterSettings extends BaseSettings {
             title: "Content Type",
             subtitle: "Show Only this type of content",
             layout: "list",
-            value: filter.getShowOnlySettings(),
+            value: this.filter.getShowOnlySettings(),
             items: this.typeMap,
             minItemCount: 0,
             maxItemCount: this.typeMap.length,

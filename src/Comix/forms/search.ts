@@ -10,12 +10,15 @@ import {
   TriStateSelectRow,
 } from "@paperback/types";
 
-import { filter } from "../main";
 import type { SearchMetadata, TagMap } from "../models";
+import { ComixFilter } from "../utils/filter";
 
 export class ComixAdvancedSearchForm extends AdvancedSearchForm {
   private searchMetadata: SearchMetadata;
-  constructor(searchQuery: SearchQuery<SearchMetadata>) {
+  constructor(
+    searchQuery: SearchQuery<SearchMetadata>,
+    private filter: ComixFilter,
+  ) {
     super();
     if (searchQuery.metadata !== undefined) {
       this.searchMetadata = searchQuery.metadata;
@@ -42,7 +45,7 @@ export class ComixAdvancedSearchForm extends AdvancedSearchForm {
           title: "Genres",
           layout: "list",
           value: this.searchMetadata.genres ?? {},
-          items: filter.genres.map((x) => ({ id: x.id, title: x.value })),
+          items: this.filter.genres.map((x) => ({ id: x.id, title: x.value })),
           allowExclusion: true,
           allowEmptySelection: true,
           onValueChange: Application.Selector(
@@ -58,7 +61,7 @@ export class ComixAdvancedSearchForm extends AdvancedSearchForm {
           value: this.searchMetadata.demographic ?? {},
           allowEmptySelection: true,
           allowExclusion: true,
-          items: filter.demographic.map((x) => ({ id: x.id, title: x.value })),
+          items: this.filter.demographic.map((x) => ({ id: x.id, title: x.value })),
           onValueChange: Application.Selector(this as ComixAdvancedSearchForm, "handleDemogChange"),
         }),
       ]),
@@ -69,7 +72,7 @@ export class ComixAdvancedSearchForm extends AdvancedSearchForm {
           value: this.searchMetadata.status ?? {},
           allowEmptySelection: true,
           allowExclusion: false,
-          items: filter.publication_status.map((x) => ({ id: x.id, title: x.value })),
+          items: this.filter.publication_status.map((x) => ({ id: x.id, title: x.value })),
           onValueChange: Application.Selector(
             this as ComixAdvancedSearchForm,
             "handleStatusChange",
@@ -83,7 +86,7 @@ export class ComixAdvancedSearchForm extends AdvancedSearchForm {
           value: this.searchMetadata.types ?? {},
           allowEmptySelection: true,
           allowExclusion: false,
-          items: filter.contentType.map((x) => ({ id: x.id, title: x.value })),
+          items: this.filter.contentType.map((x) => ({ id: x.id, title: x.value })),
           onValueChange: Application.Selector(this as ComixAdvancedSearchForm, "handleTypesChange"),
         }),
       ]),
@@ -94,7 +97,7 @@ export class ComixAdvancedSearchForm extends AdvancedSearchForm {
           value: this.searchMetadata.formats ?? {},
           allowEmptySelection: true,
           allowExclusion: false,
-          items: filter.formats.map((x) => ({ id: x.id, title: x.value })),
+          items: this.filter.formats.map((x) => ({ id: x.id, title: x.value })),
           onValueChange: Application.Selector(
             this as ComixAdvancedSearchForm,
             "handleFormatsChange",

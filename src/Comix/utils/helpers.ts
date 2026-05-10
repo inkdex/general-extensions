@@ -3,10 +3,10 @@
 
 import { ContentRating } from "@paperback/types";
 
-import { filter } from "../main";
-import type { SearchMetadata, TagMap } from "../models";
+import type { Filters, SearchMetadata, TagMap } from "../models";
+import { ComixFilter } from "./filter";
 
-export function getDefaultMetadata(genresFilter: string = ""): SearchMetadata {
+export function getDefaultMetadata(filter: ComixFilter, genresFilter: string = ""): SearchMetadata {
   const genresHidden = filter.getHiddenGenresSettings();
   const getExcludedGenreObject = Object.fromEntries(
     filter.genres
@@ -42,6 +42,31 @@ export function getDefaultMetadata(genresFilter: string = ""): SearchMetadata {
   };
 }
 
+export function mapTags(filter: string | TagMap): string[] {
+  if (!filter || typeof filter !== "object") return [];
+  return Object.entries(filter).flatMap(([key, value]) => {
+    if (value === "included") return [key];
+    return [];
+  });
+}
+
+export function mapTagsExcluded(filter: string | TagMap): string[] {
+  if (!filter || typeof filter !== "object") return [];
+  return Object.entries(filter).flatMap(([key, value]) => {
+    if (value === "excluded") return [key];
+    return [];
+  });
+}
+
+export function buildFilter(
+  excluded: boolean,
+  type: Filters["type"],
+  ...sources: (string | TagMap)[]
+): Filters[] {
+  const values = excluded ? sources.flatMap(mapTagsExcluded) : sources.flatMap(mapTags);
+  return values.length ? [{ type, filters: values }] : [];
+}
+
 export function getRanking(content: string) {
   switch (content) {
     case "safe": {
@@ -61,17 +86,12 @@ export function getRanking(content: string) {
 
 export function parseRelativeDate(value: string): Date {
   const now = new Date();
-  console.log("....");
-
-  console.log(value);
   const match = value.match(/^(\d+)\s*(s|m|h|d|w|mo|mos|y)s?(\s+ago)?$/i);
   if (!match) {
     return now;
   }
   const amount = Number(match[1]);
   const unit = match[2].toLowerCase();
-  console.log(unit);
-  console.log("....");
   switch (unit) {
     case "s":
       now.setSeconds(now.getSeconds() - amount);
@@ -96,6 +116,5 @@ export function parseRelativeDate(value: string): Date {
       now.setFullYear(now.getFullYear() - amount);
       break;
   }
-  console.log(now);
   return now;
 }
