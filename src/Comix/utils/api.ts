@@ -208,17 +208,34 @@ export class ComixApi {
     page: number,
     cookieStorageInterceptor: CookieStorageInterceptor,
   ) {
-    return apiViaWebView<ResultChapter>(
-      this.buildApiPath({
-        path: ["manga", chapter, "chapters"],
-        query: {
-          page: page.toString(),
-          limit: "100",
-          "order[number]": "desc",
-        },
-      }),
+    const [result] = await apiViaWebView<ResultChapter>(
+      [
+        this.buildApiPath({
+          path: ["manga", chapter, "chapters"],
+          query: { page: page.toString(), limit: "100", "order[number]": "desc" },
+        }),
+      ],
       cookieStorageInterceptor,
     );
+    return result;
+  }
+
+  async getJsonChapterApiBatch(
+    chapter: string,
+    fromPage: number,
+    toPage: number,
+    cookieStorageInterceptor: CookieStorageInterceptor,
+  ): Promise<ApiResponse<ResultChapter>[]> {
+    const paths: string[] = [];
+    for (let page = fromPage; page <= toPage; page++) {
+      paths.push(
+        this.buildApiPath({
+          path: ["manga", chapter, "chapters"],
+          query: { page: page.toString(), limit: "100", "order[number]": "desc" },
+        }),
+      );
+    }
+    return apiViaWebView<ResultChapter>(paths, cookieStorageInterceptor);
   }
 
   async getJsonSearchApi(
@@ -244,10 +261,11 @@ export class ComixApi {
   }
 
   async getJsonChapPagesApi(chapterId: string, cookieStorageInterceptor: CookieStorageInterceptor) {
-    return apiViaWebView<ChapterPages>(
-      this.buildApiPath({ path: ["chapters", chapterId] }),
+    const [result] = await apiViaWebView<ChapterPages>(
+      [this.buildApiPath({ path: ["chapters", chapterId] })],
       cookieStorageInterceptor,
     );
+    return result;
   }
 
   async getFiltersApi(filter: string) {
