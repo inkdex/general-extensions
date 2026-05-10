@@ -7,13 +7,22 @@ import { DOMAIN, type ApiResponse } from "../models";
 import { cacheGet, cacheSet } from "./cache";
 
 const TOKEN_CACHE_KEY = "comix.signedToken.v1";
-const SECURE_URL_CACHE_KEY = "comix.secureUrl.v1";
 
 interface WebViewSource {
   html: string;
   baseUrl: string;
   loadCSS: boolean;
   loadImages: boolean;
+}
+
+interface WebViewContext {
+  source: WebViewSource;
+  cookies: Cookie[];
+}
+
+interface DecryptItem {
+  encryptedBody: string;
+  apiPath: string;
 }
 
 /**
@@ -32,63 +41,121 @@ interface WebViewSource {
  *      reads `headers["x-enc"]` to derive its key.
  */
 export async function apiViaWebView<T>(
-  apiPath: string,
+  apiPaths: string[],
   cookieInterceptor: CookieStorageInterceptor,
-): Promise<ApiResponse<T>> {
-  const pathOnly = apiPath.split("?")[0];
-  const sep = apiPath.includes("?") ? "&" : "?";
+): Promise<ApiResponse<T>[]> {
+  if (apiPaths.length === 0) return [];
 
-  const secureUrl = await resolveSecureUrl();
-  const [, homeBuf] = await Application.scheduleRequest({
-    url: `${DOMAIN}/`,
-    method: "GET",
-  });
-  const html = stripCspMeta(Application.arrayBufferToUTF8String(homeBuf));
-  const cookies = cookieInterceptor.cookiesForUrl(`${DOMAIN}/`);
-  const source: WebViewSource = {
-    html,
-    baseUrl: `${DOMAIN}/`,
-    loadCSS: false,
-    loadImages: false,
-  };
+  const ctx = await prepareContext(cookieInterceptor);
 
-  let token = cacheGet(TOKEN_CACHE_KEY, pathOnly);
-  const usedCachedToken = !!token;
-  if (!token) token = await signInWebView(source, cookies, secureUrl, pathOnly);
-
-  let { response, encryptedText } = await fetchSigned(apiPath, sep, token);
-  if (response.status >= 400 && usedCachedToken) {
-    token = await signInWebView(source, cookies, secureUrl, pathOnly);
-    ({ response, encryptedText } = await fetchSigned(apiPath, sep, token));
-  }
-  if (response.status >= 400) {
-    throw new Error(`Comix API HTTP ${response.status} for ${apiPath}`);
-  }
-  cacheSet(TOKEN_CACHE_KEY, pathOnly, token);
-
-  const envelope = parseJsonOrThrow(encryptedText);
-  if (!isEncrypted(envelope)) {
-    return envelope as ApiResponse<T>;
+  const tokens: Record<string, string> = {};
+  const pathsToSign = new Set<string>();
+  for (const apiPath of apiPaths) {
+    const pathOnly = apiPath.split("?")[0];
+    const cached = cacheGet(TOKEN_CACHE_KEY, pathOnly);
+    if (cached) tokens[pathOnly] = cached;
+    else pathsToSign.add(pathOnly);
   }
 
-  const headers = (response.headers ?? {}) as Record<string, string>;
-  const xEnc = headers["x-enc"] ?? headers["X-Enc"] ?? headers["X-ENC"] ?? "";
+  if (pathsToSign.size > 0) {
+    const fresh = await signInWebView(ctx, [...pathsToSign]);
+    Object.assign(tokens, fresh);
+  }
 
-  const decrypted = await decryptInWebView(
-    source,
-    cookies,
-    secureUrl,
-    encryptedText,
-    apiPath,
-    xEnc,
+  const fetched = await Promise.all(
+    apiPaths.map(async (apiPath) => {
+      const pathOnly = apiPath.split("?")[0];
+      const sep = apiPath.includes("?") ? "&" : "?";
+      let token = tokens[pathOnly];
+      let { response, encryptedText } = await fetchSigned(apiPath, sep, token);
+      // Only retry if the token came from cache — a fresh token failing means something else is wrong.
+      if (response.status >= 400 && !pathsToSign.has(pathOnly)) {
+        const fresh = await signInWebView(ctx, [pathOnly]);
+        token = fresh[pathOnly];
+        ({ response, encryptedText } = await fetchSigned(apiPath, sep, token));
+      }
+      if (response.status >= 400)
+        throw new Error(`Comix API HTTP ${response.status} for ${apiPath}`);
+      cacheSet(TOKEN_CACHE_KEY, pathOnly, token);
+      return { apiPath, encryptedText };
+    }),
   );
-  return JSON.parse(decrypted) as ApiResponse<T>;
+
+  const results: Array<ApiResponse<T> | null> = Array.from({ length: apiPaths.length }, () => null);
+  const toDecrypt: Array<{ index: number } & DecryptItem> = [];
+
+  for (let i = 0; i < fetched.length; i++) {
+    const { apiPath, encryptedText } = fetched[i];
+    const envelope = parseJsonOrThrow(encryptedText);
+    if (!isEncrypted(envelope)) results[i] = envelope as ApiResponse<T>;
+    else toDecrypt.push({ index: i, encryptedBody: encryptedText, apiPath });
+  }
+
+  if (toDecrypt.length > 0) {
+    const decrypted = await decryptInWebView(
+      ctx,
+      toDecrypt.map(({ encryptedBody, apiPath }) => ({ encryptedBody, apiPath })),
+    );
+    for (let i = 0; i < toDecrypt.length; i++) {
+      results[toDecrypt[i].index] = JSON.parse(decrypted[i]) as ApiResponse<T>;
+    }
+  }
+
+  return results as ApiResponse<T>[];
+}
+
+async function prepareContext(
+  cookieInterceptor: CookieStorageInterceptor,
+): Promise<WebViewContext> {
+  const [, buffer] = await Application.scheduleRequest({ url: `${DOMAIN}/`, method: "GET" });
+  const html = Application.arrayBufferToUTF8String(buffer);
+  const cookies = cookieInterceptor.cookiesForUrl(`${DOMAIN}/`);
+  return {
+    cookies,
+    source: { html, baseUrl: `${DOMAIN}/`, loadCSS: false, loadImages: false },
+  };
 }
 
 async function fetchSigned(apiPath: string, sep: string, token: string) {
   const url = `${DOMAIN}/api/v1${apiPath}${sep}_=${encodeURIComponent(token)}`;
   const [response, buf] = await Application.scheduleRequest({ url, method: "GET" });
   return { response, encryptedText: Application.arrayBufferToUTF8String(buf) };
+}
+
+async function signInWebView(
+  ctx: WebViewContext,
+  paths: string[],
+): Promise<Record<string, string>> {
+  const raw = await Application.executeInWebView({
+    source: ctx.source,
+    inject: buildSignInject(paths),
+    storage: { cookies: ctx.cookies },
+  });
+  const out = parseInjectResult<{ ok: boolean; tokens?: Record<string, string>; error?: string }>(
+    raw.result,
+    "sign",
+  );
+  if (!out.ok || !out.tokens) throw new Error(`Comix sign failed: ${out.error ?? "unknown"}`);
+  return out.tokens;
+}
+
+async function decryptInWebView(ctx: WebViewContext, items: DecryptItem[]): Promise<string[]> {
+  const raw = await Application.executeInWebView({
+    source: ctx.source,
+    inject: buildDecryptInject(items),
+    storage: { cookies: ctx.cookies },
+  });
+  const out = parseInjectResult<{
+    ok: boolean;
+    results?: Array<{ ok: boolean; body?: string; error?: string }>;
+    error?: string;
+  }>(raw.result, "decrypt");
+  if (!out.ok || !out.results) throw new Error(`Comix decrypt failed: ${out.error ?? "unknown"}`);
+  return out.results.map((r, i) => {
+    if (!r.ok || !r.body)
+      throw new Error(`Comix decrypt item ${i} failed: ${r.error ?? "unknown"}`);
+    return r.body;
+  });
 }
 
 function parseJsonOrThrow(text: string): unknown {
@@ -101,82 +168,6 @@ function parseJsonOrThrow(text: string): unknown {
 
 function isEncrypted(v: unknown): v is { e: string } {
   return !!v && typeof v === "object" && "e" in (v as Record<string, unknown>);
-}
-
-// HTTP-header CSP isn't carried into loadHTMLString, but a meta-equiv CSP
-// would be — strip it defensively in case a future deploy adds one.
-function stripCspMeta(html: string): string {
-  return html.replace(
-    /<meta[^>]+http-equiv=["']Content-Security-Policy(?:-Report-Only)?["'][^>]*>/gi,
-    "",
-  );
-}
-
-async function resolveSecureUrl(): Promise<string> {
-  const cached = cacheGet(SECURE_URL_CACHE_KEY, "current");
-  if (cached) return cached;
-
-  const [, homeBuf] = await Application.scheduleRequest({
-    url: `${DOMAIN}/`,
-    method: "GET",
-  });
-  const homeHtml = Application.arrayBufferToUTF8String(homeBuf);
-  const mainMatch = homeHtml.match(
-    /<script[^>]+type="module"[^>]+src="(https?:\/\/[^"]+\/dist\/main-[^"]+\.js)"/,
-  );
-  if (!mainMatch) throw new Error("Comix: could not find main bundle URL on homepage");
-  const mainUrl = mainMatch[1];
-
-  const [, mainBuf] = await Application.scheduleRequest({ url: mainUrl, method: "GET" });
-  const mainSrc = Application.arrayBufferToUTF8String(mainBuf);
-  const secureMatch = mainSrc.match(/"((?:\.\/)?secure-[a-zA-Z0-9_-]+\.js)"/);
-  if (!secureMatch) throw new Error("Comix: could not find secure chunk in main bundle");
-  const secureRel = secureMatch[1].replace(/^\.\//, "");
-
-  const distBase = mainUrl.replace(/\/[^/]+$/, "/");
-  const secureUrl = distBase + secureRel;
-  cacheSet(SECURE_URL_CACHE_KEY, "current", secureUrl);
-  return secureUrl;
-}
-
-async function signInWebView(
-  source: WebViewSource,
-  cookies: Cookie[],
-  secureUrl: string,
-  pathOnly: string,
-): Promise<string> {
-  const raw = await Application.executeInWebView({
-    source,
-    inject: buildSignInject(secureUrl, pathOnly),
-    storage: { cookies },
-  });
-  const out = parseInjectResult<{ ok: boolean; token?: string; error?: string }>(
-    raw.result,
-    "sign",
-  );
-  if (!out.ok || !out.token) throw new Error(`Comix sign failed: ${out.error ?? "unknown"}`);
-  return out.token;
-}
-
-async function decryptInWebView(
-  source: WebViewSource,
-  cookies: Cookie[],
-  secureUrl: string,
-  encryptedBody: string,
-  apiPath: string,
-  xEnc: string,
-): Promise<string> {
-  const raw = await Application.executeInWebView({
-    source,
-    inject: buildDecryptInject(secureUrl, encryptedBody, apiPath, xEnc),
-    storage: { cookies },
-  });
-  const out = parseInjectResult<{ ok: boolean; body?: string; error?: string }>(
-    raw.result,
-    "decrypt",
-  );
-  if (!out.ok || !out.body) throw new Error(`Comix decrypt failed: ${out.error ?? "unknown"}`);
-  return out.body;
 }
 
 function parseInjectResult<R>(raw: unknown, label: string): R {
@@ -211,65 +202,38 @@ const PROBE_NS_SNIPPET = `
   const fnNames = Object.keys(nsObj).filter(n => typeof nsObj[n] === "function");
 `;
 
-function buildSignInject(secureUrl: string, pathOnly: string): string {
+function buildSignInject(paths: string[]): string {
   return `return (async () => {
     try {
-      await import(${JSON.stringify(secureUrl)});
       ${PROBE_NS_SNIPPET}
 
-      // Identify the signer behaviorally: the only function that returns a
-      // base64url-shaped token for an arbitrary path string.
-      const TARGET = ${JSON.stringify(pathOnly)};
+      const PATHS = ${JSON.stringify(paths)};
+      let signerName = null;
       for (const name of fnNames) {
         try {
-          const token = nsObj[name](TARGET);
+          const token = nsObj[name](PATHS[0]);
           if (typeof token === "string" && /^[A-Za-z0-9_+/=-]{20,}$/.test(token)) {
-            return JSON.stringify({ ok: true, token });
+            signerName = name; break;
           }
         } catch (e) {}
       }
-      return JSON.stringify({ ok: false, error: "signer not found" });
+      if (!signerName) return JSON.stringify({ ok: false, error: "signer not found" });
+      const tokens = {};
+      for (const path of PATHS) { tokens[path] = nsObj[signerName](path); }
+      return JSON.stringify({ ok: true, tokens });
     } catch (e) {
       return JSON.stringify({ ok: false, error: "exception: " + (e && e.message || e) });
     }
   })()`;
 }
 
-function buildDecryptInject(
-  secureUrl: string,
-  encryptedBody: string,
-  apiPath: string,
-  xEnc: string,
-): string {
+function buildDecryptInject(items: DecryptItem[]): string {
   return `return (async () => {
     try {
-      await import(${JSON.stringify(secureUrl)});
       ${PROBE_NS_SNIPPET}
 
-      const ENCRYPTED = ${JSON.stringify(encryptedBody)};
-      const API_PATH = ${JSON.stringify(apiPath)};
-      const X_ENC = ${JSON.stringify(xEnc)};
-      const PATH_ONLY = API_PATH.split("?")[0];
-      const QUERY = API_PATH.indexOf("?") >= 0 ? API_PATH.slice(API_PATH.indexOf("?") + 1) : "";
-
-      const params = {};
-      if (QUERY) {
-        for (const part of QUERY.split("&")) {
-          const eq = part.indexOf("=");
-          const k = decodeURIComponent(eq < 0 ? part : part.slice(0, eq));
-          const v = eq < 0 ? "" : decodeURIComponent(part.slice(eq + 1));
-          if (k in params) {
-            if (!Array.isArray(params[k])) params[k] = [params[k]];
-            params[k].push(v);
-          } else { params[k] = v; }
-        }
-      }
-
-      // Find the axios installer — the only function that registers BOTH a
-      // request and response interceptor when given a fake axios. Both are
-      // required: the request interceptor populates per-request module
-      // state that the response interceptor reads back.
-      let reqHandler = null, respHandler = null;
+      const ITEMS = ${JSON.stringify(items)};
+      let respHandler = null;
       for (const name of fnNames) {
         try {
           let req, resp;
@@ -280,35 +244,48 @@ function buildDecryptInject(
             },
             defaults: { headers: { common: {} }, transformRequest: [], transformResponse: [] },
           });
-          if (req && resp) { reqHandler = req; respHandler = resp; break; }
+          if (req && resp) { respHandler = resp; break; }
         } catch (e) {}
       }
-      if (!reqHandler || !respHandler) {
+      if (!respHandler) {
         return JSON.stringify({ ok: false, error: "installer not found" });
       }
 
-      let cfg = {
-        url: "/api/v1" + PATH_ONLY,
-        method: "get",
-        baseURL: "",
-        headers: { common: {} },
-        params: params,
-      };
-      cfg = (await reqHandler(cfg)) || cfg;
-
-      const response = await respHandler({
-        data: JSON.parse(ENCRYPTED),
-        status: 200, statusText: "OK",
-        headers: { "content-type": "application/json", "x-enc": X_ENC },
-        config: cfg,
-        request: {},
-      });
-      const data = response && response.data;
-      if (!data || typeof data !== "object" || ("e" in data)) {
-        return JSON.stringify({ ok: false, error: "decryption did not unwrap envelope" });
+      const results = [];
+      for (const item of ITEMS) {
+        try {
+          const PATH_ONLY = item.apiPath.split("?")[0];
+          const QUERY = item.apiPath.indexOf("?") >= 0 ? item.apiPath.slice(item.apiPath.indexOf("?") + 1) : "";
+          const params = {};
+          if (QUERY) {
+            for (const part of QUERY.split("&")) {
+              const eq = part.indexOf("=");
+              const k = decodeURIComponent(eq < 0 ? part : part.slice(0, eq));
+              const v = eq < 0 ? "" : decodeURIComponent(part.slice(eq + 1));
+              if (k in params) {
+                if (!Array.isArray(params[k])) params[k] = [params[k]];
+                params[k].push(v);
+              } else { params[k] = v; }
+            }
+          }
+          const cfg = { url: "/api/v1" + PATH_ONLY, method: "get", baseURL: "", headers: { common: {} }, params };
+          const response = await respHandler({
+            data: JSON.parse(item.encryptedBody),
+            status: 200, statusText: "OK",
+            headers: { "content-type": "application/json", "x-enc": "1" },
+            config: cfg, request: {},
+          });
+          const data = response && response.data;
+          if (!data || typeof data !== "object" || ("e" in data)) {
+            results.push({ ok: false, error: "decryption did not unwrap envelope" });
+          } else {
+            results.push({ ok: true, body: JSON.stringify({ status: "ok", result: data }) });
+          }
+        } catch (e) {
+          results.push({ ok: false, error: "exception: " + (e && e.message || e) });
+        }
       }
-      // Wrap to match the existing TS DTO shape (ApiResponse<T>).
-      return JSON.stringify({ ok: true, body: JSON.stringify({ status: "ok", result: data }) });
+      return JSON.stringify({ ok: true, results });
     } catch (e) {
       return JSON.stringify({ ok: false, error: "exception: " + (e && e.message || e) });
     }

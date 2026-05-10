@@ -22,7 +22,7 @@ import {
 
 import { ComixAdvancedSearchForm } from "./forms/search";
 import { getDiscoverySectionsOrder, MainSettings } from "./forms/settings";
-import type { ChapterItem, Filters, Metadata, OptionItem, SearchMetadata } from "./models";
+import type { Filters, Metadata, OptionItem, SearchMetadata } from "./models";
 import { ComixInterceptor } from "./network";
 import { ComixParser } from "./parsers";
 import ComixConfig from "./pbconfig";
@@ -307,20 +307,21 @@ export class ComixExtension implements ExtensionImpl<typeof ComixConfig> {
       1,
       this.cookieStorageInterceptor,
     );
+
     const totalPages = firstPage.result.meta.lastPage ?? 1;
-    const requests: Promise<{ page: number; data: ChapterItem[] }>[] = [
-      Promise.resolve({ page: 1, data: firstPage.result.items }),
-    ];
-    for (let page = 2; page <= totalPages; page++) {
-      requests.push(
-        this.api
-          .getJsonChapterApi(sourceManga.mangaId, page, this.cookieStorageInterceptor)
-          .then((r) => ({ page, data: r.result.items })),
-      );
+
+    if (totalPages === 1) {
+      return this.parser.parseChapters(sourceManga, firstPage.result.items);
     }
-    const allPages = await Promise.all(requests);
-    allPages.sort((a, b) => a.page - b.page);
-    const allItems = allPages.flatMap((p) => p.data);
+
+    const remainingPages = await this.api.getJsonChapterApiBatch(
+      sourceManga.mangaId,
+      2,
+      totalPages,
+      this.cookieStorageInterceptor,
+    );
+
+    const allItems = [...firstPage.result.items, ...remainingPages.flatMap((r) => r.result.items)];
     return this.parser.parseChapters(sourceManga, allItems);
   }
 
