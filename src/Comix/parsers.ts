@@ -4,36 +4,33 @@
 import {
   type Chapter,
   type ChapterDetails,
-  ContentRating,
-  CookieStorageInterceptor,
   type DiscoverSectionItem,
   type PagedResults,
-  type SearchQuery,
   type SearchResultItem,
-  type SortingOption,
   type SourceManga,
   type Tag,
   type TagSection,
+  ContentRating,
 } from "@paperback/types";
 
-import { filter } from "./main";
 import {
+  type ApiResponse,
   type ChapterItem,
-  DOMAIN,
-  type Filters,
+  type ChapterPages,
+  type Filter,
+  type MangaItem,
   type Metadata,
-  NO_IMAGE,
+  type OptionItem,
+  type ResultManga,
   type SearchMetadata,
-  type TagMap,
+  NO_IMAGE,
+  DOMAIN,
 } from "./models";
-import { ApiMaker } from "./network";
-import { getDefaultMetadata, getRanking, parseRelativeDate } from "./utils/utilsFunctions";
+import { getRanking, parseRelativeDate } from "./utils/helpers";
 
-const api = new ApiMaker();
-export class JsonParser {
-  async parseSection(section: string) {
+export class ComixParser {
+  parseSection(section: string, json: ApiResponse<MangaItem[]>) {
     const latest: DiscoverSectionItem[] = [];
-    const json = await api.getJsonMangaTopApi(section);
     if (json.status === "ok") {
       for (const item of json.result) {
         latest.push({
@@ -56,22 +53,23 @@ export class JsonParser {
       metadata: undefined,
     };
   }
-  async parseGenreSection(
+
+  parseGenreSection(
     ComixMetadata: Metadata | undefined,
-  ): Promise<{ items: DiscoverSectionItem[]; metadata: Metadata }> {
-    await filter.updateFilters(true);
+    genres: OptionItem[],
+    hiddenGenres: string[],
+    buildMetadata: (genreId: string) => SearchMetadata,
+  ): { items: DiscoverSectionItem[]; metadata: Metadata } {
     const allGenres: DiscoverSectionItem[] = [];
     const page = ComixMetadata?.page ?? 1;
-    filter.genres
-      .filter((filterName) => {
-        return !filter.getHiddenGenresSettings().includes(filterName.id);
-      })
+    genres
+      .filter((filterName) => !hiddenGenres.includes(filterName.id))
       .forEach((filterItem) => {
         allGenres.push({
           type: "genresCarouselItem",
           searchQuery: {
             title: "",
-            metadata: getDefaultMetadata(filterItem.id),
+            metadata: buildMetadata(filterItem.id),
           },
           name: filterItem.value,
           contentRating:
@@ -84,10 +82,8 @@ export class JsonParser {
     };
   }
 
-  async parseSectionSimple(section: string, metadata: Metadata) {
+  parseSectionSimple(page: number, json: ApiResponse<ResultManga>) {
     const latest: DiscoverSectionItem[] = [];
-    const page = metadata?.page ?? 1;
-    const json = await api.getJsonMangaApi(section, page);
     if (json.status === "ok") {
       for (const item of json.result.items) {
         latest.push({
@@ -107,10 +103,8 @@ export class JsonParser {
     return { items: latest, metadata: undefined };
   }
 
-  async parseSectionChapter(section: string, metadata: Metadata) {
+  parseSectionChapter(page: number, json: ApiResponse<ResultManga>) {
     const latest: DiscoverSectionItem[] = [];
-    const page = metadata?.page ?? 1;
-    const json = await api.getJsonMangaApi(section, page);
     if (json.status === "ok") {
       for (const item of json.result.items) {
         latest.push({
@@ -132,27 +126,8 @@ export class JsonParser {
     return { items: latest, metadata: undefined };
   }
 
-  async parseChapters(
-    manga: SourceManga,
-    cookieStorageInterceptor: CookieStorageInterceptor,
-  ): Promise<Chapter[]> {
-    const firstPage = await api.getJsonChapterApi(manga.mangaId, 1, cookieStorageInterceptor);
-
-    const totalPages = firstPage.result.meta.lastPage ?? 1;
-    const requests: Promise<{ page: number; data: ChapterItem[] }>[] = [];
-    requests.push(Promise.resolve({ page: 1, data: firstPage.result.items }));
-    for (let page = 2; page <= totalPages; page++) {
-      requests.push(
-        api.getJsonChapterApi(manga.mangaId, page, cookieStorageInterceptor).then((r) => ({
-          page,
-          data: r.result.items,
-        })),
-      );
-    }
-    const allPages = await Promise.all(requests);
-    allPages.sort((a, b) => a.page - b.page);
-    const chaptersArray = allPages.flatMap((p) => p.data);
-    return chaptersArray.map((chapter) => {
+  parseChapters(manga: SourceManga, items: ChapterItem[]): Chapter[] {
+    return items.map((chapter) => {
       return {
         chapterId: chapter.id.toString(),
         sourceManga: manga,
@@ -168,11 +143,7 @@ export class JsonParser {
     });
   }
 
-  async parseChapterDetails(
-    chapterId: string,
-    cookieInterceptor: CookieStorageInterceptor,
-  ): Promise<ChapterDetails> {
-    const pages = await api.getJsonChapPagesApi(chapterId, cookieInterceptor);
+  parseChapterDetails(chapterId: string, pages: ApiResponse<ChapterPages>): ChapterDetails {
     const { baseUrl, items } = pages.result.pages;
     const base = baseUrl.replace(/\/$/, "");
     return {
@@ -184,8 +155,7 @@ export class JsonParser {
     };
   }
 
-  async parseMangaDetails(mangaId: string): Promise<SourceManga> {
-    const info = await api.getJsonMangaInfoApi(mangaId);
+  parseMangaDetails(mangaId: string, info: ApiResponse<MangaItem>): SourceManga {
     const manga = info.result;
     const toTag = (item: { id: number; title: string }): Tag => ({
       id: item.id.toString(),
@@ -223,61 +193,10 @@ export class JsonParser {
     return { mangaId: mangaId, mangaInfo: mangaInfo };
   }
 
-  async parseSearchResults(
-    query: SearchQuery<SearchMetadata>,
-    metadata: Metadata | undefined,
-    sortingOption: SortingOption,
-  ): Promise<PagedResults<SearchResultItem>> {
-    function mapTags(filter: string | TagMap) {
-      if (!filter || typeof filter !== "object") return [];
-      return Object.entries(filter).flatMap(([key, value]) => {
-        if (value === "included") return [key];
-        return [];
-      });
-    }
-    function mapTagsExcluded(filter: string | TagMap) {
-      if (!filter || typeof filter !== "object") return [];
-      return Object.entries(filter).flatMap(([key, value]) => {
-        if (value === "excluded") return [key];
-        return [];
-      });
-    }
-    function buildFilter(
-      excluded: boolean,
-      type: Filters["type"],
-      ...sources: (string | TagMap)[]
-    ): Filters[] {
-      let values = [];
-      if (excluded) {
-        values = sources.flatMap(mapTagsExcluded);
-      } else {
-        values = sources.flatMap(mapTags);
-      }
-      return values.length ? [{ type, filters: values }] : [];
-    }
-    const page = metadata?.page ?? 1;
-    const genres = query.metadata?.genres ?? {};
-    const formats = query.metadata?.formats ?? {};
-    const demographic = query.metadata?.demographic ?? {};
-    const status = query.metadata?.status ?? {};
-    const types = query.metadata?.types ?? {};
-    const mode = query.metadata?.mode ?? "and";
-    const [sortBy, orderBy] = sortingOption.id.split("$");
-    const filters: Filters[] = [
-      ...buildFilter(false, "genres_in[]", genres, formats),
-      ...buildFilter(true, "genres_ex[]", genres, formats),
-      ...buildFilter(false, "types[]", types),
-      ...buildFilter(false, "demographics[]", demographic),
-      ...buildFilter(false, "statuses[]", status),
-    ];
-    const search = await api.getJsonSearchApi(
-      query.title,
-      page,
-      filters,
-      mode as string,
-      sortBy,
-      orderBy,
-    );
+  parseSearchResults(
+    page: number,
+    search: ApiResponse<ResultManga>,
+  ): PagedResults<SearchResultItem> {
     const items: SearchResultItem[] = [];
     if (search.status.toString() === "ok") {
       search.result.items.forEach((item) => {
@@ -299,10 +218,9 @@ export class JsonParser {
     };
   }
 
-  async parseFilterUpdate(type: string): Promise<{ id: string; value: string }[]> {
-    const filter = await api.getFiltersApi(type);
+  parseFilterUpdate(response: ApiResponse<Filter[]>): { id: string; value: string }[] {
     const filters: { id: string; value: string }[] = [];
-    filter.result.forEach((filter) => {
+    response.result.forEach((filter) => {
       filters.push({
         id: filter.id.toString(),
         value: filter.label,

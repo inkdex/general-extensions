@@ -1,25 +1,14 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 /* Copyright © 2026 Inkdex */
 
-import { parse } from "../main";
 import { type OptionItem } from "../models";
 
-export class globalFilters {
+export class ComixFilter {
   genres: OptionItem[] = [];
   themes: OptionItem[] = [];
   demographic: OptionItem[] = [];
   formats: OptionItem[] = [];
 
-  async checkFilters(): Promise<void> {
-    if (
-      this.demographic.length === 0 ||
-      this.formats.length === 0 ||
-      this.themes.length === 0 ||
-      this.genres.length === 0
-    ) {
-      await this.updateFilters(true);
-    }
-  }
   contentType = [
     { id: "manga", value: "Manga" },
     { id: "manhwa", value: "Manhwa" },
@@ -70,72 +59,51 @@ export class globalFilters {
     );
   }
 
-  async updateFilters(force: boolean) {
-    const lastFilterFetch = Number(Application.getState("last-filter-fetch") ?? 0);
-    const cached = lastFilterFetch + 172800 > new Date().valueOf() / 1000;
-    if (cached && !force) {
-      const keys = ["genre", "demographic", "format"] as const;
-      const values = keys.map((k) => Application.getState(`${k}`) as string | undefined);
-      const [genres, demographic, formats] = values;
-      if (genres === undefined || demographic === undefined || formats === undefined) {
-        await this.updateFilters(true);
-        return;
-      }
-      this.setGenreFilter(JSON.parse(genres) as OptionItem[]);
-      this.setDemographicFilter(JSON.parse(demographic) as OptionItem[]);
-      this.setFormatsFilter(JSON.parse(formats) as OptionItem[]);
-      await this.checkFilters();
-    } else {
-      this.setGenreFilter(await parse.parseFilterUpdate("genre"));
-      this.setDemographicFilter(await parse.parseFilterUpdate("demographic"));
-      this.setFormatsFilter(await parse.parseFilterUpdate("format"));
-      Application.setState(String(new Date().valueOf() / 1000), "last-filter-fetch");
-    }
+  getSectionTimesType() {
+    return (Application.getState("yearTimes") as boolean | undefined) ?? true;
   }
-  private setGenreFilter(newValue: OptionItem[]) {
+
+  /**
+   * @return true if horizontal, false if table
+   */
+  getChapterSectionDiffType() {
+    return (Application.getState("chapterSection") as boolean | undefined) ?? false;
+  }
+
+  /**
+   * @return true if horizontal, false if table
+   */
+  getTrendingSectionDiffType() {
+    return (Application.getState("trendingSection") as boolean | undefined) ?? true;
+  }
+
+  /**
+   * @return true if horizontal, false if table
+   */
+  getRecentSectionDiffType() {
+    return (Application.getState("recentSection") as boolean | undefined) ?? true;
+  }
+
+  setGenreFilter(newValue: OptionItem[]) {
     this.genres = [...newValue].sort((a, b) =>
       a.value.toLowerCase().localeCompare(b.value.toLowerCase()),
     );
     Application.setState(JSON.stringify(newValue), "genre");
   }
-  private setDemographicFilter(newValue: OptionItem[]) {
+
+  setDemographicFilter(newValue: OptionItem[]) {
     this.demographic = [...newValue].sort((a, b) =>
       a.value.toLowerCase().localeCompare(b.value.toLowerCase()),
     );
     Application.setState(JSON.stringify(newValue), "demographic");
   }
 
-  private setFormatsFilter(newValue: OptionItem[]) {
+  setFormatsFilter(newValue: OptionItem[]) {
     this.formats = [...newValue].sort((a, b) =>
       a.value.toLowerCase().localeCompare(b.value.toLowerCase()),
     );
-
     Application.setState(JSON.stringify(newValue), "format");
   }
-}
-export function getSectionTimesType() {
-  return (Application.getState("yearTimes") as boolean | undefined) ?? true;
-}
-
-/**
- * @return true if horizontal, false if table
- */
-export function getChapterSectionDiffType() {
-  return (Application.getState("chapterSection") as boolean | undefined) ?? false;
-}
-
-/**
- * @return true if horizontal, false if table
- */
-export function getTrendingSectionDiffType() {
-  return (Application.getState("trendingSection") as boolean | undefined) ?? true;
-}
-
-/**
- * @return true if horizontal, false if table
- */
-export function getRecentSectionDiffType() {
-  return (Application.getState("recentSection") as boolean | undefined) ?? true;
 }
 
 export const discoverySections = [
