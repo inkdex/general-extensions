@@ -86,6 +86,7 @@ async function captureVrfUrl(opts: CaptureOptions): Promise<string> {
     },
     inject,
     storage: { cookies },
+    captureConsoleLog: false,
   });
 
   if (typeof result.result !== "string") {
