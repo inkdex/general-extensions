@@ -23,7 +23,6 @@ import {
   type OptionItem,
   type ResultManga,
   type SearchMetadata,
-  NO_IMAGE,
   DOMAIN,
 } from "./models";
 import { getPoster, getRanking, parseRelativeDate } from "./utils/helpers";
@@ -41,7 +40,7 @@ export class ComixParser {
                 ? "featuredCarouselItem"
                 : "simpleCarouselItem",
           contentRating: getRanking(item.contentRating),
-          imageUrl: item.poster?.large ? item.poster?.large : NO_IMAGE,
+          imageUrl: getPoster(item),
           mangaId: item.hid,
           title: item.title,
           subtitle: item.authors?.map((author) => author.title).join(" ") ?? "",
@@ -177,13 +176,13 @@ export class ComixParser {
       },
     ];
     const mangaInfo = {
-      thumbnailUrl: manga.poster?.large ? manga.poster.large : NO_IMAGE,
+      thumbnailUrl: getPoster(manga),
       synopsis: manga.synopsis,
       primaryTitle: manga.title,
       secondaryTitles: manga.altTitles,
       contentRating: manga.contentRating !== "safe" ? ContentRating.ADULT : ContentRating.EVERYONE,
       status: manga.status,
-      bannerUrl: manga.poster?.medium ? manga.poster.medium : NO_IMAGE,
+      bannerUrl: getPoster(manga),
       artist: manga.artists?.map((artist) => artist.title).join(" ") ?? "",
       author: manga.authors?.map((author) => author.title).join(" ") ?? "",
       rating: manga.ratedAvg / 10,
