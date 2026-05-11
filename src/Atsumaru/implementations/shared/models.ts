@@ -1,6 +1,8 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 /* Copyright © 2026 Inkdex */
 
+export const DOMAIN = "https://atsu.moe";
+
 export interface AtsuHomePageResponse {
   homePage: {
     sections: AtsuSection[];
@@ -87,25 +89,24 @@ export interface AtsuPage {
   aspectRatio: number;
 }
 
-export interface AtsuFilteredViewRequest {
-  filter: {
-    search: string;
-    genres: string[];
-    excludeGenres: string[];
-    types: string[];
-    status: string[];
-    years: number[];
-    minChapters: number | null;
-    hideBookmarked: boolean;
-    officialTranslation: boolean;
-    showAdult: boolean;
-    sortBy: string;
-  };
-  page: number;
+export interface AtsuSearchDocument {
+  id: string;
+  title: string;
+  englishTitle?: string;
+  poster: string;
+  posterSmall?: string;
+  posterMedium?: string;
+  type: string;
 }
 
-export interface AtsuFilteredViewResponse {
-  items: AtsuMangaItem[];
+export interface AtsuSearchHit {
+  document: AtsuSearchDocument;
+}
+
+export interface AtsuSearchResponse {
+  found: number;
+  hits?: AtsuSearchHit[];
+  page: number;
 }
 
 export interface AtsuAvailableFiltersResponse {
@@ -119,4 +120,7 @@ export interface ExtractedFilters {
   excludedTags: string[];
   selectedTypes: string[];
   selectedStatuses: string[];
+  selectedYears: number[];
+  minChapters: number | null;
+  officialTranslation: boolean;
 }

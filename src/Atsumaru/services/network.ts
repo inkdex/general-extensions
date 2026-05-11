@@ -4,7 +4,7 @@
 import type { Request, Response } from "@paperback/types";
 import { CloudflareError, PaperbackInterceptor } from "@paperback/types";
 
-import { DOMAIN } from "../main";
+import { DOMAIN } from "../implementations/shared/models";
 
 export class AtsuInterceptor extends PaperbackInterceptor {
   async interceptRequest(request: Request): Promise<Request> {

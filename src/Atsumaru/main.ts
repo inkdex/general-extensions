@@ -12,8 +12,6 @@ import { SettingsFormProvider } from "./implementations/settings-form/main";
 import { applyMixins } from "./implementations/shared/utils";
 import { AtsuInterceptor } from "./services/network";
 
-export const DOMAIN = "https://atsu.moe";
-
 export interface AtsumaruImplementation
   extends SearchProvider, MangaProvider, ChapterProvider, DiscoverProvider, SettingsFormProvider {}
 

@@ -4,9 +4,9 @@
 import type { DiscoverSection, DiscoverSectionItem, PagedResults, Request } from "@paperback/types";
 import { URL } from "@paperback/types";
 
-import { DOMAIN } from "../../main";
 import { fetchJSON } from "../../services/network";
 import { getShowAdult } from "../settings-form/main";
+import { DOMAIN } from "../shared/models";
 import type { AtsuHomePageResponse, AtsuInfiniteResponse } from "../shared/models";
 import { buildThumbnailUrl, getContentRating } from "../shared/utils";
 import { parseDiscoverItems, parseDiscoverSections } from "./parsers";

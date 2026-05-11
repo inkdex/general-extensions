@@ -3,9 +3,11 @@
 
 import { ContentRating } from "@paperback/types";
 
-import { DOMAIN } from "../../main";
 import { getShowAdult } from "../settings-form/main";
-import type { AtsuMangaPageResponse } from "./models";
+import { DOMAIN } from "./models";
+import type { AtsuMangaPageResponse, AtsuSearchDocument } from "./models";
+
+type ThumbnailSource = string | Pick<AtsuSearchDocument, "poster" | "posterMedium" | "posterSmall">;
 
 export function applyMixins(derivedCtor: any, constructors: any[]) {
   constructors.forEach((baseCtor) => {
@@ -19,8 +21,14 @@ export function applyMixins(derivedCtor: any, constructors: any[]) {
   });
 }
 
-export function buildThumbnailUrl(path: string): string {
-  return `${DOMAIN}/static/${path}`;
+export function buildThumbnailUrl(source?: ThumbnailSource): string {
+  const imagePath =
+    typeof source === "string"
+      ? source
+      : (source?.posterSmall ?? source?.posterMedium ?? source?.poster);
+  if (!imagePath) return "";
+  if (imagePath.startsWith("http")) return imagePath;
+  return `${DOMAIN}${imagePath.startsWith("/") ? imagePath : `/static/${imagePath}`}`;
 }
 
 export function getContentRating(): ContentRating {
