@@ -3,7 +3,7 @@
 
 import type { SourceManga } from "@paperback/types";
 
-import { DOMAIN } from "../../main";
+import { DOMAIN } from "../shared/models";
 import { buildThumbnailUrl, getContentRating, parseMangaPage } from "../shared/utils";
 
 export function parseMangaDetails(html: string, mangaId: string): SourceManga {

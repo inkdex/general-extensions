@@ -4,8 +4,8 @@
 import type { Chapter, ChapterDetails, Request, SourceManga } from "@paperback/types";
 import { URL } from "@paperback/types";
 
-import { DOMAIN } from "../../main";
 import { fetchJSON, fetchText } from "../../services/network";
+import { DOMAIN } from "../shared/models";
 import type { AtsuChaptersResponse, AtsuReadChapterResponse } from "../shared/models";
 import { parseMangaPage } from "../shared/utils";
 import { parseChapterList } from "./parsers";
@@ -28,11 +28,9 @@ export class ChapterProvider {
       .toString();
 
     const request: Request = { url, method: "GET" };
-    const json = await fetchJSON<AtsuChaptersResponse>(request);
+    const data = await fetchJSON<AtsuChaptersResponse>(request);
 
-    json.chapters.sort((a, b) => b.number - a.number || b.createdAt - a.createdAt);
-
-    return parseChapterList(json, sourceManga, scanlatorMap);
+    return parseChapterList(data, sourceManga, scanlatorMap);
   }
 
   async getChapterDetails(chapter: Chapter): Promise<ChapterDetails> {
@@ -48,9 +46,9 @@ export class ChapterProvider {
       .toString();
 
     const request: Request = { url, method: "GET" };
-    const json = await fetchJSON<AtsuReadChapterResponse>(request);
+    const data = await fetchJSON<AtsuReadChapterResponse>(request);
 
-    const pages = json.readChapter.pages
+    const pages = data.readChapter.pages
       .sort((a, b) => a.number - b.number)
       .map((page) => (page.image.startsWith("http") ? page.image : `${DOMAIN}${page.image}`));
 
