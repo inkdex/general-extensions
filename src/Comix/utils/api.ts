@@ -243,6 +243,7 @@ export class ComixApi {
     page: number,
     filters: Filters[],
     mode: string,
+    min_chapter: number,
     sortBy: string,
     orderBy: string,
   ) {
@@ -250,6 +251,7 @@ export class ComixApi {
       page: page.toString(),
       [`order[${sortBy}]`]: orderBy,
       genres_mode: mode,
+      min_chap: min_chapter.toString(),
     };
     if (keyword.length > 1) {
       query.keyword = keyword;
