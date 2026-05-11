@@ -19,10 +19,9 @@ export default {
   badges: [],
   developers: [
     {
-      name: "Karrot",
-    },
-    {
-      name: "nyzzik",
+      name: "Inkdex",
+      website: "https://inkdex.github.io",
+      github: "https://github.com/inkdex",
     },
   ],
 } satisfies ExtensionInfo;
