@@ -3,7 +3,13 @@
 
 import { ContentRating } from "@paperback/types";
 
-import type { Filters, SearchMetadata, TagMap } from "../models";
+import {
+  type Filters,
+  type MangaItem,
+  NO_IMAGE,
+  type SearchMetadata,
+  type TagMap,
+} from "../models";
 import { ComixFilter } from "./filter";
 
 export function getDefaultMetadata(filter: ComixFilter, genresFilter: string = ""): SearchMetadata {
@@ -117,4 +123,12 @@ export function parseRelativeDate(value: string): Date {
       break;
   }
   return now;
+}
+
+export function getPoster(item: MangaItem): string {
+  return item.poster?.large?.length
+    ? item.poster.large
+    : item.poster?.medium?.length
+      ? item.poster.medium
+      : NO_IMAGE;
 }

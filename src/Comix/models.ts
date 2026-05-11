@@ -44,7 +44,7 @@ export interface MangaItem {
   title: string;
   altTitles: string[];
   synopsis: string;
-  poster: Poster;
+  poster: Poster | null;
   originalLanguage: string;
   status: string;
   latestChapter: number;
@@ -80,8 +80,8 @@ export interface Terms {
 }
 
 export interface Poster {
-  medium: string;
-  large: string;
+  medium?: string;
+  large?: string;
 }
 
 export interface ChapterItem {
@@ -117,6 +117,6 @@ export interface SearchMetadata extends JSONObject {
   types?: TagMap;
   demographic?: TagMap;
   status?: TagMap;
-  themes?: TagMap;
   mode?: string[];
+  minChap?: number;
 }

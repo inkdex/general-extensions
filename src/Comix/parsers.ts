@@ -26,7 +26,7 @@ import {
   NO_IMAGE,
   DOMAIN,
 } from "./models";
-import { getRanking, parseRelativeDate } from "./utils/helpers";
+import { getPoster, getRanking, parseRelativeDate } from "./utils/helpers";
 
 export class ComixParser {
   parseSection(section: string, json: ApiResponse<MangaItem[]>) {
@@ -41,7 +41,7 @@ export class ComixParser {
                 ? "featuredCarouselItem"
                 : "simpleCarouselItem",
           contentRating: getRanking(item.contentRating),
-          imageUrl: item.poster?.large.length > 0 ? item.poster?.large : NO_IMAGE,
+          imageUrl: item.poster?.large ? item.poster?.large : NO_IMAGE,
           mangaId: item.hid,
           title: item.title,
           subtitle: item.authors?.map((author) => author.title).join(" ") ?? "",
@@ -88,7 +88,7 @@ export class ComixParser {
       for (const item of json.result.items) {
         latest.push({
           contentRating: getRanking(item.contentRating),
-          imageUrl: item.poster.large.length > 0 ? item.poster.large : NO_IMAGE,
+          imageUrl: getPoster(item),
           mangaId: item?.hid ?? "NULL",
           subtitle: `Chapter ${item.finalChapter || item.latestChapter}`,
           title: item.title,
@@ -109,7 +109,7 @@ export class ComixParser {
       for (const item of json.result.items) {
         latest.push({
           contentRating: getRanking(item.contentRating),
-          imageUrl: item.poster.large.length > 0 ? item.poster.large : NO_IMAGE,
+          imageUrl: getPoster(item),
           chapterId: item.hid,
           mangaId: item.hid,
           subtitle: `Chapter ${item.finalChapter || item.latestChapter}`,
@@ -177,13 +177,13 @@ export class ComixParser {
       },
     ];
     const mangaInfo = {
-      thumbnailUrl: manga.poster.large.length > 0 ? manga.poster.large : NO_IMAGE,
+      thumbnailUrl: manga.poster?.large ? manga.poster.large : NO_IMAGE,
       synopsis: manga.synopsis,
       primaryTitle: manga.title,
       secondaryTitles: manga.altTitles,
       contentRating: manga.contentRating !== "safe" ? ContentRating.ADULT : ContentRating.EVERYONE,
       status: manga.status,
-      bannerUrl: manga.poster.medium.length > 0 ? manga.poster.medium : NO_IMAGE,
+      bannerUrl: manga.poster?.medium ? manga.poster.medium : NO_IMAGE,
       artist: manga.artists?.map((artist) => artist.title).join(" ") ?? "",
       author: manga.authors?.map((author) => author.title).join(" ") ?? "",
       rating: manga.ratedAvg / 10,
@@ -203,7 +203,7 @@ export class ComixParser {
         items.push({
           mangaId: item.hid,
           title: item.title,
-          imageUrl: item.poster.large.length > 0 ? item.poster.large : NO_IMAGE,
+          imageUrl: getPoster(item),
           contentRating: getRanking(item.contentRating),
           subtitle: `Chapter ${item.finalChapter || item.latestChapter}`,
         });

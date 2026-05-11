@@ -6,7 +6,8 @@ import {
   type FormSectionElement,
   type SearchQuery,
   Section,
-  SelectRow,
+  SelectSection,
+  StepperRow,
   TriStateSelectRow,
 } from "@paperback/types";
 
@@ -15,6 +16,7 @@ import { ComixFilter } from "../utils/filter";
 
 export class ComixAdvancedSearchForm extends AdvancedSearchForm {
   private searchMetadata: SearchMetadata;
+  private mode?: string[];
   constructor(
     searchQuery: SearchQuery<SearchMetadata>,
     private filter: ComixFilter,
@@ -33,9 +35,13 @@ export class ComixAdvancedSearchForm extends AdvancedSearchForm {
         mode: [],
       };
     }
+    this.mode = this.searchMetadata.mode ? this.searchMetadata.mode : ["and"];
   }
 
   override getSearchQueryMetadata(): SearchMetadata {
+    if (this.mode) {
+      this.searchMetadata.mode = this.mode;
+    }
     return this.searchMetadata;
   }
   override getSections(): FormSectionElement<unknown>[] {
@@ -104,19 +110,26 @@ export class ComixAdvancedSearchForm extends AdvancedSearchForm {
           ),
         }),
       ]),
-      Section("mode", [
-        SelectRow("mode", {
-          title: "Mode",
-          subtitle: "Select the search mode",
-          layout: "list",
-          value: this.searchMetadata.mode ?? ["and"],
-          items: [
-            { id: "and", title: "AND" },
-            { id: "or", title: "OR" },
-          ],
-          minItemCount: 1,
-          maxItemCount: 1,
-          onValueChange: Application.Selector(this as ComixAdvancedSearchForm, "handleModeChange"),
+      SelectSection(this, {
+        id: "mode",
+        layout: "flow",
+        value: this.mode ?? ["and"],
+        items: [
+          { id: "and", title: "AND" },
+          { id: "or", title: "OR" },
+        ],
+        minItemCount: 1,
+        maxItemCount: 1,
+      }),
+      Section("chapter_min", [
+        StepperRow("chapter_min", {
+          title: "Minimum Chapters",
+          value: this.searchMetadata.minChap ?? 0,
+          minValue: 1,
+          maxValue: 10000,
+          stepValue: 1,
+          loopOver: false,
+          onValueChange: Application.Selector(this as ComixAdvancedSearchForm, "handleMinChapters"),
         }),
       ]),
     ];
@@ -124,9 +137,6 @@ export class ComixAdvancedSearchForm extends AdvancedSearchForm {
 
   async handleGenresChange(value: TagMap): Promise<void> {
     this.searchMetadata.genres = value;
-  }
-  async handleThemesChange(value: TagMap): Promise<void> {
-    this.searchMetadata.themes = value;
   }
   async handleDemogChange(value: TagMap): Promise<void> {
     this.searchMetadata.demographic = value;
@@ -140,7 +150,7 @@ export class ComixAdvancedSearchForm extends AdvancedSearchForm {
   async handleFormatsChange(value: TagMap): Promise<void> {
     this.searchMetadata.formats = value;
   }
-  async handleModeChange(value: string[]): Promise<void> {
-    this.searchMetadata.mode = value;
+  async handleMinChapters(value: number): Promise<void> {
+    this.searchMetadata.minChap = value;
   }
 }
