@@ -10,6 +10,9 @@ concurrency:
   group: ${{ github.ref }}-${{ github.workflow }}
   cancel-in-progress: true
 
+permissions:
+  contents: write
+
 jobs:
   test:
     name: Run Tests
@@ -27,6 +30,7 @@ jobs:
       - name: Run Tests
         run: npm test
       - name: Deploy to GitHub Pages
+        if: ${{ github.event.pull_request == null }}
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
