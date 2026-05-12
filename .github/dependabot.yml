@@ -8,6 +8,9 @@ updates:
       interval: weekly
       day: monday
     groups:
+      paperback:
+        patterns:
+          - "@paperback/*"
       minor-patch:
         update-types:
           - minor
