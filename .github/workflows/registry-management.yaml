@@ -23,7 +23,6 @@ jobs:
           client-id: ${{ vars.REGISTRY_MANAGEMENT_APP_ID }}
           private-key: ${{ secrets.REGISTRY_MANAGEMENT_APP_PRIVATE_KEY }}
           repositories: extensions
-
       - name: Registry Management Workflow Dispatch
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
