@@ -6,10 +6,11 @@ on:
       - Bundle and Deploy
     types:
       - completed
+  workflow_dispatch:
 
 concurrency:
-  group: ${{ github.workflow }}
-  cancel-in-progress: false
+  group: ${{ github.ref }}-${{ github.workflow }}
+  cancel-in-progress: true
 
 jobs:
   registry-update:

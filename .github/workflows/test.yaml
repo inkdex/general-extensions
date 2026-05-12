@@ -1,17 +1,22 @@
 name: Run Tests
 
 on:
+  workflow_run:
+    workflows:
+      - Bundle and Deploy
+    types:
+      - completed
   schedule:
-    - cron: "*/15 * * * *"
+    - cron: "0 * * * *"
   pull_request:
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 concurrency:
   group: ${{ github.ref }}-${{ github.workflow }}
   cancel-in-progress: true
-
-permissions:
-  contents: write
 
 jobs:
   test:
@@ -30,7 +35,7 @@ jobs:
       - name: Run Tests
         run: npm test
       - name: Deploy to GitHub Pages
-        if: ${{ github.event.pull_request == null }}
+        if: ${{ github.event_name != 'pull_request' }}
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
