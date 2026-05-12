@@ -128,7 +128,7 @@ export class ComixParser {
   parseChapters(manga: SourceManga, items: ChapterItem[]): Chapter[] {
     return items.map((chapter) => {
       return {
-        chapterId: chapter.id.toString(),
+        chapterId: chapter.hid,
         sourceManga: manga,
         langCode: chapter.language,
         chapNum: chapter.number,
