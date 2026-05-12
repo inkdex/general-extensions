@@ -30,7 +30,7 @@ export interface ResultManga {
 
 export interface ResultChapter {
   items: ChapterItem[];
-  meta: { lastPage: number };
+  meta: { lastPage: number; hasNext?: boolean; page?: number };
 }
 
 export interface ChapterPages {
@@ -86,6 +86,7 @@ export interface Poster {
 
 export interface ChapterItem {
   id: number;
+  hid: string;
   mangaId: number;
   isOfficial: boolean;
   number: number;
