@@ -26,3 +26,10 @@ jobs:
         run: npm ci
       - name: Run Tests
         run: npm test
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: bundles/tests.json
+          destination_dir: ${{ github.ref_name }}
+          keep_files: true
