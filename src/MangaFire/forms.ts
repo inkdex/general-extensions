@@ -7,6 +7,7 @@ import {
   Form,
   Section,
   SelectRow,
+  ToggleRow,
   TriStateSelectRow,
   type SearchQuery,
   type Tag,
@@ -34,6 +35,7 @@ export function setLanguages(languages: string[]): void {
 // Advanced Search Form
 export class MangaFireAdvancedSearchForm extends AdvancedSearchForm {
   private genres: Record<string, "included" | "excluded">;
+  private genreMode: boolean;
   private type: string;
   private status: string;
   private language: string;
@@ -62,6 +64,7 @@ export class MangaFireAdvancedSearchForm extends AdvancedSearchForm {
 
     const meta = searchQuery.metadata ?? {};
     this.genres = { ...meta.genres };
+    this.genreMode = meta.genreMode ?? true;
     this.type = meta.type ?? "";
     this.status = meta.status ?? "";
     this.language = meta.language ?? "";
@@ -82,6 +85,15 @@ export class MangaFireAdvancedSearchForm extends AdvancedSearchForm {
           onValueChange: Application.Selector(
             this as MangaFireAdvancedSearchForm,
             "handleGenresChange",
+          ),
+        }),
+        ToggleRow("genre_mode", {
+          title: "Genre Mode",
+          subtitle: "Title must have all genres selected.",
+          value: this.genreMode,
+          onValueChange: Application.Selector(
+            this as MangaFireAdvancedSearchForm,
+            "handleGenreModeChange",
           ),
         }),
       ]),
@@ -157,6 +169,10 @@ export class MangaFireAdvancedSearchForm extends AdvancedSearchForm {
     this.genres = value;
   }
 
+  async handleGenreModeChange(value: boolean): Promise<void> {
+    this.genreMode = value;
+  }
+
   async handleTypeChange(value: string[]): Promise<void> {
     this.type = value[0] ?? "";
   }
@@ -180,6 +196,7 @@ export class MangaFireAdvancedSearchForm extends AdvancedSearchForm {
   override getSearchQueryMetadata(): SearchMetadata {
     const result: SearchMetadata = {};
     if (Object.keys(this.genres).length > 0) result.genres = this.genres;
+    if (this.genreMode) result.genreMode = this.genreMode;
     if (this.type) result.type = this.type;
     if (this.status) result.status = this.status;
     if (this.language) result.language = this.language;
