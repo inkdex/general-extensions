@@ -23,10 +23,9 @@ import {
 import { ComixAdvancedSearchForm } from "./forms/search";
 import { getDiscoverySectionsOrder, MainSettings } from "./forms/settings";
 import type { Filters, Metadata, OptionItem, SearchMetadata } from "./models";
-import { ComixInterceptor } from "./network";
+import { ComixInterceptor, ComixApi } from "./network";
 import { ComixParser } from "./parsers";
 import ComixConfig from "./pbconfig";
-import { ComixApi } from "./utils/api";
 import { ComixFilter } from "./utils/filter";
 import { buildFilter, getDefaultMetadata } from "./utils/helpers";
 
