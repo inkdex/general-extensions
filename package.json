@@ -11,10 +11,10 @@
     "format:check": "oxfmt --check .",
     "conformance": "npm run tsc && npm run lint:check && npm run format:check",
     "bundle": "paperback-cli bundle",
-    "test": "paperback-cli test --noConsole --output ./bundles/tests.json",
     "serve": "paperback-cli serve",
-    "logcat": "paperback-cli logcat",
     "dev": "paperback-cli serve --watch",
+    "logcat": "paperback-cli logcat",
+    "test": "paperback-cli test --noConsole --output ./bundles/tests.json",
     "prepare": "husky"
   },
   "devDependencies": {
