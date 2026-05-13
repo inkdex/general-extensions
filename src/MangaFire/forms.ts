@@ -14,6 +14,7 @@ import {
 } from "@paperback/types";
 
 import {
+  LANGUAGES,
   SEARCH_DETAILS_CACHE_KEY,
   VRF_CHAPTER_CACHE_KEY,
   VRF_SEARCH_CACHE_KEY,
@@ -22,10 +23,13 @@ import {
   type SearchOption,
 } from "./models";
 import { cacheClear } from "./utils/cache";
-import { MFLanguages } from "./utils/language";
 
 export function getLanguages(): string[] {
-  return (Application.getState("languages") as string[] | undefined) ?? MFLanguages.getDefault();
+  return (
+    (Application.getState("languages") as string[] | undefined) ?? [
+      LANGUAGES[0].id, // Default to only English selected
+    ]
+  );
 }
 
 export function setLanguages(languages: string[]): void {
@@ -233,20 +237,14 @@ export class MangaFireSettingsForm extends Form {
             subtitle: (() => {
               const selectedLangCodes = this.languages;
               const selectedLangNames = selectedLangCodes
-                .map(
-                  (langCode) =>
-                    `${MFLanguages.getFlagCode(langCode)} ${MFLanguages.getName(langCode)}`,
-                )
+                .map((langCode) => LANGUAGES.find((l) => l.id === langCode)?.title ?? "Unknown")
                 .sort();
               return selectedLangNames.join(", ");
             })(),
             value: this.languages,
-            options: MFLanguages.getCodeList().map((code) => ({
-              id: code,
-              title: `${MFLanguages.getFlagCode(code)} ${MFLanguages.getName(code)}`,
-            })),
+            options: LANGUAGES,
             minItemCount: 1,
-            maxItemCount: MFLanguages.getCodeList().length,
+            maxItemCount: LANGUAGES.length,
             onValueChange: Application.Selector(this as MangaFireSettingsForm, "updateValue"),
           }),
         ],

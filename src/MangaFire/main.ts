@@ -48,7 +48,6 @@ import {
 } from "./parsers";
 import type MangaFireConfig from "./pbconfig";
 import { cacheGet, cacheSet } from "./utils/cache";
-import { MFLanguages } from "./utils/language";
 import { extractVrf, getChapterPagesVrfUrl, getSearchVrfUrl } from "./utils/webView";
 
 export class MangaFireExtension implements ExtensionImpl<typeof MangaFireConfig> {
@@ -262,14 +261,14 @@ export class MangaFireExtension implements ExtensionImpl<typeof MangaFireConfig>
     const languages = getLanguages();
 
     const chapters: Chapter[] = [];
-    for (const language of languages) {
+    for (const langCode of languages) {
       const mangaRequest: Request = {
         url: new URL(DOMAIN)
           .addPathComponent("ajax")
           .addPathComponent("manga")
           .addPathComponent(mangaId)
           .addPathComponent("chapter")
-          .addPathComponent(language)
+          .addPathComponent(langCode)
           .toString(),
         method: "GET",
       };
@@ -285,9 +284,9 @@ export class MangaFireExtension implements ExtensionImpl<typeof MangaFireConfig>
         if (!mangaHtml) continue;
 
         const $manga = cheerio.load(mangaHtml);
-        chapters.push(...parseChapters($manga, sourceManga, language));
+        chapters.push(...parseChapters($manga, sourceManga, langCode));
       } catch (error) {
-        console.error(`Failed to parse buffer for language ${language}:`, error);
+        console.error(`Failed to parse buffer for language ${langCode}:`, error);
       }
     }
 
@@ -332,7 +331,9 @@ export class MangaFireExtension implements ExtensionImpl<typeof MangaFireConfig>
     };
 
     const $ = await this.fetchCheerio(request);
-    const items = parseUpdatedSection($, collectedIds);
+    const parsedItems = parseUpdatedSection($);
+    const items = parsedItems.filter((item) => !collectedIds.includes(item.mangaId));
+    collectedIds.push(...items.map((item) => item.mangaId));
 
     return {
       items: items,
@@ -359,7 +360,9 @@ export class MangaFireExtension implements ExtensionImpl<typeof MangaFireConfig>
     };
 
     const $ = await this.fetchCheerio(request);
-    const items = parsePopularSection($, collectedIds);
+    const parsedItems = parsePopularSection($);
+    const items = parsedItems.filter((item) => !collectedIds.includes(item.mangaId));
+    collectedIds.push(...items.map((item) => item.mangaId));
 
     return {
       items: items,
@@ -379,7 +382,9 @@ export class MangaFireExtension implements ExtensionImpl<typeof MangaFireConfig>
     };
 
     const $ = await this.fetchCheerio(request);
-    const items = parseNewMangaSection($, collectedIds);
+    const parsedItems = parseNewMangaSection($);
+    const items = parsedItems.filter((item) => !collectedIds.includes(item.mangaId));
+    collectedIds.push(...items.map((item) => item.mangaId));
 
     return {
       items: items,
@@ -430,7 +435,7 @@ export class MangaFireExtension implements ExtensionImpl<typeof MangaFireConfig>
           title: "",
           metadata: { language: lang.id } satisfies SearchMetadata,
         },
-        name: `${MFLanguages.getFlagCode(lang.id)} ${lang.label}`,
+        name: lang.label,
       })),
     };
   }
