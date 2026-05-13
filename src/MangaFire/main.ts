@@ -49,7 +49,7 @@ import {
 import type MangaFireConfig from "./pbconfig";
 import { cacheGet, cacheSet } from "./utils/cache";
 import { MFLanguages } from "./utils/language";
-import { extractVrf, getChapterPagesVrfUrl, getSearchVrfUrl } from "./utils/webViewHelper";
+import { extractVrf, getChapterPagesVrfUrl, getSearchVrfUrl } from "./utils/webView";
 
 export class MangaFireExtension implements ExtensionImpl<typeof MangaFireConfig> {
   requestManager = new MangaFireInterceptor("main");
