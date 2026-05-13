@@ -4,9 +4,9 @@
 import { ContentRating, SourceIntents, type ExtensionInfo } from "@paperback/types";
 
 export default {
-  name: "Weeb Central",
+  name: "WeebCentral",
   description: "Extension that pulls content from weebcentral.com.",
-  version: "1.0.0-alpha.20",
+  version: "1.0.0-alpha.21",
   icon: "icon.png",
   language: "en",
   contentRating: ContentRating.EVERYONE,
