@@ -34,6 +34,7 @@ export type SearchDetails = {
 
 export type SearchMetadata = {
   genres?: { [id: string]: "included" | "excluded" };
+  genreMode?: boolean;
   type?: string;
   status?: string;
   language?: string;

@@ -63,6 +63,7 @@ export class MangaFireExtension implements ExtensionImpl<typeof MangaFireConfig>
   });
 
   async initialise(): Promise<void> {
+    this.cookieStorageInterceptor.registerInterceptor();
     this.requestManager.registerInterceptor();
     this.globalRateLimiter.registerInterceptor();
   }
@@ -183,8 +184,11 @@ export class MangaFireExtension implements ExtensionImpl<typeof MangaFireConfig>
     const searchUrl = new URL(DOMAIN)
       .addPathComponent("filter")
       .setQueryItem("keyword", query.title)
-      .setQueryItem("page", page.toString())
-      .setQueryItem("genre_mode", "and");
+      .setQueryItem("page", page.toString());
+
+    if (query.metadata?.genreMode) {
+      searchUrl.setQueryItem("genre_mode", "and");
+    }
 
     if (query.title.trim()) {
       const vrf = extractVrf(await getSearchVrfUrl(query.title, this.cookieStorageInterceptor));

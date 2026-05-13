@@ -148,7 +148,7 @@ export const parseMangaDetails = (
   searchDetails?: SearchDetails,
 ): SourceManga => {
   const title = $(".manga-detail .info h1").text().trim();
-  const altTitles = [$(".manga-detail .info h6").text().trim()];
+  const altTitles = [$(".manga-detail .info h6").text().trim()].filter((t) => t);
   const image = $(".manga-detail .poster img").attr("src") || "";
   const description =
     $("#synopsis .modal-content").text().trim() ||
