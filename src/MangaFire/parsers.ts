@@ -5,101 +5,61 @@ import {
   ContentRating,
   type Chapter,
   type ChapterDetails,
-  type DiscoverSectionItem,
+  type ChapterUpdatesCarouselItem,
+  type FeaturedCarouselItem,
   type SearchResultItem,
+  type SimpleCarouselItem,
   type SourceManga,
   type TagSection,
 } from "@paperback/types";
 import { type CheerioAPI } from "cheerio";
 
 import { DOMAIN, type PageResponse, type SearchDetails, type SearchOption } from "./models";
-import { MFLanguages } from "./utils/language";
 
-export const parseSearchDetails = ($: CheerioAPI): SearchDetails => {
-  const types: SearchOption[] = [];
-  const genres: SearchOption[] = [];
-  const status: SearchOption[] = [];
-  const languages: SearchOption[] = [];
-  const years: SearchOption[] = [];
-  const lengths: SearchOption[] = [];
-  const sorts: SearchOption[] = [];
-
-  $(".dropdown:has(button .value[data-placeholder='Type']) .dropdown-menu.noclose.c1 li").each(
-    (_, element) => {
-      const id = $(element).find("input").attr("value") ?? "";
-      const label = $(element).find("label").text().trim();
-      if (label) {
-        types.push({ id, label });
-      }
-    },
-  );
-
-  $(".genres li").each((_, element) => {
+const parseDropdownOptions = (
+  $: CheerioAPI,
+  selector: string,
+  requireId: boolean = true,
+): SearchOption[] => {
+  const options: SearchOption[] = [];
+  $(selector).each((_, element) => {
     const id = $(element).find("input").attr("value") ?? "";
     const label = $(element).find("label").text().trim();
-    if (label && id) {
-      genres.push({ id, label });
+    if (label && (!requireId || id)) {
+      options.push({ id, label });
     }
   });
+  return options;
+};
 
-  $(".dropdown:has(button .value[data-placeholder='Status']) .dropdown-menu.noclose.c1 li").each(
-    (_, element) => {
-      const id = $(element).find("input").attr("value") ?? "";
-      const label = $(element).find("label").text().trim();
-      if (label && id) {
-        status.push({ id, label });
-      }
-    },
-  );
-
-  $(".dropdown:has(button .value[data-placeholder='Language']) .dropdown-menu.noclose.c1 li").each(
-    (_, element) => {
-      const id = $(element).find("input").attr("value") ?? "";
-      const label = $(element).find("label").text().trim();
-      if (label && id) {
-        languages.push({ id, label });
-      }
-    },
-  );
-
-  $(".dropdown:has(button .value[data-placeholder='Year']) .dropdown-menu.noclose.md.c3 li").each(
-    (_, element) => {
-      const id = $(element).find("input").attr("value") ?? "";
-      const label = $(element).find("label").text().trim();
-      if (label && id) {
-        years.push({ id, label });
-      }
-    },
-  );
-
-  $(".dropdown:has(button .value[data-placeholder='Length']) .dropdown-menu.noclose.c1 li").each(
-    (_, element) => {
-      const id = $(element).find("input").attr("value") ?? "";
-      const label = $(element).find("label").text().trim();
-      if (label && id) {
-        lengths.push({ id, label });
-      }
-    },
-  );
-
-  $(".dropdown:has(button .value[data-placeholder='Sort by']) .dropdown-menu.noclose.c1 li").each(
-    (_, element) => {
-      const id = $(element).find("input").attr("value") ?? "";
-      const label = $(element).find("label").text().trim();
-      if (label && id) {
-        sorts.push({ id, label });
-      }
-    },
-  );
-
+export const parseSearchDetails = ($: CheerioAPI): SearchDetails => {
   return {
-    types,
-    genres,
-    status,
-    languages,
-    years,
-    lengths,
-    sorts,
+    types: parseDropdownOptions(
+      $,
+      ".dropdown:has(button .value[data-placeholder='Type']) .dropdown-menu.noclose.c1 li",
+      false,
+    ),
+    genres: parseDropdownOptions($, ".genres li"),
+    status: parseDropdownOptions(
+      $,
+      ".dropdown:has(button .value[data-placeholder='Status']) .dropdown-menu.noclose.c1 li",
+    ),
+    languages: parseDropdownOptions(
+      $,
+      ".dropdown:has(button .value[data-placeholder='Language']) .dropdown-menu.noclose.c1 li",
+    ),
+    years: parseDropdownOptions(
+      $,
+      ".dropdown:has(button .value[data-placeholder='Year']) .dropdown-menu.noclose.md.c3 li",
+    ),
+    lengths: parseDropdownOptions(
+      $,
+      ".dropdown:has(button .value[data-placeholder='Length']) .dropdown-menu.noclose.c1 li",
+    ),
+    sorts: parseDropdownOptions(
+      $,
+      ".dropdown:has(button .value[data-placeholder='Sort by']) .dropdown-menu.noclose.c1 li",
+    ),
   };
 };
 
@@ -219,7 +179,7 @@ export const parseMangaDetails = (
 export const parseChapters = (
   $: CheerioAPI,
   sourceManga: SourceManga,
-  language: string,
+  langCode: string,
 ): Chapter[] => {
   const chapters: Chapter[] = [];
   $("li").each((_, el) => {
@@ -241,11 +201,10 @@ export const parseChapters = (
       chapterId: chapterUrlPath,
       title: title,
       sourceManga,
-      chapNum: parseFloat(String(chapterNumber)),
+      chapNum: parseFloat(chapterNumber ?? "0"),
       publishDate: new Date(convertToISO8601(dateText)),
       volume: 0,
-      langCode: MFLanguages.getFlagCode(language),
-      version: language,
+      langCode,
     });
   });
   return chapters;
@@ -260,11 +219,8 @@ export const parseChapterDetails = (json: PageResponse, chapter: Chapter): Chapt
   };
 };
 
-export const parseUpdatedSection = (
-  $: CheerioAPI,
-  collectedIds: string[],
-): DiscoverSectionItem[] => {
-  const items: DiscoverSectionItem[] = [];
+export const parseUpdatedSection = ($: CheerioAPI): ChapterUpdatesCarouselItem[] => {
+  const items: ChapterUpdatesCarouselItem[] = [];
 
   $(".unit .inner").each((_, element) => {
     const unit = $(element);
@@ -282,8 +238,7 @@ export const parseUpdatedSection = (
       ? chapterHref.replace(/^https?:\/\/[^/]+/, "")
       : chapterHref;
 
-    if (title && mangaId && !collectedIds.includes(mangaId)) {
-      collectedIds.push(mangaId);
+    if (title && mangaId) {
       items.push({
         type: "chapterUpdatesCarouselItem",
         mangaId: mangaId,
@@ -299,11 +254,8 @@ export const parseUpdatedSection = (
   return items;
 };
 
-export const parsePopularSection = (
-  $: CheerioAPI,
-  collectedIds: string[],
-): DiscoverSectionItem[] => {
-  const items: DiscoverSectionItem[] = [];
+export const parsePopularSection = ($: CheerioAPI): FeaturedCarouselItem[] => {
+  const items: FeaturedCarouselItem[] = [];
 
   $(".unit .inner").each((_, element) => {
     const unit = $(element);
@@ -324,8 +276,7 @@ export const parsePopularSection = (
     const chapterMatch = latestChapter.match(/Chap (\d+)/);
     const supertitle = chapterMatch ? `Ch. ${chapterMatch[1]}` : "";
 
-    if (title && mangaId && !collectedIds.includes(mangaId)) {
-      collectedIds.push(mangaId);
+    if (title && mangaId) {
       items.push({
         type: "featuredCarouselItem",
         mangaId: mangaId,
@@ -344,11 +295,8 @@ export const popularHasNextPage = ($: CheerioAPI): boolean => {
   return !!$(".hpage .r").length;
 };
 
-export const parseNewMangaSection = (
-  $: CheerioAPI,
-  collectedIds: string[],
-): DiscoverSectionItem[] => {
-  const items: DiscoverSectionItem[] = [];
+export const parseNewMangaSection = ($: CheerioAPI): SimpleCarouselItem[] => {
+  const items: SimpleCarouselItem[] = [];
 
   $(".unit .inner").each((_, element) => {
     const unit = $(element);
@@ -367,8 +315,7 @@ export const parseNewMangaSection = (
     const latestChapterMatch = latestChapter.match(/Chap (\d+)/);
     const subtitle = latestChapterMatch ? `Ch. ${latestChapterMatch[1]}` : undefined;
 
-    if (title && mangaId && !collectedIds.includes(mangaId)) {
-      collectedIds.push(mangaId);
+    if (title && mangaId) {
       items.push({
         mangaId,
         imageUrl: image,
@@ -396,18 +343,19 @@ function convertToISO8601(dateText: string): string {
   const relativeMatch = dateText.match(/(\d+)\s+(second|minute|hour|day)s?\s+ago/i);
   if (relativeMatch) {
     const [_, value, unit] = relativeMatch;
+    const parsedValue = parseInt(value, 10);
     switch (unit.toLowerCase()) {
       case "second":
-        now.setSeconds(now.getSeconds() - +value);
+        now.setSeconds(now.getSeconds() - parsedValue);
         break;
       case "minute":
-        now.setMinutes(now.getMinutes() - +value);
+        now.setMinutes(now.getMinutes() - parsedValue);
         break;
       case "hour":
-        now.setHours(now.getHours() - +value);
+        now.setHours(now.getHours() - parsedValue);
         break;
       case "day":
-        now.setDate(now.getDate() - +value);
+        now.setDate(now.getDate() - parsedValue);
         break;
     }
     return now.toISOString();

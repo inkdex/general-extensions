@@ -20,8 +20,6 @@ export function cacheGet(stateKey: string, key: string): string | undefined {
   const entry = cache[key];
   if (!entry) return undefined;
   if (entry.expiresAt < Date.now()) {
-    delete cache[key];
-    Application.setState(cache, stateKey);
     return undefined;
   }
   return entry.value;

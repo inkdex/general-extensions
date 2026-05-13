@@ -8,6 +8,17 @@ export const SEARCH_DETAILS_CACHE_KEY = "search_details_cache";
 export const VRF_SEARCH_CACHE_KEY = "search_vrf_cache";
 export const VRF_CHAPTER_CACHE_KEY = "chapter_vrf_cache";
 
+// Languages
+export const LANGUAGES = [
+  { title: "🇬🇧 English", id: "en" },
+  { title: "🇪🇸 Español", id: "es" },
+  { title: "🇲🇽 Español (Latinoamérica)", id: "es-la" },
+  { title: "🇫🇷 Français", id: "fr" },
+  { title: "🇵🇹 Português", id: "pt" },
+  { title: "🇧🇷 Português (Brasil)", id: "pt-br" },
+  { title: "🇯🇵 日本語", id: "ja" },
+];
+
 export type PageMetadata = { page?: number; collectedIds?: string[] };
 
 export interface Result {
