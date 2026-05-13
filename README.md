@@ -10,13 +10,13 @@ Paperback extensions for websites with unique, non-generic themes.
 - [MangaDex](https://mangadex.org)
 - [MangaFox](https://fanfox.net)
 - [MangaKatana](https://mangakatana.com)
-- [Manga Plus](https://mangaplus.shueisha.co.jp)
+- [MangaPlus](https://mangaplus.shueisha.co.jp)
 - [MangaTaro](https://mangataro.org)
 - [Mgeko](https://mgeko.cc)
 - [QiScans](https://qimanhwa.com)
 - [QToon](https://qtoon.com)
 - [Webtoon](https://webtoons.com)
-- [Weeb Central](https://weebcentral.com)
+- [WeebCentral](https://weebcentral.com)
 - [Mangapill](https://mangapill.com)
 
 ## Installation
