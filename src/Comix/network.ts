@@ -23,7 +23,7 @@ import {
   DOMAIN,
 } from "./models";
 import { ComixFilter } from "./utils/filter";
-import { apiViaWebView } from "./utils/webViewSigner";
+import { getVmToken } from "./utils/webView";
 
 export class ComixInterceptor extends PaperbackInterceptor {
   override async interceptRequest(request: Request): Promise<Request> {
@@ -58,6 +58,7 @@ export class ComixInterceptor extends PaperbackInterceptor {
 
 export class ComixApi {
   apiLink = "";
+  private tokenCache = new Map<string, string>();
 
   constructor(private filter: ComixFilter) {}
 
@@ -75,18 +76,29 @@ export class ComixApi {
     return JSON.parse(html) as ApiResponse<T>;
   }
 
-  private buildApiPath(api: ApiRequestConfig): string {
-    const parts = (Array.isArray(api.path) ? api.path : [api.path]).join("/");
-    const qs = api.query
-      ? Object.entries(api.query)
-          .flatMap(([k, v]) =>
-            (Array.isArray(v) ? v : [v]).map(
-              (x) => `${encodeURIComponent(k)}=${encodeURIComponent(x)}`,
-            ),
-          )
-          .join("&")
-      : "";
-    return "/" + parts + (qs ? "?" + qs : "");
+  private async fetchSignedApi<T>(
+    path: string,
+    query: Record<string, string | string[]> | undefined,
+    cookieInterceptor: CookieStorageInterceptor,
+  ): Promise<ApiResponse<T>> {
+    let token = this.tokenCache.get(path);
+    if (!token) {
+      token = await getVmToken(path, cookieInterceptor);
+      this.tokenCache.set(path, token);
+    }
+    const url = new URL(API);
+    path
+      .split("/")
+      .filter(Boolean)
+      .forEach((p) => url.addPathComponent(p));
+    if (query) {
+      for (const [key, value] of Object.entries(query)) {
+        url.setQueryItem(key, Array.isArray(value) ? value.join(",") : value);
+      }
+    }
+    url.setQueryItem("_", token);
+    const [, buffer] = await Application.scheduleRequest({ url: url.toString(), method: "GET" });
+    return JSON.parse(Application.arrayBufferToUTF8String(buffer)) as ApiResponse<T>;
   }
 
   async getJsonMangaTopApi(section: string): Promise<ApiResponse<MangaItem[]>> {
@@ -247,16 +259,11 @@ export class ComixApi {
     page: number,
     cookieStorageInterceptor: CookieStorageInterceptor,
   ) {
-    const [result] = await apiViaWebView<ResultChapter>(
-      [
-        this.buildApiPath({
-          path: ["manga", chapter, "chapters"],
-          query: { page: page.toString(), limit: "100", "order[number]": "desc" },
-        }),
-      ],
+    return this.fetchSignedApi<ResultChapter>(
+      `/manga/${chapter}/chapters`,
+      { page: page.toString(), limit: "100", "order[number]": "desc" },
       cookieStorageInterceptor,
     );
-    return result;
   }
 
   async getJsonChapterApiBatch(
@@ -265,16 +272,18 @@ export class ComixApi {
     toPage: number,
     cookieStorageInterceptor: CookieStorageInterceptor,
   ): Promise<ApiResponse<ResultChapter>[]> {
-    const paths: string[] = [];
-    for (let page = fromPage; page <= toPage; page++) {
-      paths.push(
-        this.buildApiPath({
-          path: ["manga", chapter, "chapters"],
-          query: { page: page.toString(), limit: "100", "order[number]": "desc" },
-        }),
-      );
-    }
-    return apiViaWebView<ResultChapter>(paths, cookieStorageInterceptor);
+    const pathOnly = `/manga/${chapter}/chapters`;
+    const pages: number[] = [];
+    for (let page = fromPage; page <= toPage; page++) pages.push(page);
+    return Promise.all(
+      pages.map((page) =>
+        this.fetchSignedApi<ResultChapter>(
+          pathOnly,
+          { page: page.toString(), limit: "100", "order[number]": "desc" },
+          cookieStorageInterceptor,
+        ),
+      ),
+    );
   }
 
   async getJsonSearchApi(
@@ -302,11 +311,11 @@ export class ComixApi {
   }
 
   async getJsonChapPagesApi(chapterId: string, cookieStorageInterceptor: CookieStorageInterceptor) {
-    const [result] = await apiViaWebView<ChapterPages>(
-      [this.buildApiPath({ path: ["chapters", chapterId] })],
+    return this.fetchSignedApi<ChapterPages>(
+      `/chapters/${chapterId}`,
+      undefined,
       cookieStorageInterceptor,
     );
-    return result;
   }
 
   async getFiltersApi(filter: string) {
