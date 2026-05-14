@@ -30,9 +30,11 @@ export abstract class WebtoonParser extends WebtoonSettings {
     const infoElement = $("#_asideDetail") as CheerioElement;
     const isCanvas = mangaId.startsWith(this.languageFromId(mangaId) + "/canvas");
 
-    const [image, title] = isCanvas
-      ? [this.parseCanvasDetailsThumbnail($), detailElement.find("h3").text().trim()]
-      : [this.parseDetailsThumbnail($), detailElement.find("h1").text().trim()];
+    const headingEl = detailElement.find(isCanvas ? "h3" : "h1");
+    headingEl.find("br").replaceWith(" ");
+    const title = headingEl.text().replace(/\s+/g, " ").trim();
+    const image = isCanvas ? this.parseCanvasDetailsThumbnail($) : this.parseDetailsThumbnail($);
+    detailElement.find(".author_area").find("button").remove();
 
     return {
       mangaId: mangaId,
@@ -42,10 +44,8 @@ export abstract class WebtoonParser extends WebtoonSettings {
         primaryTitle: title,
         secondaryTitles: [],
         contentRating: isCanvas ? ContentRating.MATURE : ContentRating.EVERYONE,
-
         status: this.parseStatus(infoElement),
-        artist: "",
-        author: detailElement.find(".author_area").text().trim(),
+        author: detailElement.find(".author_area").text().replace(/\s+/g, " ").trim(),
         tagGroups: [
           {
             id: "0",
@@ -77,7 +77,7 @@ export abstract class WebtoonParser extends WebtoonSettings {
       $("#wrap > #container > #content > div.detail_bg")
         .attr("style")
         ?.match(/url\('(.*?)'\)/)?.[1] ?? "";
-    const meta = $("meta[property='og:image']").attr("content") ?? "";
+    const meta = $("meta[property='og:image']").attr("content")?.replace(/\?\S+/, "") ?? "";
     return meta ?? thumb;
   }
 
