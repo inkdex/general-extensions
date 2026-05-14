@@ -42,3 +42,6 @@ jobs:
           publish_dir: bundles
           destination_dir: ${{ github.ref_name }}
           keep_files: true
+          commit_message: "test: ${GITHUB_SHA}"
+          user_name: "github-actions[bot]"
+          user_email: "github-actions[bot]@users.noreply.github.com"
