@@ -6,7 +6,7 @@ import { ContentRating, SourceIntents, type ExtensionInfo } from "@paperback/typ
 export default {
   name: "MangaDex",
   description: "Extension that pulls content from mangadex.org.",
-  version: "1.0.0-alpha.26",
+  version: "1.0.0-alpha.27",
   icon: "icon.png",
   languages: "multi",
   contentRating: ContentRating.EVERYONE,
@@ -14,7 +14,6 @@ export default {
     SourceIntents.CHAPTER_PROVIDING,
     SourceIntents.DISCOVER_SECTION_PROVIDING,
     SourceIntents.MANAGED_COLLECTION_PROVIDING,
-    SourceIntents.PROGRESS_PROVIDING,
     SourceIntents.SEARCH_RESULT_PROVIDING,
     SourceIntents.SETTINGS_FORM_PROVIDING,
   ],
