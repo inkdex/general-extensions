@@ -1,69 +1,35 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 /* Copyright © 2026 Inkdex */
 
+import { BasicRateLimiter, type ExtensionImpl } from "@paperback/types";
+
 import {
-  BasicRateLimiter,
-  Form,
-  type Chapter,
-  type ChapterDetails,
-  type ChapterProviding,
-  type ChapterReadActionQueueProcessingResult,
-  type DiscoverSection,
-  type DiscoverSectionItem,
-  type DiscoverSectionProviding,
-  type Extension,
-  type LibraryItemSourceLinkProposal,
-  type ManagedCollection,
-  type ManagedCollectionChangeset,
-  type ManagedCollectionProviding,
-  type MangaProgress,
-  type MangaProgressProviding,
-  type MangaProviding,
-  type PagedResults,
-  type SearchQuery,
-  type SearchResultItem,
-  type SearchResultsProviding,
-  type SettingsFormProviding,
-  type SortingOption,
-  type SourceManga,
-  type TagSection,
-  type TrackedMangaChapterReadAction,
-  type UpdateManager,
-} from "@paperback/types";
+  getChapterDetails,
+  getChapters,
+  processTitlesForUpdates,
+} from "./implementations/chapter-providing/main";
 import {
-  SearchFilterForm,
-  type SearchFilter,
-  type SearchFilterValue,
-} from "@paperback/types/lib/compat/0.8";
+  getDiscoverSectionItems,
+  getDiscoverSections,
+} from "./implementations/discover-section/main";
+import {
+  commitManagedCollectionChanges,
+  getManagedLibraryCollections,
+  getSourceMangaInManagedCollection,
+} from "./implementations/managed-collection/main";
+import { getMangaDetails } from "./implementations/manga/main";
+import {
+  getAdvancedSearchForm,
+  getSearchResults,
+  getSearchTags,
+  getSortingOptions,
+} from "./implementations/search-results/main";
+import { getSettingsForm } from "./implementations/settings-form/main";
+import { runStateMigrations } from "./implementations/shared/state";
+import MangaDexConfig from "./pbconfig";
+import { MangaDexInterceptor } from "./services/network";
 
-import { MangaDexInterceptor } from "./MangaDexInterceptor";
-import type { Metadata } from "./models";
-import { ChapterProvider } from "./providers/ChapterProvider";
-import { CollectionProvider } from "./providers/CollectionProvider";
-import { DiscoverProvider } from "./providers/DiscoverProvider";
-import { MangaProvider } from "./providers/MangaProvider";
-import { ProgressProvider } from "./providers/ProgressProvider";
-import { SearchProvider } from "./providers/SearchProvider";
-import { SettingsProvider } from "./providers/SettingsProvider";
-
-/**
- * Interface defining all the capabilities this extension implements
- */
-type MangaDexImplementation = Extension &
-  SearchResultsProviding &
-  MangaProviding &
-  ChapterProviding &
-  SettingsFormProviding &
-  ManagedCollectionProviding &
-  MangaProgressProviding &
-  DiscoverSectionProviding;
-
-/**
- * Main extension class that implements all MangaDex functionality
- * Acts as an entry to the individual provider services
- */
-export class MangaDexExtension implements MangaDexImplementation {
-  // Rate limiting and request interception
+export class MangaDexExtension implements ExtensionImpl<typeof MangaDexConfig> {
   globalRateLimiter = new BasicRateLimiter("rateLimiter", {
     numberOfRequests: 5,
     bufferInterval: 1,
@@ -71,119 +37,26 @@ export class MangaDexExtension implements MangaDexImplementation {
   });
   mainRequestInterceptor = new MangaDexInterceptor("main");
 
-  // Provider instances for different functions of the extension
-  private mangaProvider: MangaProvider = new MangaProvider();
-  private chapterProvider: ChapterProvider = new ChapterProvider(this.mangaProvider);
-  private searchProvider: SearchProvider = new SearchProvider();
-  private discoverProvider: DiscoverProvider = new DiscoverProvider();
-  private collectionProvider: CollectionProvider = new CollectionProvider();
-  private progressProvider: ProgressProvider = new ProgressProvider(this.chapterProvider);
-  private settingsProvider: SettingsProvider = new SettingsProvider();
-
   async initialise(): Promise<void> {
     this.globalRateLimiter.registerInterceptor();
     this.mainRequestInterceptor.registerInterceptor();
-
-    if (Application.isResourceLimited) return;
+    runStateMigrations();
   }
 
-  // MangaProviding implementation
-  async getMangaDetails(mangaId: string): Promise<SourceManga> {
-    return this.mangaProvider.getMangaDetails(mangaId);
-  }
-
-  // SearchResultsProviding implementation
-  async getSearchFilters(): Promise<SearchFilter[]> {
-    return this.searchProvider.getSearchFilters();
-  }
-
-  async getSearchResults(
-    query: SearchQuery<SearchFilterValue[]>,
-    metadata: Metadata,
-    sortingOption: SortingOption | undefined,
-  ): Promise<PagedResults<SearchResultItem>> {
-    return this.searchProvider.getSearchResults(query, metadata, sortingOption);
-  }
-
-  async getAdvancedSearchForm(query: SearchQuery<SearchFilterValue[]>) {
-    // TODO: Replace compat wrapper with proper search form implementation
-    return new SearchFilterForm(query.metadata, this.getSearchFilters());
-  }
-
-  getSearchTags(): TagSection[] {
-    return this.searchProvider.getSearchTags();
-  }
-
-  async getSortingOptions(query: SearchQuery<SearchFilterValue[]>): Promise<SortingOption[]> {
-    return this.searchProvider.getSortingOptions(query);
-  }
-
-  // ChapterProviding implementation
-  async getChapters(sourceManga: SourceManga, sinceDate?: Date): Promise<Chapter[]> {
-    return this.chapterProvider.getChapters(sourceManga, sinceDate);
-  }
-
-  async getChapterDetails(chapter: Chapter): Promise<ChapterDetails> {
-    return this.chapterProvider.getChapterDetails(chapter);
-  }
-
-  async processTitlesForUpdates(
-    updateManager: UpdateManager,
-    lastUpdateDate?: Date,
-  ): Promise<void> {
-    return this.chapterProvider.processTitlesForUpdates(updateManager, lastUpdateDate);
-  }
-
-  // SettingsFormProviding implementation
-  async getSettingsForm(): Promise<Form> {
-    return this.settingsProvider.getSettingsForm();
-  }
-
-  // ManagedCollectionProviding implementation
-  async prepareLibraryItems(): Promise<LibraryItemSourceLinkProposal[]> {
-    return this.collectionProvider.prepareLibraryItems();
-  }
-
-  async getManagedLibraryCollections(): Promise<ManagedCollection[]> {
-    return this.collectionProvider.getManagedLibraryCollections();
-  }
-
-  async commitManagedCollectionChanges(changeset: ManagedCollectionChangeset): Promise<void> {
-    return this.collectionProvider.commitManagedCollectionChanges(changeset);
-  }
-
-  async getSourceMangaInManagedCollection(
-    managedCollection: ManagedCollection,
-  ): Promise<SourceManga[]> {
-    return this.collectionProvider.getSourceMangaInManagedCollection(managedCollection);
-  }
-
-  // MangaProgressProviding implementation
-  async getMangaProgressManagementForm(sourceManga: SourceManga): Promise<Form> {
-    return this.progressProvider.getMangaProgressManagementForm(sourceManga);
-  }
-
-  async getMangaProgress(sourceManga: SourceManga): Promise<MangaProgress | undefined> {
-    return this.progressProvider.getMangaProgress(sourceManga);
-  }
-
-  async processChapterReadActionQueue(
-    actions: TrackedMangaChapterReadAction[],
-  ): Promise<ChapterReadActionQueueProcessingResult> {
-    return this.progressProvider.processChapterReadActionQueue(actions);
-  }
-
-  // DiscoverSectionProviding implementation
-  async getDiscoverSections(): Promise<DiscoverSection[]> {
-    return this.discoverProvider.getDiscoverSections();
-  }
-
-  async getDiscoverSectionItems(
-    section: DiscoverSection,
-    metadata: Metadata | undefined,
-  ): Promise<PagedResults<DiscoverSectionItem>> {
-    return this.discoverProvider.getDiscoverSectionItems(section, metadata);
-  }
+  getMangaDetails = getMangaDetails;
+  getManagedLibraryCollections = getManagedLibraryCollections;
+  commitManagedCollectionChanges = commitManagedCollectionChanges;
+  getSourceMangaInManagedCollection = getSourceMangaInManagedCollection;
+  getSettingsForm = getSettingsForm;
+  getSearchTags = getSearchTags;
+  getAdvancedSearchForm = getAdvancedSearchForm;
+  getSearchResults = getSearchResults;
+  getSortingOptions = getSortingOptions;
+  getDiscoverSections = getDiscoverSections;
+  getDiscoverSectionItems = getDiscoverSectionItems;
+  getChapters = getChapters;
+  getChapterDetails = getChapterDetails;
+  processTitlesForUpdates = processTitlesForUpdates;
 }
 
 export const MangaDex = new MangaDexExtension();
