@@ -31,12 +31,13 @@ export const parseMangaDetails = (
     secondaryTitles.push(Application.decodeHTMLEntities(title));
   }
 
-  const image = $("img", "div.fixed-img").attr("data-src") ?? "";
+  const thumbnailUrl = $("img", "div.fixed-img").attr("data-src") ?? "";
   const author = $("span", "div.author").next().text().trim();
 
   const description = Application.decodeHTMLEntities($(".description").first().text().trim()).split(
     "The Summary is",
   );
+  const synopsis = description[1] ? description[1] : description.join("");
 
   const arrayTags: Tag[] = [];
   for (const tag of $("li", "div.categories").toArray()) {
@@ -46,7 +47,7 @@ export const parseMangaDetails = (
     if (!id || !title) continue;
     arrayTags.push({ id: id, title: title });
   }
-  const tagSections: TagSection[] = [{ id: "0", title: "genres", tags: arrayTags }];
+  const tagGroups: TagSection[] = [{ id: "0", title: "genres", tags: arrayTags }];
 
   const rawStatus = $("small:contains(Status)", "div.header-stats").prev().text().trim();
   let status = "ONGOING";
@@ -63,16 +64,16 @@ export const parseMangaDetails = (
   }
 
   return {
-    mangaId: mangaId,
+    mangaId,
     mangaInfo: {
-      thumbnailUrl: image,
-      synopsis: description[1] ? description[1] : description.join(""),
-      primaryTitle: primaryTitle,
-      secondaryTitles: secondaryTitles,
+      thumbnailUrl,
+      synopsis,
+      primaryTitle,
+      secondaryTitles,
       contentRating: ContentRating.EVERYONE,
-      status: status,
-      author: author,
-      tagGroups: tagSections,
+      status,
+      author,
+      tagGroups,
       shareUrl: new URL(sourceUrl).addPathComponent("manga").addPathComponent(mangaId).toString(),
     } as MangaInfo,
   } as SourceManga;
@@ -83,13 +84,15 @@ export const parseChapters = ($: CheerioAPI, sourceManga: SourceManga): Chapter[
   let sortingIndex = chapters.length - 1;
 
   for (const chapter of $("li", "ul.chapter-list").toArray()) {
-    const title = Application.decodeHTMLEntities($("strong.chapter-title", chapter).text().trim());
+    let title = Application.decodeHTMLEntities($("strong.chapter-title", chapter).text().trim());
     const chapterId: string =
       $("a", chapter).attr("href")?.replace(/\/$/, "").split("/").pop() ?? "";
     if (!chapterId) continue;
 
-    const datePieces = $("time.chapter-update", chapter).attr("datetime")?.split(",") ?? [];
-    const date = new Date(String(`${datePieces[0] ?? ""}, ${datePieces[1] ?? ""}`));
+    const normalizedDateTime = ($("time.chapter-update", chapter).attr("datetime") ?? "")
+      .replace(/\bp\.m\.?/i, "PM")
+      .replace(/\ba\.m\.?/i, "AM");
+    const publishDate = new Date(normalizedDateTime);
     const chapNumRegex = /(\d+)(?:[-.]\d+)?/.exec(title);
 
     let chapNum = 0;
@@ -99,14 +102,17 @@ export const parseChapters = ($: CheerioAPI, sourceManga: SourceManga): Chapter[
       chapNum = Number(chapRegex);
     }
 
+    // Display original title if chapNum parsing fails
+    title = isNaN(chapNum) ? title : "";
+
     chapters.push({
-      chapterId: chapterId,
-      sourceManga: sourceManga,
-      langCode: "🇬🇧",
-      chapNum: chapNum,
-      title: isNaN(chapNum) ? title : "", // Display original title if chapNum parsing fails
+      chapterId,
+      sourceManga,
+      langCode: "en",
+      chapNum,
+      title,
       volume: 0,
-      publishDate: date,
+      publishDate,
       sortingIndex,
     });
     sortingIndex--;
@@ -132,7 +138,7 @@ export const parseChapterDetails = ($: CheerioAPI, chapter: Chapter): ChapterDet
   return {
     id: chapter.chapterId,
     mangaId: chapter.sourceManga.mangaId,
-    pages: pages,
+    pages,
   };
 };
 
@@ -141,22 +147,22 @@ export const parseViewMore = ($: CheerioAPI): DiscoverSectionItem[] => {
   const collectedIds: string[] = [];
 
   for (const obj of $("article.comic-card").toArray()) {
-    const image: string = $("img", obj).first().attr("src") ?? "";
-    const title: string = $("img", obj).first().attr("alt") ?? "";
-    const id = $("a", obj).attr("href")?.replace(/\/$/, "").split("/").pop() ?? "";
+    const imageUrl = $("img", obj).first().attr("src") ?? "";
+    const title = Application.decodeHTMLEntities($("img", obj).first().attr("alt") ?? "");
+    const mangaId = $("a", obj).attr("href")?.replace(/\/$/, "").split("/").pop() ?? "";
+    const subtitle = $(".comic-card__stat--rating", obj).text().trim();
 
-    const subtitle: string = $(".comic-card__stat--rating", obj).text().trim();
+    if (!mangaId || !title || collectedIds.includes(mangaId)) continue;
 
-    if (!id || !title || collectedIds.includes(id)) continue;
     manga.push({
       type: "simpleCarouselItem",
-      mangaId: id,
-      title: Application.decodeHTMLEntities(title),
-      imageUrl: image,
-      subtitle: subtitle,
+      mangaId,
+      title,
+      imageUrl,
+      subtitle,
       contentRating: ContentRating.EVERYONE,
     });
-    collectedIds.push(id);
+    collectedIds.push(mangaId);
   }
 
   return manga;
@@ -197,12 +203,12 @@ export const parseGenreTags = ($: CheerioAPI): TagSection[] => {
 export const parseOldSearch = ($: CheerioAPI, baseUrl: string): SearchResultItem[] => {
   const mangas: SearchResultItem[] = [];
   for (const obj of $("li.novel-item", "ul.novel-list").toArray()) {
-    let image: string =
+    let imageUrl =
       $("img", obj).first().attr("data-src") ?? $("img", obj).first().attr("src") ?? "";
-    if (image.startsWith("/")) image = baseUrl + image;
+    if (imageUrl.startsWith("/")) imageUrl = baseUrl + imageUrl;
 
-    const title: string = $("img", obj).first().attr("alt") ?? "";
-    const id = $("a", obj).attr("href")?.replace(/\/$/, "").split("/").pop() ?? "";
+    const title = Application.decodeHTMLEntities($("img", obj).first().attr("alt") ?? "");
+    const mangaId = $("a", obj).attr("href")?.replace(/\/$/, "").split("/").pop() ?? "";
     const getChapter = $("div.novel-stats > strong", obj).text().trim();
     const chapNumRegex = /(\d+)(?:[-.]\d+)?/.exec(getChapter);
 
@@ -212,15 +218,15 @@ export const parseOldSearch = ($: CheerioAPI, baseUrl: string): SearchResultItem
       if (chapRegex.includes("-")) chapRegex = chapRegex.replace("-", ".");
       chapNum = Number(chapRegex);
     }
-
     const subtitle = chapNum ? `Chapter ${chapNum.toString()}` : "Chapter N/A";
-    if (!id || !title) continue;
+
+    if (!mangaId || !title) continue;
 
     mangas.push({
-      mangaId: id,
-      title: Application.decodeHTMLEntities(title),
-      imageUrl: image,
-      subtitle: Application.decodeHTMLEntities(subtitle),
+      mangaId,
+      title,
+      imageUrl,
+      subtitle,
       contentRating: ContentRating.EVERYONE,
     });
   }
@@ -230,20 +236,21 @@ export const parseOldSearch = ($: CheerioAPI, baseUrl: string): SearchResultItem
 export const parseSearch = ($: CheerioAPI, baseUrl: string): SearchResultItem[] => {
   const mangas: SearchResultItem[] = [];
   for (const obj of $("article.comic-card").toArray()) {
-    let image: string =
+    let imageUrl: string =
       $("img", obj).first().attr("data-src") ?? $("img", obj).first().attr("src") ?? "";
-    if (image.startsWith("/")) image = baseUrl + image;
+    if (imageUrl.startsWith("/")) imageUrl = baseUrl + imageUrl;
 
-    const title: string = $("img", obj).first().attr("alt") ?? "";
-    const id = $("a", obj).attr("href")?.replace(/\/$/, "").split("/").pop() ?? "";
-
+    const title = Application.decodeHTMLEntities($("img", obj).first().attr("alt") ?? "");
+    const mangaId = $("a", obj).attr("href")?.replace(/\/$/, "").split("/").pop() ?? "";
     const subtitle: string = $(".comic-card__stat--rating", obj).text().trim();
 
+    if (!mangaId || !title) continue;
+
     mangas.push({
-      mangaId: id,
-      title: Application.decodeHTMLEntities(title),
-      imageUrl: image,
-      subtitle: subtitle,
+      mangaId,
+      title,
+      imageUrl,
+      subtitle,
       contentRating: ContentRating.EVERYONE,
     });
   }

@@ -6,30 +6,26 @@ import {
   CookieStorageInterceptor,
   DiscoverSectionType,
   EndOfPageResults,
+  Form,
   URL,
   type AdvancedSearchForm,
   type Chapter,
   type ChapterDetails,
-  type ChapterProviding,
-  type CloudflareBypassRequestProviding,
   type Cookie,
   type DiscoverSection,
   type DiscoverSectionItem,
-  type DiscoverSectionProviding,
-  type Extension,
-  type MangaProviding,
+  type ExtensionImpl,
   type PagedResults,
   type Request,
   type SearchQuery,
   type SearchResultItem,
-  type SearchResultsProviding,
   type SortingOption,
   type SourceManga,
   type TagSection,
 } from "@paperback/types";
 import * as cheerio from "cheerio";
 
-import { MgekoAdvancedSearchForm } from "./forms";
+import { getSafeMode, MgekoAdvancedSearchForm, MgekoSettingsForm } from "./forms";
 import { DOMAIN, type BrowseResult, type PageMetadata, type SearchMetadata } from "./models";
 import { MgekoInterceptor } from "./network";
 import {
@@ -41,15 +37,9 @@ import {
   parseSearch,
   parseViewMore,
 } from "./parsers";
+import MgekoConfig from "./pbconfig";
 
-type MgekoImplementation = Extension &
-  SearchResultsProviding &
-  MangaProviding &
-  ChapterProviding &
-  DiscoverSectionProviding &
-  CloudflareBypassRequestProviding;
-
-export class MgekoExtension implements MgekoImplementation {
+export class MgekoExtension implements ExtensionImpl<typeof MgekoConfig> {
   globalRateLimiter = new BasicRateLimiter("rateLimiter", {
     numberOfRequests: 4,
     bufferInterval: 1,
@@ -65,6 +55,10 @@ export class MgekoExtension implements MgekoImplementation {
     this.globalRateLimiter.registerInterceptor();
     this.cookieStorageInterceptor.registerInterceptor();
     this.mainRequestInterceptor.registerInterceptor();
+  }
+
+  async getSettingsForm(): Promise<Form> {
+    return new MgekoSettingsForm();
   }
 
   async getDiscoverSections(): Promise<DiscoverSection[]> {
@@ -218,7 +212,6 @@ export class MgekoExtension implements MgekoImplementation {
       const urlBuilder = new URL(DOMAIN).addPathComponent("browse-comics").addPathComponent("data");
 
       urlBuilder.setQueryItem("page", page.toString());
-
       urlBuilder.setQueryItem("sort", sortingOption?.id ?? "rating");
 
       const searchMeta = query.metadata ?? {};
@@ -243,6 +236,17 @@ export class MgekoExtension implements MgekoImplementation {
 
       const type = searchMeta.type ?? "";
       if (type) urlBuilder.setQueryItem("type", type);
+
+      const setChapterCount = searchMeta.setChapterCount ?? false;
+      if (setChapterCount) {
+        const minChapters = searchMeta.minChapters ?? 0;
+        const maxChapters = searchMeta.maxChapters ?? 9995;
+        urlBuilder.setQueryItem("min_chapters", minChapters.toString());
+        urlBuilder.setQueryItem("max_chapters", maxChapters.toString());
+      }
+
+      const safeMode = getSafeMode();
+      urlBuilder.setQueryItem("safe_mode", Number(safeMode).toString());
 
       const request = {
         url: urlBuilder.toString(),
@@ -274,6 +278,7 @@ export class MgekoExtension implements MgekoImplementation {
     if (metadata?.completed) return EndOfPageResults;
 
     const page: number = metadata?.page ?? 1;
+    const safeMode = getSafeMode();
 
     const request: Request = {
       url: new URL(DOMAIN)
@@ -281,6 +286,7 @@ export class MgekoExtension implements MgekoImplementation {
         .addPathComponent("data")
         .setQueryItem("page", page.toString())
         .setQueryItem("sort", sort)
+        .setQueryItem("safe_mode", Number(safeMode).toString())
         .toString(),
       method: "GET",
     };
