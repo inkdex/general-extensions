@@ -10,6 +10,9 @@ export type SearchMetadata = {
   genres?: { [id: string]: "included" | "excluded" };
   status?: string;
   type?: string;
+  setChapterCount?: boolean;
+  minChapters?: number;
+  maxChapters?: number;
 };
 
 export type BrowseResult = {
