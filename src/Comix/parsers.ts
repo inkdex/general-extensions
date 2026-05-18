@@ -137,7 +137,7 @@ export class ComixParser {
         version: chapter.isOfficial ? "⭐Official" : (chapter.group?.name ?? "Unknown"),
         sortingIndex: chapter.number,
         publishDate: parseRelativeDate(chapter.createdAtFormatted),
-        additionalInfo: { vote: chapter.votes.toString() },
+        additionalInfo: { vote: chapter.votes.toString(), url: chapter.url },
       };
     });
   }
@@ -187,7 +187,7 @@ export class ComixParser {
       author: manga.authors?.map((author) => author.title).join(" ") ?? "",
       rating: manga.ratedAvg / 10,
       tagGroups: tags,
-      shareUrl: `${DOMAIN}/title/${manga.hid}`,
+      shareUrl: `${DOMAIN}${manga.url}`,
     };
     return { mangaId: mangaId, mangaInfo: mangaInfo };
   }

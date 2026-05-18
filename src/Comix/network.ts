@@ -2,6 +2,7 @@
 /* Copyright © 2026 Inkdex */
 
 import {
+  type Chapter,
   type Request,
   type Response,
   CloudflareError,
@@ -78,12 +79,13 @@ export class ComixApi {
 
   private async fetchSignedApi<T>(
     path: string,
+    pageUrl: string,
     query: Record<string, string | string[]> | undefined,
     cookieInterceptor: CookieStorageInterceptor,
   ): Promise<ApiResponse<T>> {
     let token = this.tokenCache.get(path);
     if (!token) {
-      token = await getVmToken(path, cookieInterceptor);
+      token = await getVmToken(path, pageUrl, cookieInterceptor);
       this.tokenCache.set(path, token);
     }
     const url = new URL(API);
@@ -261,28 +263,9 @@ export class ComixApi {
   ) {
     return this.fetchSignedApi<ResultChapter>(
       `/manga/${chapter}/chapters`,
+      `${DOMAIN}/title/${chapter}`,
       { page: page.toString(), limit: "100", "order[number]": "desc" },
       cookieStorageInterceptor,
-    );
-  }
-
-  async getJsonChapterApiBatch(
-    chapter: string,
-    fromPage: number,
-    toPage: number,
-    cookieStorageInterceptor: CookieStorageInterceptor,
-  ): Promise<ApiResponse<ResultChapter>[]> {
-    const pathOnly = `/manga/${chapter}/chapters`;
-    const pages: number[] = [];
-    for (let page = fromPage; page <= toPage; page++) pages.push(page);
-    return Promise.all(
-      pages.map((page) =>
-        this.fetchSignedApi<ResultChapter>(
-          pathOnly,
-          { page: page.toString(), limit: "100", "order[number]": "desc" },
-          cookieStorageInterceptor,
-        ),
-      ),
     );
   }
 
@@ -310,9 +293,14 @@ export class ComixApi {
     return this.APIJson<ResultManga>({ path: "manga", query: query });
   }
 
-  async getJsonChapPagesApi(chapterId: string, cookieStorageInterceptor: CookieStorageInterceptor) {
+  async getJsonChapPagesApi(chapter: Chapter, cookieStorageInterceptor: CookieStorageInterceptor) {
+    const url = chapter.additionalInfo?.url;
+    if (typeof url !== "string" || !url) {
+      throw new Error(`Comix getJsonChapPagesApi: missing url for chapter ${chapter.chapterId}`);
+    }
     return this.fetchSignedApi<ChapterPages>(
-      `/chapters/${chapterId}`,
+      `/chapters/${chapter.chapterId}`,
+      `${DOMAIN}${url}`,
       undefined,
       cookieStorageInterceptor,
     );

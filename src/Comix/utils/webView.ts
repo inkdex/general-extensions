@@ -2,73 +2,90 @@
 /* Copyright © 2026 Inkdex */
 
 import { type CookieStorageInterceptor } from "@paperback/types";
+import * as cheerio from "cheerio";
 
 import { DOMAIN } from "../models";
 
 /**
- * Returns the signed `_=` token for the given API path by loading
- * comix.to in a WebView and probing the bundle's obfuscated VM namespace
- * for the signer function (qi). The token is stable for a given path
- * regardless of query parameters, so callers should cache it.
+ * Returns the signed `_=` token for a Comix API path.
+ *
+ * Approach: the bundle's signer (`bi.D`) is module-scoped in an ES module and
+ * is no longer reachable from `globalThis` (the old `vmX_<hex>` namespace is
+ * gone). Instead of probing for it, we load `pageUrl` (a real page whose own
+ * JS fires a signed request to `pathOnly`) in a WebView and hook
+ * `fetch` / `XMLHttpRequest.open` to capture the `_=` value off that URL.
+ *
+ * The bundle's interceptor signs by path only (`Ni` strips the query string),
+ * so the captured token is reusable for any query on the same path. Callers
+ * should cache it.
  */
 export async function getVmToken(
   pathOnly: string,
+  pageUrl: string,
   cookieInterceptor: CookieStorageInterceptor,
 ): Promise<string> {
-  const [, buffer] = await Application.scheduleRequest({ url: `${DOMAIN}/`, method: "GET" });
+  const [, buffer] = await Application.scheduleRequest({ url: pageUrl, method: "GET" });
+  const rawHtml = Application.arrayBufferToUTF8String(buffer);
+
+  // Prepended to <head> so it runs before any site script registers the axios
+  // interceptors. Captured tokens are stored on `window.__comixTokens__`
+  // keyed by the API path (after stripping `/api/v1`).
+  const hookScript = `
+    (function () {
+      window.__comixTokens__ = window.__comixTokens__ || {};
+      function grab(rawUrl) {
+        if (typeof rawUrl !== "string") return;
+        try {
+          var u = new URL(rawUrl, window.location.origin);
+          var t = u.searchParams.get("_");
+          if (!t) return;
+          var p = u.pathname.replace(/^\\/api\\/v1/, "");
+          if (!window.__comixTokens__[p]) window.__comixTokens__[p] = t;
+        } catch (e) {}
+      }
+      var origFetch = window.fetch;
+      window.fetch = function (input, init) {
+        try { grab(typeof input === "string" ? input : input && input.url); } catch (e) {}
+        return origFetch.apply(this, arguments);
+      };
+      var origOpen = XMLHttpRequest.prototype.open;
+      XMLHttpRequest.prototype.open = function (m, u) {
+        try { grab(u); } catch (e) {}
+        return origOpen.apply(this, arguments);
+      };
+    })();
+  `;
+
+  const $ = cheerio.load(rawHtml);
+  $("head").prepend(`<script>${hookScript}</script>`);
+  const html = $.html();
+
   const cookies = cookieInterceptor.cookiesForUrl(`${DOMAIN}/`);
 
   const raw = await Application.executeInWebView({
     source: {
-      html: Application.arrayBufferToUTF8String(buffer),
-      baseUrl: `${DOMAIN}/`,
+      html,
+      baseUrl: pageUrl,
       loadCSS: false,
       loadImages: false,
     },
     inject: `return (async () => {
-    try {
-      // Poll for the bundle's obfuscated VM namespace (deploy-rotated \`vm[A-Za-z]_<hex>\`).
-      // The namespace is populated by \`secure-*.js\`, a lazy chunk fetched after page load,
-      // so it may not exist yet when the inject runs. Poll every 100 ms, up to 10 s.
-      let vmNs = null;
-      await new Promise((resolve) => {
-        const deadline = Date.now() + 10000;
-        const poll = () => {
-          for (const k of Object.keys(globalThis)) {
-            if (!/^vm[A-Za-z]_[A-Za-z0-9_]+$/.test(k)) continue;
-            const v = globalThis[k];
-            if (v && typeof v === "object" && Object.keys(v).some(n => typeof v[n] === "function")) {
-              vmNs = v; resolve(); return;
-            }
+      try {
+        const path = ${JSON.stringify(pathOnly)};
+        const deadline = Date.now() + 15000;
+        while (Date.now() < deadline) {
+          const t = window.__comixTokens__ && window.__comixTokens__[path];
+          if (typeof t === "string" && t.length > 0) {
+            return JSON.stringify({ ok: true, token: t });
           }
-          if (Date.now() < deadline) { setTimeout(poll, 100); return; }
-          vmNs = {}; resolve();
-        };
-        poll();
-      });
-      const vmFunctions = Object.keys(vmNs).filter(n => typeof vmNs[n] === "function");
-
-      // Locate the signer (qi): returns a URL-safe base64 token for signed paths, null otherwise.
-      // Use a path that always matches the bundle's signed-path patterns for detection.
-      const DETECTION_PATH = "/manga/_probe_/chapters";
-      let signerName = null;
-      for (const name of vmFunctions) {
-        try {
-          const token = vmNs[name](DETECTION_PATH);
-          if (typeof token === "string" && /^[A-Za-z0-9_+/=_-]{20,}$/.test(token)) {
-            signerName = name; break;
-          }
-        } catch (e) {}
+          await new Promise(r => setTimeout(r, 100));
+        }
+        const captured = Object.keys(window.__comixTokens__ || {});
+        return JSON.stringify({ ok: false, error: "timeout; captured paths: " + JSON.stringify(captured) });
+      } catch (e) {
+        return JSON.stringify({ ok: false, error: "exception: " + (e && e.message || e) });
       }
-      if (!signerName) return JSON.stringify({ ok: false, error: "signer not found" });
-
-      const token = vmNs[signerName](${JSON.stringify(pathOnly)});
-      if (typeof token !== "string") return JSON.stringify({ ok: false, error: "token not a string" });
-      return JSON.stringify({ ok: true, token });
-    } catch (e) {
-      return JSON.stringify({ ok: false, error: "exception: " + (e && e.message || e) });
-    }
-  })()`,
+    })()`,
     storage: { cookies },
   });
 
