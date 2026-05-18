@@ -94,6 +94,7 @@ export interface ChapterItem {
   volume: number;
   votes: number;
   createdAtFormatted: string;
+  url: string;
   group?: { name: string } | null;
 }
 
