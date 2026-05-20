@@ -5,6 +5,7 @@ import {
   AdvancedSearchForm,
   ButtonRow,
   Form,
+  LabelRow,
   Section,
   SelectRow,
   ToggleRow,
@@ -14,6 +15,8 @@ import {
 } from "@paperback/types";
 
 import {
+  BROKEN_CDN_PREFIXES_KEY,
+  CDN_PREFIXES,
   LANGUAGES,
   SEARCH_DETAILS_CACHE_KEY,
   VRF_CHAPTER_CACHE_KEY,
@@ -34,6 +37,14 @@ export function getLanguages(): string[] {
 
 export function setLanguages(languages: string[]): void {
   Application.setState(languages, "languages");
+}
+
+export function getBrokenCdnPrefixes(): string[] {
+  return (Application.getState(BROKEN_CDN_PREFIXES_KEY) as string[] | undefined) ?? [];
+}
+
+export function setBrokenCdnPrefixes(prefixes: string[]): void {
+  Application.setState(prefixes, BROKEN_CDN_PREFIXES_KEY);
 }
 
 // Advanced Search Form
@@ -213,10 +224,13 @@ export class MangaFireAdvancedSearchForm extends AdvancedSearchForm {
 // Main Settings Form
 export class MangaFireSettingsForm extends Form {
   private languages: string[];
+  private brokenCdnPrefixes: string[];
+  private isTestingCdns = false;
 
   constructor() {
     super();
     this.languages = getLanguages();
+    this.brokenCdnPrefixes = getBrokenCdnPrefixes();
   }
 
   async updateValue(value: string[]): Promise<void> {
@@ -251,6 +265,27 @@ export class MangaFireSettingsForm extends Form {
       ),
       Section(
         {
+          id: "cdn",
+          footer:
+            "If chapter images fail to load, test the CDNs. Broken CDNs will be swapped to a working one when fetching images.",
+        },
+        [
+          LabelRow("cdnStatus", {
+            title: "Status",
+            value: this.isTestingCdns
+              ? "Loading..."
+              : this.brokenCdnPrefixes.length === 0
+                ? "All known CDNs healthy"
+                : `Broken: ${this.brokenCdnPrefixes.join(", ")}`,
+          }),
+          ButtonRow("testCdns", {
+            title: "Test CDNs",
+            onSelect: Application.Selector(this as MangaFireSettingsForm, "testCdns"),
+          }),
+        ],
+      ),
+      Section(
+        {
           id: "cache",
           footer: "Clear cached data if search filters appear stale or the source returns errors.",
         },
@@ -266,6 +301,35 @@ export class MangaFireSettingsForm extends Form {
         ],
       ),
     ];
+  }
+
+  async testCdns(): Promise<void> {
+    // Clear first so the interceptor doesn't rewrite a probe of a previously-flagged prefix to a
+    // working one — that would prevent a recovered CDN from ever being re-evaluated.
+    setBrokenCdnPrefixes([]);
+    this.isTestingCdns = true;
+    this.reloadForm();
+    const broken: string[] = [];
+    try {
+      await Promise.all(
+        CDN_PREFIXES.map(async (prefix) => {
+          try {
+            const [response] = await Application.scheduleRequest({
+              url: `https://${prefix}.mfcdn3.xyz`,
+              method: "GET",
+            });
+            if (response.status >= 500) broken.push(prefix);
+          } catch {
+            broken.push(prefix);
+          }
+        }),
+      );
+    } finally {
+      setBrokenCdnPrefixes(broken);
+      this.brokenCdnPrefixes = broken;
+      this.isTestingCdns = false;
+      this.reloadForm();
+    }
   }
 
   async clearSearchFilterCache(): Promise<void> {

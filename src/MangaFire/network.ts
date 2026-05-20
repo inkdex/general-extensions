@@ -8,12 +8,26 @@ import {
   type Response,
 } from "@paperback/types";
 
-import { DOMAIN } from "./models";
+import { getBrokenCdnPrefixes } from "./forms";
+import { CDN_HOST_REGEX, CDN_PREFIXES, DOMAIN } from "./models";
 
 export class MangaFireInterceptor extends PaperbackInterceptor {
   async interceptRequest(request: Request): Promise<Request> {
+    let url = request.url;
+    const match = url.match(CDN_HOST_REGEX);
+    if (match) {
+      const broken = getBrokenCdnPrefixes();
+      if (broken.includes(match[2])) {
+        const working = CDN_PREFIXES.find((p) => !broken.includes(p));
+        if (working) {
+          url = url.replace(CDN_HOST_REGEX, `$1${working}$3`);
+        }
+      }
+    }
+
     return {
       ...request,
+      url,
       headers: {
         ...request.headers,
         referer: `${DOMAIN}/`,
