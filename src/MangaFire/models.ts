@@ -3,6 +3,12 @@
 
 export const DOMAIN = "https://mangafire.to";
 
+// Chapter images come from `{prefix}.mfcdn{1,2,3}.xyz`. All prefixes serve byte-identical content
+// for a given path — the API pins one per session, but the host can be swapped freely on failure.
+export const CDN_PREFIXES = ["k99", "l1n", "m3z", "nw8", "o48"];
+export const CDN_HOST_REGEX = /^(https?:\/\/)([a-z0-9]{3})(\.mfcdn[0-9]+\.xyz)/;
+export const BROKEN_CDN_PREFIXES_KEY = "broken_cdn_prefixes";
+
 // Cache keys
 export const SEARCH_DETAILS_CACHE_KEY = "search_details_cache";
 export const VRF_SEARCH_CACHE_KEY = "search_vrf_cache";
