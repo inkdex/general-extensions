@@ -38,6 +38,7 @@ import {
   hasNextPage,
   parseChapterDetails,
   parseChapters,
+  parseJson,
   parseMangaDetails,
   parseNewMangaSection,
   parsePopularSection,
@@ -51,7 +52,7 @@ import { cacheGet, cacheSet } from "./utils/cache";
 import { extractVrf, getChapterPagesVrfUrl, getSearchVrfUrl } from "./utils/webView";
 
 export class MangaFireExtension implements ExtensionImpl<typeof MangaFireConfig> {
-  requestManager = new MangaFireInterceptor("main");
+  requestManager = new MangaFireInterceptor("requestManager");
   cookieStorageInterceptor = new CookieStorageInterceptor({
     storage: "stateManager",
   });
@@ -144,19 +145,15 @@ export class MangaFireExtension implements ExtensionImpl<typeof MangaFireConfig>
     const cached = cacheGet(SEARCH_DETAILS_CACHE_KEY, "default");
     if (cached) return JSON.parse(cached) as SearchDetails;
 
-    try {
-      const request = {
-        url: `${DOMAIN}/filter`,
-        method: "GET",
-      };
+    const request = {
+      url: `${DOMAIN}/filter`,
+      method: "GET",
+    };
 
-      const $ = await this.fetchCheerio(request);
-      const details = parseSearchDetails($);
-      cacheSet(SEARCH_DETAILS_CACHE_KEY, "default", JSON.stringify(details));
-      return details;
-    } catch (error) {
-      console.error("Error fetching search details:", error);
-    }
+    const $ = await this.fetchCheerio(request);
+    const details = parseSearchDetails($);
+    cacheSet(SEARCH_DETAILS_CACHE_KEY, "default", JSON.stringify(details));
+    return details;
   }
 
   async getAdvancedSearchForm(query: SearchQuery<SearchMetadata>): Promise<AdvancedSearchForm> {
@@ -168,18 +165,18 @@ export class MangaFireExtension implements ExtensionImpl<typeof MangaFireConfig>
     return searchDetails?.sorts ?? [];
   }
 
+  // Example: https://mangafire.to/filter?keyword=one%20piece&page=1&genre_mode=and&type[]=manhwa&genre[]=action&status[]=releasing&sort=most_relevance
+  // Multple Genres: https://mangafire.to/filter?keyword=one+piece&type%5B%5D=manga&genre%5B%5D=1&genre%5B%5D=31&genre_mode=and&status%5B%5D=releasing&sort=most_relevance
+  // No Genre: https://mangafire.to/filter?keyword=one+piece&type%5B%5D=manga&genre_mode=and&status%5B%5D=releasing&sort=most_relevance
+  // With pages: https://mangafire.to/filter?page=2&keyword=one%20piece
+  // ALL: https://mangafire.to/filter?keyword=one+peice&sort=recently_updated
+  // Exclude: https://mangafire.to/filter?keyword=&genre%5B%5D=-9&sort=recently_updated
   async getSearchResults(
     query: SearchQuery<SearchMetadata>,
     metadata: { page?: number } | undefined,
     sortingOption?: SortingOption,
   ): Promise<PagedResults<SearchResultItem>> {
     const page = metadata?.page ?? 1;
-    // Example: https://mangafire.to/filter?keyword=one%20piece&page=1&genre_mode=and&type[]=manhwa&genre[]=action&status[]=releasing&sort=most_relevance
-    // Multple Genres: https://mangafire.to/filter?keyword=one+piece&type%5B%5D=manga&genre%5B%5D=1&genre%5B%5D=31&genre_mode=and&status%5B%5D=releasing&sort=most_relevance
-    // No Genre: https://mangafire.to/filter?keyword=one+piece&type%5B%5D=manga&genre_mode=and&status%5B%5D=releasing&sort=most_relevance
-    // With pages: https://mangafire.to/filter?page=2&keyword=one%20piece
-    // ALL: https://mangafire.to/filter?keyword=one+peice&sort=recently_updated
-    // Exclude: https://mangafire.to/filter?keyword=&genre%5B%5D=-9&sort=recently_updated
     const searchUrl = new URL(DOMAIN)
       .addPathComponent("filter")
       .setQueryItem("keyword", query.title)
@@ -273,44 +270,40 @@ export class MangaFireExtension implements ExtensionImpl<typeof MangaFireConfig>
         method: "GET",
       };
 
-      try {
-        const [_, mangaBuffer] = await Application.scheduleRequest(mangaRequest);
+      const [_, mangaBuffer] = await Application.scheduleRequest(mangaRequest);
 
-        const mangaJson = JSON.parse(Application.arrayBufferToUTF8String(mangaBuffer)) as Result;
+      const mangaJson = parseJson<Result>(
+        Application.arrayBufferToUTF8String(mangaBuffer),
+        `chapters for language ${langCode}`,
+      );
 
-        const mangaHtml =
-          typeof mangaJson.result === "string" ? mangaJson.result : mangaJson.result.html || "";
+      const mangaHtml =
+        typeof mangaJson.result === "string" ? mangaJson.result : mangaJson.result.html || "";
 
-        if (!mangaHtml) continue;
+      if (!mangaHtml) continue;
 
-        const $manga = cheerio.load(mangaHtml);
-        chapters.push(...parseChapters($manga, sourceManga, langCode));
-      } catch (error) {
-        console.error(`Failed to parse buffer for language ${langCode}:`, error);
-      }
+      const $manga = cheerio.load(mangaHtml);
+      chapters.push(...parseChapters($manga, sourceManga, langCode));
     }
 
     return chapters;
   }
 
   async getChapterDetails(chapter: Chapter): Promise<ChapterDetails> {
-    try {
-      const url = await getChapterPagesVrfUrl(chapter.chapterId, this.cookieStorageInterceptor);
+    const url = await getChapterPagesVrfUrl(chapter.chapterId, this.cookieStorageInterceptor);
 
-      const request: Request = { url, method: "GET" };
+    const request: Request = { url, method: "GET" };
 
-      const [_, buffer] = await Application.scheduleRequest(request);
-      const json: PageResponse = JSON.parse(
-        Application.arrayBufferToUTF8String(buffer),
-      ) as PageResponse;
+    const [_, buffer] = await Application.scheduleRequest(request);
+    const json = parseJson<PageResponse>(
+      Application.arrayBufferToUTF8String(buffer),
+      "chapter details",
+    );
 
-      return parseChapterDetails(json, chapter);
-    } catch (error) {
-      console.error("Error fetching chapter details:", error);
-      throw error;
-    }
+    return parseChapterDetails(json, chapter);
   }
 
+  // Example: https://mangafire.to/filter?keyword=&language[]=en&sort=recently_updated&page=1
   async getUpdatedSectionItems(
     metadata: PageMetadata | undefined,
   ): Promise<PagedResults<DiscoverSectionItem>> {
@@ -318,7 +311,6 @@ export class MangaFireExtension implements ExtensionImpl<typeof MangaFireConfig>
     const collectedIds = metadata?.collectedIds ?? [];
     const language = getLanguages();
 
-    // Example: https://mangafire.to/filter?keyword=&language[]=en&sort=recently_updated&page=1
     const request = {
       url: new URL(DOMAIN)
         .addPathComponent("filter")
