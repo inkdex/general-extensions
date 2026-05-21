@@ -17,7 +17,6 @@ Paperback extensions for websites with unique, non-generic themes.
 - [Mgeko](https://mgeko.cc)
 - [PunkRecords](https://punkrecordz.com)
 - [QiScans](https://qimanhwa.com)
-- [QToon](https://qtoon.com)
 - [Webtoon](https://webtoons.com)
 - [WeebCentral](https://weebcentral.com)
 
