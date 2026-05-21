@@ -91,7 +91,7 @@ export const parseSearch = ($: CheerioAPI): SearchResultItem[] => {
       imageUrl: image,
       title,
       subtitle,
-      contentRating: ContentRating.EVERYONE,
+      contentRating: ContentRating.EVERYONE, // Site does not provide content rating
     });
   });
 
@@ -168,7 +168,7 @@ export const parseMangaDetails = (
       thumbnailUrl: image,
       synopsis: description,
       rating: rating,
-      contentRating: ContentRating.EVERYONE,
+      contentRating: ContentRating.EVERYONE, // Site does not provide content rating
       status: status,
       tagGroups: tags,
       shareUrl: `${DOMAIN}/manga/${mangaId}`,
@@ -203,7 +203,7 @@ export const parseChapters = (
       sourceManga,
       chapNum: parseFloat(chapterNumber ?? "0"),
       publishDate: new Date(convertToISO8601(dateText)),
-      volume: 0,
+      volume: 0, // Site does not provide volume information
       langCode,
     });
   });
@@ -246,7 +246,7 @@ export const parseUpdatedSection = ($: CheerioAPI): ChapterUpdatesCarouselItem[]
         imageUrl: image,
         title: title,
         subtitle: subtitle,
-        contentRating: ContentRating.EVERYONE,
+        contentRating: ContentRating.EVERYONE, // Site does not provide content rating
       });
     }
   });
@@ -283,7 +283,7 @@ export const parsePopularSection = ($: CheerioAPI): FeaturedCarouselItem[] => {
         imageUrl: image,
         title: title,
         supertitle: supertitle,
-        contentRating: ContentRating.EVERYONE,
+        contentRating: ContentRating.EVERYONE, // Site does not provide content rating
       });
     }
   });
@@ -321,7 +321,7 @@ export const parseNewMangaSection = ($: CheerioAPI): SimpleCarouselItem[] => {
         imageUrl: image,
         title: title,
         subtitle: subtitle,
-        contentRating: ContentRating.EVERYONE,
+        contentRating: ContentRating.EVERYONE, // Site does not provide content rating
         type: "simpleCarouselItem",
       });
     }
@@ -363,4 +363,14 @@ function convertToISO8601(dateText: string): string {
 
   const parsedDate = new Date(dateText);
   return isNaN(parsedDate.getTime()) ? now.toISOString() : parsedDate.toISOString();
+}
+
+export function parseJson<T>(raw: string, context: string): T {
+  try {
+    return JSON.parse(raw) as T;
+  } catch (error) {
+    throw new Error(`Failed to parse ${context}`, {
+      cause: error,
+    });
+  }
 }

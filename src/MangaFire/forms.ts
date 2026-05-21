@@ -27,26 +27,6 @@ import {
 } from "./models";
 import { cacheClear } from "./utils/cache";
 
-export function getLanguages(): string[] {
-  return (
-    (Application.getState("languages") as string[] | undefined) ?? [
-      LANGUAGES[0].id, // Default to only English selected
-    ]
-  );
-}
-
-export function setLanguages(languages: string[]): void {
-  Application.setState(languages, "languages");
-}
-
-export function getBrokenCdnPrefixes(): string[] {
-  return (Application.getState(BROKEN_CDN_PREFIXES_KEY) as string[] | undefined) ?? [];
-}
-
-export function setBrokenCdnPrefixes(prefixes: string[]): void {
-  Application.setState(prefixes, BROKEN_CDN_PREFIXES_KEY);
-}
-
 // Advanced Search Form
 export class MangaFireAdvancedSearchForm extends AdvancedSearchForm {
   private genres: Record<string, "included" | "excluded">;
@@ -221,6 +201,18 @@ export class MangaFireAdvancedSearchForm extends AdvancedSearchForm {
   }
 }
 
+export function getLanguages(): string[] {
+  return (
+    (Application.getState("languages") as string[] | undefined) ?? [
+      LANGUAGES[0].id, // Default to only English selected
+    ]
+  );
+}
+
+export function getBrokenCdnPrefixes(): string[] {
+  return (Application.getState(BROKEN_CDN_PREFIXES_KEY) as string[] | undefined) ?? [];
+}
+
 // Main Settings Form
 export class MangaFireSettingsForm extends Form {
   private languages: string[];
@@ -231,11 +223,6 @@ export class MangaFireSettingsForm extends Form {
     super();
     this.languages = getLanguages();
     this.brokenCdnPrefixes = getBrokenCdnPrefixes();
-  }
-
-  async updateValue(value: string[]): Promise<void> {
-    this.languages = value;
-    setLanguages(value);
   }
 
   override getSections() {
@@ -259,7 +246,7 @@ export class MangaFireSettingsForm extends Form {
             options: LANGUAGES,
             minItemCount: 1,
             maxItemCount: LANGUAGES.length,
-            onValueChange: Application.Selector(this as MangaFireSettingsForm, "updateValue"),
+            onValueChange: Application.Selector(this as MangaFireSettingsForm, "updateLanguages"),
           }),
         ],
       ),
@@ -303,33 +290,33 @@ export class MangaFireSettingsForm extends Form {
     ];
   }
 
+  async updateLanguages(value: string[]): Promise<void> {
+    this.languages = value;
+    Application.setState(value, "languages");
+  }
+
   async testCdns(): Promise<void> {
     // Clear first so the interceptor doesn't rewrite a probe of a previously-flagged prefix to a
     // working one — that would prevent a recovered CDN from ever being re-evaluated.
-    setBrokenCdnPrefixes([]);
+    Application.setState([], BROKEN_CDN_PREFIXES_KEY);
     this.isTestingCdns = true;
     this.reloadForm();
     const broken: string[] = [];
-    try {
-      await Promise.all(
-        CDN_PREFIXES.map(async (prefix) => {
-          try {
-            const [response] = await Application.scheduleRequest({
-              url: `https://${prefix}.mfcdn3.xyz`,
-              method: "GET",
-            });
-            if (response.status >= 500) broken.push(prefix);
-          } catch {
-            broken.push(prefix);
-          }
-        }),
-      );
-    } finally {
-      setBrokenCdnPrefixes(broken);
-      this.brokenCdnPrefixes = broken;
-      this.isTestingCdns = false;
-      this.reloadForm();
-    }
+
+    await Promise.all(
+      CDN_PREFIXES.map(async (prefix) => {
+        const [response] = await Application.scheduleRequest({
+          url: `https://${prefix}.mfcdn3.xyz`,
+          method: "GET",
+        });
+        if (response.status >= 500) broken.push(prefix);
+      }),
+    );
+
+    Application.setState(broken, BROKEN_CDN_PREFIXES_KEY);
+    this.brokenCdnPrefixes = broken;
+    this.isTestingCdns = false;
+    this.reloadForm();
   }
 
   async clearSearchFilterCache(): Promise<void> {
