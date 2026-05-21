@@ -4,9 +4,9 @@
 import { ContentRating, SourceIntents, type ExtensionInfo } from "@paperback/types";
 
 export default {
-  name: "Punk Records",
+  name: "PunkRecords",
   description: "Extension pour récupérer le contenu de punkrecordz.com.",
-  version: "1.0.0-alpha.1",
+  version: "1.0.0-alpha.2",
   icon: "icon.png",
   language: "fr",
   contentRating: ContentRating.EVERYONE,
