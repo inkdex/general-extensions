@@ -15,7 +15,7 @@ Paperback extensions for websites with unique, non-generic themes.
 - [MangaPlus](https://mangaplus.shueisha.co.jp)
 - [MangaTaro](https://mangataro.org)
 - [Mgeko](https://mgeko.cc)
-- [Punk Records](https://punkrecordz.com)
+- [PunkRecords](https://punkrecordz.com)
 - [QiScans](https://qimanhwa.com)
 - [QToon](https://qtoon.com)
 - [Webtoon](https://webtoons.com)

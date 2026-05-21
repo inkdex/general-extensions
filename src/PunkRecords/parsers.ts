@@ -193,7 +193,7 @@ export class PunkRecordsParser {
       .filter((text) => text.length > 0);
     const entries = this.parseCatalogueScripts(scriptTexts);
     if (!entries.length) {
-      throw new Error("Couldn't parse the Punk Records catalogue.");
+      throw new Error("Couldn't parse the PunkRecords catalogue.");
     }
 
     return entries;
@@ -226,7 +226,7 @@ export class PunkRecordsParser {
   }
 
   /**
-   * Punk Records exposes chapter labels in French ("Chapitre 12")
+   * PunkRecords exposes chapter labels in French ("Chapitre 12")
    */
   private extractChapterNumber(chapterId: string, title: string): number {
     const titleMatch = /chapitre\s+([\d.]+)/i.exec(title);
