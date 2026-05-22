@@ -6,39 +6,6 @@ import * as cheerio from "cheerio";
 
 import { type ChapterItem, DOMAIN } from "../models";
 
-// Paperback's WebView in loadHTMLString mode fires `error` (no `load`) on
-// every <script src> and <link href> in the document — subresources can't
-// be fetched by the HTML parser. So the bundle and every chunk it
-// statically imports must be inlined server-side. Each chunk is base64-
-// baked into a data: URL and the import specifier rewritten.
-// Cache is module-level so the 5-chunk static-import graph is fetched once
-// per app session, not per `chapterListViaWebView` / `pageListViaWebView`
-// call. Bundle URLs are hash-suffixed (e.g. `main-tffn2n-Bxupx-A1.js`), so
-// a deploy produces a fresh URL → cache miss → fresh fetch automatically.
-const moduleCache = new Map<string, string>();
-
-async function inlineModuleTree(url: string, cache: Map<string, string>): Promise<string> {
-  const baseUrl = url.substring(0, url.lastIndexOf("/") + 1);
-  const [, buf] = await Application.scheduleRequest({ url, method: "GET" });
-  let body = Application.arrayBufferToUTF8String(buf);
-  const re = /(from|import)(\s*)["'](\.\/[^"']+)["']/g;
-  const work: Array<{ full: string; rel: string }> = [];
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(body)) !== null) work.push({ full: m[0], rel: m[3] });
-  for (const { full, rel } of work) {
-    const childUrl = baseUrl + rel.slice(2);
-    let dataUrl = cache.get(childUrl);
-    if (!dataUrl) {
-      const childBody = await inlineModuleTree(childUrl, cache);
-      const b64 = Application.base64Encode(childBody) as string;
-      dataUrl = `data:application/javascript;base64,${b64}`;
-      cache.set(childUrl, dataUrl);
-    }
-    body = body.split(full).join(full.replace(rel, dataUrl));
-  }
-  return body;
-}
-
 // Loads a Comix page in a WebView and lets the site's own JS run end-to-end:
 // the bundle signs API requests and decrypts `{e:"blob"}` envelopes
 // internally, then calls JSON.parse on the plaintext. A Proxy on JSON.parse
@@ -57,23 +24,15 @@ async function runProxiedWebView<T>(
   const [, buffer] = await Application.scheduleRequest({ url: pageUrl, method: "GET" });
   const $ = cheerio.load(Application.arrayBufferToUTF8String(buffer));
 
-  for (const el of $('script[type="module"][src]').toArray()) {
-    const src = $(el).attr("src");
-    if (!src) continue;
-    const absUrl = src.startsWith("http")
-      ? src
-      : `${DOMAIN}${src.startsWith("/") ? "" : "/"}${src}`;
-    const body = await inlineModuleTree(absUrl, moduleCache);
-    $(el).removeAttr("src").text(body);
-  }
-
   const uaShim = `
     (function () {
       var UA = ${JSON.stringify(userAgent)};
+      var REFERER = ${JSON.stringify(pageUrl)};
       var origSetReq = XMLHttpRequest.prototype.setRequestHeader;
       var origSend = XMLHttpRequest.prototype.send;
       XMLHttpRequest.prototype.send = function () {
         try { origSetReq.call(this, "User-Agent", UA); } catch (e) {}
+        try { origSetReq.call(this, "Referer", REFERER); } catch (e) {}
         return origSend.apply(this, arguments);
       };
       var origFetch = window.fetch;
@@ -81,6 +40,7 @@ async function runProxiedWebView<T>(
         init = init || {};
         var h = new Headers((init && init.headers) || (input && input.headers) || {});
         h.set("User-Agent", UA);
+        h.set("Referer", REFERER);
         init.headers = h;
         return origFetch.call(this, input, init);
       };
