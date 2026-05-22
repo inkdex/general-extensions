@@ -14,17 +14,17 @@ import {
 import {
   type ApiResponse,
   type ApiRequestConfig,
+  type ChapterItem,
   type ChapterPages,
   type Filters,
   type MangaItem,
-  type ResultChapter,
   type ResultManga,
   type Filter,
   API,
   DOMAIN,
 } from "./models";
 import { ComixFilter } from "./utils/filter";
-import { getVmToken } from "./utils/webView";
+import { chapterListViaWebView, pageListViaWebView } from "./utils/webView";
 
 export class ComixInterceptor extends PaperbackInterceptor {
   override async interceptRequest(request: Request): Promise<Request> {
@@ -59,7 +59,6 @@ export class ComixInterceptor extends PaperbackInterceptor {
 
 export class ComixApi {
   apiLink = "";
-  private tokenCache = new Map<string, string>();
 
   constructor(private filter: ComixFilter) {}
 
@@ -75,32 +74,6 @@ export class ComixApi {
     this.apiLink = url.toString();
     const html = await this.getDataFromRequest();
     return JSON.parse(html) as ApiResponse<T>;
-  }
-
-  private async fetchSignedApi<T>(
-    path: string,
-    pageUrl: string,
-    query: Record<string, string | string[]> | undefined,
-    cookieInterceptor: CookieStorageInterceptor,
-  ): Promise<ApiResponse<T>> {
-    let token = this.tokenCache.get(path);
-    if (!token) {
-      token = await getVmToken(path, pageUrl, cookieInterceptor);
-      this.tokenCache.set(path, token);
-    }
-    const url = new URL(API);
-    path
-      .split("/")
-      .filter(Boolean)
-      .forEach((p) => url.addPathComponent(p));
-    if (query) {
-      for (const [key, value] of Object.entries(query)) {
-        url.setQueryItem(key, Array.isArray(value) ? value.join(",") : value);
-      }
-    }
-    url.setQueryItem("_", token);
-    const [, buffer] = await Application.scheduleRequest({ url: url.toString(), method: "GET" });
-    return JSON.parse(Application.arrayBufferToUTF8String(buffer)) as ApiResponse<T>;
   }
 
   async getJsonMangaTopApi(section: string): Promise<ApiResponse<MangaItem[]>> {
@@ -257,16 +230,10 @@ export class ComixApi {
   }
 
   async getJsonChapterApi(
-    chapter: string,
-    page: number,
+    mangaId: string,
     cookieStorageInterceptor: CookieStorageInterceptor,
-  ) {
-    return this.fetchSignedApi<ResultChapter>(
-      `/manga/${chapter}/chapters`,
-      `${DOMAIN}/title/${chapter}`,
-      { page: page.toString(), limit: "100", "order[number]": "desc" },
-      cookieStorageInterceptor,
-    );
+  ): Promise<ChapterItem[]> {
+    return chapterListViaWebView(mangaId, cookieStorageInterceptor);
   }
 
   async getJsonSearchApi(
@@ -298,12 +265,8 @@ export class ComixApi {
     if (typeof url !== "string" || !url) {
       throw new Error(`Comix getJsonChapPagesApi: missing url for chapter ${chapter.chapterId}`);
     }
-    return this.fetchSignedApi<ChapterPages>(
-      `/chapters/${chapter.chapterId}`,
-      `${DOMAIN}${url}`,
-      undefined,
-      cookieStorageInterceptor,
-    );
+    const payload = await pageListViaWebView(url, cookieStorageInterceptor);
+    return JSON.parse(payload) as ApiResponse<ChapterPages>;
   }
 
   async getFiltersApi(filter: string) {

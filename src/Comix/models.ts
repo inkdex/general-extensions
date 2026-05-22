@@ -28,11 +28,6 @@ export interface ResultManga {
   items: MangaItem[];
 }
 
-export interface ResultChapter {
-  items: ChapterItem[];
-  meta: { lastPage: number };
-}
-
 export interface ChapterPages {
   mangaId: number;
   pages: { baseUrl: string; items: { url: string }[] };
