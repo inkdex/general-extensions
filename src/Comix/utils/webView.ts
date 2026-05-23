@@ -7,13 +7,12 @@ import * as cheerio from "cheerio";
 import { type ChapterItem, DOMAIN } from "../models";
 
 // Loads a Comix page in a WebView and lets the site's own JS run end-to-end:
-// the bundle signs API requests and decrypts `{e:"blob"}` envelopes
-// internally, then calls JSON.parse on the plaintext. A Proxy on JSON.parse
-// captures that plaintext, so we never need to probe the rotating signer or
-// reimplement the decryption. WKWebView's default UA (Macintosh) differs
-// from Paperback's (iPhone) — cf_clearance is issued against Paperback's
-// UA, so XHR/fetch are shimmed to send that UA, otherwise CF invalidates
-// the cookie and every in-WebView API call gets the challenge page.
+// the bundle signs API requests and decrypts `{e:"blob"}` responses internally,
+// then calls JSON.parse on the plaintext. A Proxy on JSON.parse captures that
+// plaintext, so we never need to probe the rotating signer or reimplement the
+// decryption. WKWebView's default UA Paperback's UA — cf_clearance is issued
+// against Paperback's UA, so make XHR/fetch send that UA, otherwise CF
+// invalidates the cookie and every in-WebView API call gets the challenge page.
 async function runProxiedWebView<T>(
   pageUrl: string,
   bootstrap: string,
@@ -31,8 +30,12 @@ async function runProxiedWebView<T>(
       var origSetReq = XMLHttpRequest.prototype.setRequestHeader;
       var origSend = XMLHttpRequest.prototype.send;
       XMLHttpRequest.prototype.send = function () {
-        try { origSetReq.call(this, "User-Agent", UA); } catch (e) {}
-        try { origSetReq.call(this, "Referer", REFERER); } catch (e) {}
+        try {
+          origSetReq.call(this, "User-Agent", UA);
+        } catch {}
+        try {
+          origSetReq.call(this, "Referer", REFERER);
+        } catch {}
         return origSend.apply(this, arguments);
       };
       var origFetch = window.fetch;
@@ -60,13 +63,13 @@ async function runProxiedWebView<T>(
   return raw.result as T;
 }
 
+// The SPA fetches chapters on mount and on Next-button click. Capture the
+// decrypted JSON for each fetch via JSON.parse, then drive pagination by
+// clicking the Next button until meta.lastPage is reached.
 export async function chapterListViaWebView(
   mangaId: string,
   cookieInterceptor: CookieStorageInterceptor,
 ): Promise<ChapterItem[]> {
-  // The SPA fetches chapters on mount and on Next-button click. Capture the
-  // decrypted JSON for each fetch via JSON.parse, then drive pagination by
-  // clicking the Next button until meta.lastPage is reached.
   const bootstrap = `
     (function () {
       var items = [];
@@ -74,21 +77,31 @@ export async function chapterListViaWebView(
       var totalPages = null;
       var submitted = false;
       var doneResolve;
-      window.__comixResult__ = new Promise(function (r) { doneResolve = r; });
+      window.__comixResult__ = new Promise(function (r) {
+        doneResolve = r;
+      });
       function submit() {
         if (submitted) return;
         submitted = true;
         doneResolve(items);
       }
+      var idleTimer;
+      function armIdle() {
+        if (idleTimer) clearTimeout(idleTimer);
+        idleTimer = setTimeout(submit, 20000);
+      }
+      armIdle();
       function gotoNext() {
-        // The Next button is rendered by the SPA after the API response; our
-        // JSON.parse hook fires synchronously in the same tick, before any
-        // DOM update. Poll for it, give up after 5s.
         var tries = 0;
         var iv = setInterval(function () {
           var btn = document.querySelector(".mchap-foot button[aria-label*=Next]");
-          if (btn && !btn.disabled) { btn.click(); clearInterval(iv); }
-          else if (++tries > 50) { clearInterval(iv); submit(); }
+          if (btn && !btn.disabled) {
+            btn.click();
+            clearInterval(iv);
+          } else if (++tries > 50) {
+            clearInterval(iv);
+            submit();
+          }
         }, 100);
       }
       var orig = JSON.parse;
@@ -97,7 +110,9 @@ export async function chapterListViaWebView(
           var parsed = Reflect.apply(t, a, args);
           try {
             if (
-              !submitted && parsed && parsed.result &&
+              !submitted &&
+              parsed &&
+              parsed.result &&
               Array.isArray(parsed.result.items) &&
               parsed.result.items[0] &&
               parsed.result.items[0].id !== undefined &&
@@ -108,16 +123,18 @@ export async function chapterListViaWebView(
               if (!seenPages.has(page)) {
                 seenPages.add(page);
                 for (var i = 0; i < parsed.result.items.length; i++) items.push(parsed.result.items[i]);
-                if (totalPages === null && meta && typeof meta.lastPage === "number") totalPages = meta.lastPage;
-                if (totalPages !== null && page < totalPages) gotoNext();
-                else submit();
+                if (totalPages === null && meta && typeof meta.lastPage === "number")
+                  totalPages = meta.lastPage;
+                if (totalPages !== null && page < totalPages) {
+                  armIdle();
+                  gotoNext();
+                } else submit();
               }
             }
-          } catch (e) {}
+          } catch {}
           return parsed;
-        }
+        },
       });
-      setTimeout(submit, 30000);
     })();
   `;
   return runProxiedWebView<ChapterItem[]>(
@@ -134,18 +151,22 @@ export async function pageListViaWebView(
   const bootstrap = `
     (function () {
       var doneResolve;
-      window.__comixResult__ = new Promise(function (r) { doneResolve = r; });
+      window.__comixResult__ = new Promise(function (r) {
+        doneResolve = r;
+      });
       var orig = JSON.parse;
       JSON.parse = new Proxy(orig, {
         apply: function (t, a, args) {
           var parsed = Reflect.apply(t, a, args);
           try {
             if (parsed && parsed.result && parsed.result.pages) doneResolve(args[0]);
-          } catch (e) {}
+          } catch {}
           return parsed;
-        }
+        },
       });
-      setTimeout(function () { doneResolve(""); }, 20000);
+      setTimeout(function () {
+        doneResolve("");
+      }, 20000);
     })();
   `;
   const payload = await runProxiedWebView<string>(
