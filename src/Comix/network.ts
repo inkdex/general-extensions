@@ -30,6 +30,10 @@ export class ComixInterceptor extends PaperbackInterceptor {
   override async interceptRequest(request: Request): Promise<Request> {
     return {
       ...request,
+      url: request.url.replace(
+        /(\/)si?i(\/[^/]+\/[^/]+\.(?:webp|jpe?g|png|gif|avif))(\?|$)/i,
+        "$1i$2$3",
+      ),
       headers: {
         ...request.headers,
         referer: `${DOMAIN}/`,
