@@ -23,6 +23,7 @@ import {
   API,
   DOMAIN,
 } from "./models";
+import { descrambleImage, readScrambleHeaders } from "./utils/descramble";
 import { ComixFilter } from "./utils/filter";
 import { chapterListViaWebView, pageListViaWebView } from "./utils/webView";
 
@@ -30,10 +31,6 @@ export class ComixInterceptor extends PaperbackInterceptor {
   override async interceptRequest(request: Request): Promise<Request> {
     return {
       ...request,
-      url: request.url.replace(
-        /(\/)si?i(\/[^/]+\/[^/]+\.(?:webp|jpe?g|png|gif|avif))(\?|$)/i,
-        "$1i$2$3",
-      ),
       headers: {
         ...request.headers,
         referer: `${DOMAIN}/`,
@@ -43,7 +40,7 @@ export class ComixInterceptor extends PaperbackInterceptor {
   }
 
   override async interceptResponse(
-    _: Request,
+    request: Request,
     response: Response,
     data: ArrayBuffer,
   ): Promise<ArrayBuffer> {
@@ -57,7 +54,22 @@ export class ComixInterceptor extends PaperbackInterceptor {
         },
       });
     }
-    return data;
+
+    if (!/\/si?i\//i.test(request.url)) return data;
+
+    const scrambleParams = readScrambleHeaders(response.headers);
+    if (!scrambleParams) return data;
+
+    try {
+      return await descrambleImage(data, scrambleParams, response.mimeType ?? "image/webp");
+    } catch (error) {
+      console.log(
+        `[Comix] descramble failed for ${request.url}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+      return data;
+    }
   }
 }
 
