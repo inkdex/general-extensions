@@ -145,8 +145,9 @@ export class MangaFireExtension implements ExtensionImpl<typeof MangaFireConfig>
     const cached = cacheGet(SEARCH_DETAILS_CACHE_KEY, "default");
     if (cached) return JSON.parse(cached) as SearchDetails;
 
+    const vrf = extractVrf(await getSearchVrfUrl("aa", this.cookieStorageInterceptor));
     const request = {
-      url: `${DOMAIN}/filter`,
+      url: `${DOMAIN}/filter?keyword=aa&vrf=${vrf}`,
       method: "GET",
     };
 
