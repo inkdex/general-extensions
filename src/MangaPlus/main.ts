@@ -57,7 +57,13 @@ export class MangaPlusExtension
     ignoreImages: true,
   });
 
-  constructor() {}
+  private getSessionToken(): string {
+    const storedToken = Application.getState("sessionToken") as string | undefined;
+    if (storedToken) return storedToken;
+    const sessionToken = crypto.randomUUID();
+    Application.setState(sessionToken, "sessionToken");
+    return sessionToken;
+  }
 
   async initialise(): Promise<void> {
     this.registerInterceptors();
@@ -327,8 +333,9 @@ export class MangaPlusExtension
   async interceptRequest(request: Request): Promise<Request> {
     request.headers = {
       ...request.headers,
-
+      Origin: BASE_URL,
       Referer: `${BASE_URL}/`,
+      "session-token": this.getSessionToken(),
       "user-agent": await Application.getDefaultUserAgent(),
     };
 
