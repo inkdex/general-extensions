@@ -82,5 +82,6 @@ export class MangaPlusSettingForm extends Form {
     Application.setState([Language.ENGLISH], "languages");
     Application.setState("yes", "split_images");
     Application.setState("high", "image_resolution");
+    Application.setState(undefined, "sessionToken");
   }
 }
