@@ -1,0 +1,1 @@
+{"name":"PunkRecords","description":"Extension pour récupérer le contenu de punkrecordz.com.","version":"1.0.0-alpha.2","icon":"icon.png","language":"fr","contentRating":"SAFE","capabilities":[1,4,64,32],"badges":[],"developers":[{"name":"Finebouche","github":"https://github.com/Finebouche"}],"id":"PunkRecords"}

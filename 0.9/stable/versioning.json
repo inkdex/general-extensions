@@ -1,0 +1,347 @@
+{
+  "buildTime": "2026-05-30T20:08:02.259Z",
+  "builtWith": {
+    "toolchain": "1.0.0-alpha.87",
+    "types": "1.0.0-alpha.87"
+  },
+  "repository": {
+    "name": "General Extensions (0.9)",
+    "description": "Paperback extensions for websites with unique, non-generic themes. Maintained by Inkdex."
+  },
+  "sources": [
+    {
+      "name": "Atsumaru",
+      "description": "Extension that pulls content from atsu.moe.",
+      "version": "1.0.0-alpha.20",
+      "icon": "icon.png",
+      "language": "en",
+      "contentRating": "SAFE",
+      "capabilities": [
+        1,
+        16,
+        4,
+        64,
+        32
+      ],
+      "badges": [],
+      "developers": [
+        {
+          "name": "Lucifers Circle"
+        }
+      ],
+      "id": "Atsumaru"
+    },
+    {
+      "name": "Comix",
+      "description": "Extension that pulls content from Comix.to.",
+      "version": "1.0.0-alpha.30",
+      "icon": "icon.png",
+      "language": "en",
+      "contentRating": "SAFE",
+      "capabilities": [
+        1,
+        16,
+        4,
+        64,
+        32
+      ],
+      "badges": [],
+      "developers": [
+        {
+          "name": "Catta1997",
+          "github": "https://github.com/Catta1997"
+        }
+      ],
+      "id": "Comix"
+    },
+    {
+      "name": "MangaDemon",
+      "description": "Extension that pulls content from demonicscans.org.",
+      "version": "1.0.0-alpha.13",
+      "icon": "icon.png",
+      "language": "en",
+      "contentRating": "SAFE",
+      "badges": [],
+      "capabilities": [
+        1,
+        16,
+        4,
+        64,
+        32
+      ],
+      "developers": [
+        {
+          "name": "samipmainali",
+          "github": "https://github.com/samipmainali"
+        }
+      ],
+      "id": "MangaDemon"
+    },
+    {
+      "name": "MangaDex",
+      "description": "Extension that pulls content from mangadex.org.",
+      "version": "1.0.0-alpha.26",
+      "icon": "icon.png",
+      "languages": "multi",
+      "contentRating": "SAFE",
+      "capabilities": [
+        1,
+        4,
+        8,
+        2,
+        64,
+        32
+      ],
+      "badges": [],
+      "developers": [
+        {
+          "name": "Inkdex",
+          "website": "https://inkdex.github.io",
+          "github": "https://github.com/inkdex"
+        }
+      ],
+      "id": "MangaDex"
+    },
+    {
+      "name": "MangaFire",
+      "description": "Extension that pulls content from mangafire.to.",
+      "version": "1.0.0-alpha.14",
+      "icon": "icon.png",
+      "language": "multi",
+      "contentRating": "SAFE",
+      "capabilities": [
+        4,
+        64,
+        1,
+        32
+      ],
+      "badges": [],
+      "developers": [
+        {
+          "name": "Inkdex",
+          "website": "https://inkdex.github.io",
+          "github": "https://github.com/inkdex"
+        }
+      ],
+      "id": "MangaFire"
+    },
+    {
+      "name": "MangaFox",
+      "description": "Extension that pulls content from fanfox.net.",
+      "version": "1.0.0-alpha.12",
+      "icon": "icon.png",
+      "language": "en",
+      "contentRating": "MATURE",
+      "capabilities": [
+        1,
+        16,
+        4,
+        64
+      ],
+      "badges": [],
+      "developers": [
+        {
+          "name": "Egwau"
+        }
+      ],
+      "id": "MangaFox"
+    },
+    {
+      "name": "MangaKatana",
+      "description": "Extension that pulls content from mangakatana.com.",
+      "version": "1.0.0-alpha.14",
+      "icon": "icon.png",
+      "language": "en",
+      "contentRating": "MATURE",
+      "capabilities": [
+        1,
+        16,
+        4,
+        64
+      ],
+      "badges": [],
+      "developers": [
+        {
+          "name": "Egwau"
+        }
+      ],
+      "id": "MangaKatana"
+    },
+    {
+      "name": "MangaPlus",
+      "description": "Extension that pulls content from mangaplus.shueisha.co.jp.",
+      "version": "1.0.0-alpha.8",
+      "icon": "icon.png",
+      "language": "en",
+      "contentRating": "SAFE",
+      "capabilities": [
+        1,
+        4,
+        32,
+        64
+      ],
+      "badges": [],
+      "developers": [
+        {
+          "name": "Yves Pa",
+          "github": "https://github.com/YvesPa"
+        }
+      ],
+      "id": "MangaPlus"
+    },
+    {
+      "name": "MangaTaro",
+      "description": "Extension that pulls content from mangataro.org.",
+      "version": "1.0.0-alpha.3",
+      "icon": "icon.png",
+      "language": "en",
+      "contentRating": "SAFE",
+      "capabilities": [
+        1,
+        16,
+        4,
+        64
+      ],
+      "badges": [],
+      "developers": [
+        {
+          "name": "Lucifers Circle"
+        }
+      ],
+      "id": "MangaTaro"
+    },
+    {
+      "name": "Mangapill",
+      "description": "Extension that pulls content from mangapill.com.",
+      "version": "1.0.0-alpha.10",
+      "icon": "icon.png",
+      "language": "en",
+      "contentRating": "SAFE",
+      "capabilities": [
+        1,
+        4,
+        64
+      ],
+      "badges": [],
+      "developers": [
+        {
+          "name": "GabrielCWT",
+          "github": "https://github.com/GabrielCWT"
+        }
+      ],
+      "id": "Mangapill"
+    },
+    {
+      "name": "Mgeko",
+      "description": "Extension that pulls content from mgeko.cc.",
+      "version": "1.0.0-alpha.26",
+      "icon": "icon.png",
+      "language": "en",
+      "contentRating": "SAFE",
+      "capabilities": [
+        1,
+        16,
+        4,
+        64,
+        32
+      ],
+      "badges": [],
+      "developers": [
+        {
+          "name": "Inkdex",
+          "website": "https://inkdex.github.io",
+          "github": "https://github.com/inkdex"
+        }
+      ],
+      "id": "Mgeko"
+    },
+    {
+      "name": "PunkRecords",
+      "description": "Extension pour récupérer le contenu de punkrecordz.com.",
+      "version": "1.0.0-alpha.2",
+      "icon": "icon.png",
+      "language": "fr",
+      "contentRating": "SAFE",
+      "capabilities": [
+        1,
+        4,
+        64,
+        32
+      ],
+      "badges": [],
+      "developers": [
+        {
+          "name": "Finebouche",
+          "github": "https://github.com/Finebouche"
+        }
+      ],
+      "id": "PunkRecords"
+    },
+    {
+      "name": "QiScans",
+      "description": "Extension that pulls content from qimanhwa.com.",
+      "version": "1.0.0-alpha.14",
+      "icon": "icon.png",
+      "language": "en",
+      "contentRating": "SAFE",
+      "capabilities": [
+        1,
+        16,
+        4,
+        64
+      ],
+      "badges": [],
+      "developers": [
+        {
+          "name": "Lucifers Circle"
+        }
+      ],
+      "id": "QiScans"
+    },
+    {
+      "name": "Webtoon",
+      "description": "Extension that pulls content from webtoons.com.",
+      "version": "1.0.0-alpha.16",
+      "icon": "icon.png",
+      "languages": "multi",
+      "contentRating": "SAFE",
+      "capabilities": [
+        1,
+        4,
+        32,
+        64
+      ],
+      "badges": [],
+      "developers": [
+        {
+          "name": "Yves Pa",
+          "github": "https://github.com/YvesPa"
+        }
+      ],
+      "id": "Webtoon"
+    },
+    {
+      "name": "WeebCentral",
+      "description": "Extension that pulls content from weebcentral.com.",
+      "version": "1.0.0-alpha.21",
+      "icon": "icon.png",
+      "language": "en",
+      "contentRating": "SAFE",
+      "capabilities": [
+        1,
+        16,
+        4,
+        64,
+        32
+      ],
+      "badges": [],
+      "developers": [
+        {
+          "name": "GabrielCWT",
+          "github": "https://github.com/GabrielCWT"
+        }
+      ],
+      "id": "WeebCentral"
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+{"name":"Webtoon","description":"Extension that pulls content from webtoons.com.","version":"1.0.0-alpha.16","icon":"icon.png","languages":"multi","contentRating":"SAFE","capabilities":[1,4,32,64],"badges":[],"developers":[{"name":"Yves Pa","github":"https://github.com/YvesPa"}],"id":"Webtoon"}
