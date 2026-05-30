@@ -34,14 +34,9 @@ jobs:
         run: npm ci
       - name: Run Tests
         run: npm test
-      - name: Deploy to GitHub Pages
+      - name: Upload Test Results
         if: ${{ github.event_name != 'pull_request' }}
-        uses: peaceiris/actions-gh-pages@v4
+        uses: actions/upload-artifact@v7
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: bundles
-          destination_dir: ${{ github.ref_name }}
-          keep_files: true
-          commit_message: "test:"
-          user_name: "github-actions[bot]"
-          user_email: "github-actions[bot]@users.noreply.github.com"
+          name: tests.json
+          path: bundles/tests.json
