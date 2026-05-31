@@ -232,7 +232,7 @@ export class ComixExtension implements ExtensionImpl<typeof ComixConfig> {
     const status = searchQuery.metadata?.status ?? {};
     const types = searchQuery.metadata?.types ?? {};
     const mode = searchQuery.metadata?.mode ?? "and";
-    const content = searchQuery.metadata?.contentRating ?? "safe";
+    const content = searchQuery.metadata?.contentRating ?? "suggestive";
     const min_chapters = searchQuery.metadata?.minChap ?? 0;
     const [sortBy, orderBy] = sorting.id.split("$");
     const filters: Filters[] = [

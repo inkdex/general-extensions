@@ -136,7 +136,7 @@ export class ComixAdvancedSearchForm extends AdvancedSearchForm {
       Section("content_rating", [
         SelectRow("content_rating", {
           title: "Content Rating",
-          value: this.searchMetadata.contentRating ?? ["safe"],
+          value: this.searchMetadata.contentRating ?? ["suggestive"],
           items: [
             { id: "safe", title: "Safe" },
             { id: "suggestive", title: "Suggestive" },
