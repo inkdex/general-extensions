@@ -232,7 +232,8 @@ export class ComixExtension implements ExtensionImpl<typeof ComixConfig> {
     const status = searchQuery.metadata?.status ?? {};
     const types = searchQuery.metadata?.types ?? {};
     const mode = searchQuery.metadata?.mode ?? "and";
-    const min_chapters = searchQuery.metadata?.minChap ?? 1;
+    const content = searchQuery.metadata?.contentRating ?? "safe";
+    const min_chapters = searchQuery.metadata?.minChap ?? 0;
     const [sortBy, orderBy] = sorting.id.split("$");
     const filters: Filters[] = [
       ...buildFilter(false, "genres_in[]", genres, formats),
@@ -249,6 +250,7 @@ export class ComixExtension implements ExtensionImpl<typeof ComixConfig> {
       min_chapters as number,
       sortBy,
       orderBy,
+      content as string,
     );
     return this.parser.parseSearchResults(page, search);
   }

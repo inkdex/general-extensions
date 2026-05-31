@@ -260,12 +260,14 @@ export class ComixApi {
     min_chapter: number,
     sortBy: string,
     orderBy: string,
+    content: string,
   ) {
     const query: Record<string, string | string[]> = {
       page: page.toString(),
       [`order[${sortBy}]`]: orderBy,
       genres_mode: mode,
-      min_chap: min_chapter.toString(),
+      min_chap: min_chapter > 0 ? min_chapter.toString() : "",
+      content_rating: content,
     };
     if (keyword.length > 1) {
       query.keyword = keyword;

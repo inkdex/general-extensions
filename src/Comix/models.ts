@@ -115,4 +115,5 @@ export interface SearchMetadata extends JSONObject {
   status?: TagMap;
   mode?: string[];
   minChap?: number;
+  contentRating?: string[];
 }
