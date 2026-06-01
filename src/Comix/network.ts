@@ -55,8 +55,7 @@ export class ComixInterceptor extends PaperbackInterceptor {
       });
     }
 
-    if (!/\/si?i\//i.test(request.url)) return data;
-
+    if (!response.mimeType?.startsWith("image/")) return data;
     const scrambleParams = readScrambleHeaders(response.headers);
     if (!scrambleParams) return data;
 

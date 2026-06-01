@@ -3,9 +3,8 @@
 
 // Comix image-tile descrambler.
 //
-// Newer uploads no longer cache a clean copy at `/i/<id>/<page>.webp`; the
-// only available URL is `/si/<id>/<page>.webp`, which is served either as-is
-// (clean) or with the tiles shuffled. A shuffled response carries:
+// Images may be served clean or with the tiles shuffled.
+// A shuffled response is identified by these headers:
 //
 //   X-Scramble-Seed:  <uint32, decimal>   e.g. "3121655837"
 //   X-Scramble-Grid:  <cols>x<rows>       e.g. "5x5"
