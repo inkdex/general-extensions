@@ -10,7 +10,9 @@ updates:
     groups:
       paperback:
         patterns:
-          - "@paperback/*"
+          - "@paperback/toolchain"
+          - "@paperback/types"
+          - "@paperback/runtime-polyfills"
       minor-patch:
         update-types:
           - minor
@@ -18,6 +20,3 @@ updates:
       major:
         update-types:
           - major
-      pre-release:
-        patterns:
-          - "*-*"
