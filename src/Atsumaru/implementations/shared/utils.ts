@@ -25,7 +25,7 @@ export function buildThumbnailUrl(source?: ThumbnailSource): string {
   const imagePath =
     typeof source === "string"
       ? source
-      : (source?.posterSmall ?? source?.posterMedium ?? source?.poster);
+      : (source?.posterMedium ?? source?.posterSmall ?? source?.poster);
   if (!imagePath) return "";
   if (imagePath.startsWith("http")) return imagePath;
   return `${DOMAIN}${imagePath.startsWith("/") ? imagePath : `/static/${imagePath}`}`;
