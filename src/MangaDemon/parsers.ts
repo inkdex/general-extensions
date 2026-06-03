@@ -6,7 +6,7 @@
 // Responsible for parsing HTML responses from demonicscans.org.
 // Extracts manga details, chapter lists, search results, and chapter page images.
 
-import { type DiscoverSectionItem } from "@paperback/types";
+import { type Chapter, type DiscoverSectionItem, type SourceManga } from "@paperback/types";
 import { type CheerioAPI } from "cheerio";
 
 import { type SearchResultItem } from "./models";
@@ -257,11 +257,8 @@ export class MangaDemonParser {
    * Parses the chapter list from the manga details page HTML.
    * Returns an array of Chapter objects for Paperback.
    */
-  parseChapterList(
-    $: CheerioAPI,
-    sourceManga: import("@paperback/types").SourceManga,
-  ): import("@paperback/types").Chapter[] {
-    const chapters: import("@paperback/types").Chapter[] = [];
+  parseChapterList($: CheerioAPI, sourceManga: SourceManga): Chapter[] {
+    const chapters: Chapter[] = [];
 
     // Based on the actual website structure, chapters are in #chapters-list with class chplinks
     // But we need to exclude date links and only get chapter links

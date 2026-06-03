@@ -2,9 +2,9 @@
 /* Copyright © 2026 Inkdex */
 
 import {
-  AdvancedSearchForm,
   DiscoverSectionType,
   URL,
+  type AdvancedSearchForm,
   type Chapter,
   type ChapterDetails,
   type ChapterProviding,
@@ -21,16 +21,15 @@ import {
 } from "@paperback/types";
 
 import { WebtoonAdvancedSearchForm } from "./forms";
-import type { SearchMetadata } from "./models";
+import type { SearchMetadata, Language } from "./models";
 import {
-  type Tag,
-  type WebtoonsSearchingMetadata,
-  type WebtoonChaptersListDto,
   BASE_URL,
   MOBILE_URL,
   getDateDayFormat,
   getLanguagesTitle,
-  Language,
+  type Tag,
+  type WebtoonsSearchingMetadata,
+  type WebtoonChaptersListDto,
 } from "./models";
 import { WebtoonInfra } from "./network";
 

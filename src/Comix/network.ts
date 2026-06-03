@@ -2,16 +2,18 @@
 /* Copyright © 2026 Inkdex */
 
 import {
-  type Chapter,
-  type Request,
-  type Response,
   CloudflareError,
-  CookieStorageInterceptor,
   PaperbackInterceptor,
   URL,
+  type Chapter,
+  type CookieStorageInterceptor,
+  type Request,
+  type Response,
 } from "@paperback/types";
 
 import {
+  API,
+  DOMAIN,
   type ApiResponse,
   type ApiRequestConfig,
   type ChapterItem,
@@ -20,11 +22,9 @@ import {
   type MangaItem,
   type ResultManga,
   type Filter,
-  API,
-  DOMAIN,
 } from "./models";
 import { descrambleImage, readScrambleHeaders } from "./utils/descramble";
-import { ComixFilter } from "./utils/filter";
+import type { ComixFilter } from "./utils/filter";
 import { chapterListViaWebView, pageListViaWebView } from "./utils/webView";
 
 export class ComixInterceptor extends PaperbackInterceptor {

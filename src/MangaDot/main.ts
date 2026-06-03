@@ -5,7 +5,6 @@ import {
   BasicRateLimiter,
   CookieStorageInterceptor,
   DiscoverSectionType,
-  Form,
   type AdvancedSearchForm,
   type Chapter,
   type ChapterDetails,
@@ -13,6 +12,7 @@ import {
   type DiscoverSection,
   type DiscoverSectionItem,
   type ExtensionImpl,
+  type Form,
   type PagedResults,
   type SearchQuery,
   type SearchResultItem,
@@ -32,7 +32,7 @@ import {
   parseSection,
   type SectionItemType,
 } from "./parsers";
-import MangaDotConfig from "./pbconfig";
+import type MangaDotConfig from "./pbconfig";
 import { defaultMetadata, checkFilters } from "./utils";
 
 export class MangaDotExtension implements ExtensionImpl<typeof MangaDotConfig> {

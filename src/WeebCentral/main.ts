@@ -5,7 +5,7 @@ import {
   BasicRateLimiter,
   CookieStorageInterceptor,
   DiscoverSectionType,
-  Form,
+  type AdvancedSearchForm,
   type Chapter,
   type ChapterDetails,
   type ChapterProviding,
@@ -15,6 +15,7 @@ import {
   type DiscoverSectionItem,
   type DiscoverSectionProviding,
   type Extension,
+  type Form,
   type MangaProviding,
   type PagedResults,
   type SearchQuery,
@@ -25,7 +26,6 @@ import {
   type Tag,
   type TagSection,
   type SortingOption,
-  AdvancedSearchForm,
 } from "@paperback/types";
 import * as cheerio from "cheerio";
 

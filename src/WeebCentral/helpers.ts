@@ -5,7 +5,8 @@ import { ContentRating, type Tag, type TagSection } from "@paperback/types";
 import * as cheerio from "cheerio";
 
 import { getState } from "../utils/state";
-import { TagSectionId, WC_DOMAIN } from "./models";
+import type { TagSectionId } from "./models";
+import { WC_DOMAIN } from "./models";
 import { fetchSearchPage, type Query } from "./network";
 import { parseTags } from "./parsers";
 

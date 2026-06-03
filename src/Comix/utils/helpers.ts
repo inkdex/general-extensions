@@ -4,13 +4,13 @@
 import { ContentRating } from "@paperback/types";
 
 import {
+  NO_IMAGE,
   type Filters,
   type MangaItem,
-  NO_IMAGE,
   type SearchMetadata,
   type TagMap,
 } from "../models";
-import { ComixFilter } from "./filter";
+import type { ComixFilter } from "./filter";
 
 export function getDefaultMetadata(filter: ComixFilter, genresFilter: string = ""): SearchMetadata {
   const genresHidden = filter.getHiddenGenresSettings();

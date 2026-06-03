@@ -26,7 +26,7 @@ import {
 } from "./models";
 import { MainInterceptor } from "./network";
 import { PunkRecordsParser } from "./parsers";
-import PunkRecordsConfig from "./pbconfig";
+import type PunkRecordsConfig from "./pbconfig";
 
 export class PunkRecordsExtension implements ExtensionImpl<typeof PunkRecordsConfig> {
   parser = new PunkRecordsParser();
