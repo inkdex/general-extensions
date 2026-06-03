@@ -9,19 +9,14 @@ import {
   URL,
   type Chapter,
   type ChapterDetails,
-  type ChapterProviding,
-  type CloudflareBypassRequestProviding,
   type Cookie,
   type DiscoverSection,
   type DiscoverSectionItem,
-  type DiscoverSectionProviding,
-  type Extension,
-  type MangaProviding,
+  type ExtensionImpl,
   type PagedResults,
   type Request,
   type SearchQuery,
   type SearchResultItem,
-  type SearchResultsProviding,
   type SourceManga,
   type TagSection,
 } from "@paperback/types";
@@ -38,17 +33,10 @@ import { genres } from "./genres";
 import { isLastPage, parseSearch, parseTags } from "./MangaKatanaParser";
 import { DOMAIN } from "./models";
 import { MangaKatanaInterceptor } from "./network";
-
-// Should match the capabilities which you defined in pbconfig.ts
-type MangaKatanaImplementation = Extension &
-  DiscoverSectionProviding &
-  SearchResultsProviding &
-  MangaProviding &
-  ChapterProviding &
-  CloudflareBypassRequestProviding;
+import type MangaKatanaConfig from "./pbconfig";
 
 // Main extension class
-export class MangaKatanaExtension implements MangaKatanaImplementation {
+export class MangaKatanaExtension implements ExtensionImpl<typeof MangaKatanaConfig> {
   // Implementation of the main rate limiter
   mainRateLimiter = new BasicRateLimiter("main", {
     numberOfRequests: 15,

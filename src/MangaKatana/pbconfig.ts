@@ -6,7 +6,7 @@ import { ContentRating, SourceIntents, type ExtensionInfo } from "@paperback/typ
 export default {
   name: "MangaKatana",
   description: "Extension that pulls content from mangakatana.com.",
-  version: "1.0.0-alpha.14",
+  version: "1.0.0-alpha.15",
   icon: "icon.png",
   language: "en",
   contentRating: ContentRating.MATURE,
