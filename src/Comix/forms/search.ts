@@ -136,13 +136,8 @@ export class ComixAdvancedSearchForm extends AdvancedSearchForm {
       Section("content_rating", [
         SelectRow("content_rating", {
           title: "Content Rating",
-          value: this.searchMetadata.contentRating ?? ["suggestive"],
-          items: [
-            { id: "safe", title: "Safe" },
-            { id: "suggestive", title: "Suggestive" },
-            { id: "erotica", title: "Erotica" },
-            { id: "pornographic", title: "Pornographic" },
-          ],
+          value: this.searchMetadata.contentRating ?? this.filter.getDefaultContentRatingSettings(),
+          items: this.filter.contentRating,
           layout: "list",
           maxItemCount: 1,
           minItemCount: 1,

@@ -255,17 +255,17 @@ export class ComixApi {
     keyword: string,
     page: number,
     filters: Filters[],
-    mode: string,
-    min_chapter: number,
+    mode: string[],
+    minChapters: number,
     sortBy: string,
     orderBy: string,
-    content: string,
+    content: string[],
   ) {
     const query: Record<string, string | string[]> = {
       page: page.toString(),
       [`order[${sortBy}]`]: orderBy,
       genres_mode: mode,
-      min_chap: min_chapter > 0 ? min_chapter.toString() : "",
+      min_chap: minChapters > 0 ? minChapters.toString() : "",
       content_rating: content,
     };
     if (keyword.length > 1) {

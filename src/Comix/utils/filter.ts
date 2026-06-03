@@ -33,6 +33,16 @@ export class ComixFilter {
     { id: "365", value: "1 Year" },
   ];
 
+  contentRating = [
+    { id: "safe", title: "Safe" },
+    { id: "suggestive", title: "Suggestive" },
+    { id: "erotica", title: "Erotica" },
+    { id: "pornographic", title: "Pornographic" },
+  ];
+  getDefaultContentRatingSettings() {
+    return (Application.getState("content_rating") as string[] | undefined) ?? ["suggestive"];
+  }
+
   getHiddenGenresSettings() {
     return (Application.getState("hide_genres") as string[] | undefined) ?? [];
   }
