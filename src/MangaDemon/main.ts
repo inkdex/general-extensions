@@ -7,17 +7,12 @@ import {
   DiscoverSectionType,
   type Chapter,
   type ChapterDetails,
-  type ChapterProviding,
-  type CloudflareBypassRequestProviding,
   type Cookie,
   type DiscoverSection,
   type DiscoverSectionItem,
-  type DiscoverSectionProviding,
-  type Extension,
-  type MangaProviding,
+  type ExtensionImpl,
   type PagedResults,
   type SearchQuery,
-  type SearchResultsProviding,
   type SortingOption,
   type SourceManga,
 } from "@paperback/types";
@@ -44,16 +39,9 @@ import {
 } from "./models";
 import { MangaDemonInterceptor } from "./network";
 import { MangaDemonParser } from "./parsers";
+import type MangaDemonConfig from "./pbconfig";
 
-class MangaDemonExtension
-  implements
-    Extension,
-    DiscoverSectionProviding,
-    SearchResultsProviding,
-    MangaProviding,
-    ChapterProviding,
-    CloudflareBypassRequestProviding
-{
+class MangaDemonExtension implements ExtensionImpl<typeof MangaDemonConfig> {
   parser: MangaDemonParser = new MangaDemonParser();
 
   // Maps sanitized manga IDs to real IDs for session consistency
