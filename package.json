@@ -19,7 +19,7 @@
   },
   "devDependencies": {
     "@paperback/toolchain": "^1.0.0-alpha.87",
-    "@paperback/types": "^1.0.0-alpha.87",
+    "@paperback/types": "^1.0.0-alpha.89",
     "@types/chai": "^5.2.3",
     "chai": "^6.2.2",
     "cheerio": "^1.2.0",
