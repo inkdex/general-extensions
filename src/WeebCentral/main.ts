@@ -8,20 +8,14 @@ import {
   type AdvancedSearchForm,
   type Chapter,
   type ChapterDetails,
-  type ChapterProviding,
-  type CloudflareBypassRequestProviding,
   type Cookie,
   type DiscoverSection,
   type DiscoverSectionItem,
-  type DiscoverSectionProviding,
-  type Extension,
+  type ExtensionImpl,
   type Form,
-  type MangaProviding,
   type PagedResults,
   type SearchQuery,
   type SearchResultItem,
-  type SearchResultsProviding,
-  type SettingsFormProviding,
   type SourceManga,
   type Tag,
   type TagSection,
@@ -58,18 +52,9 @@ import {
   parseRecommendedSection,
   parseSearch,
 } from "./parsers";
-import pbconfig from "./pbconfig";
+import WeebCentralConfig from "./pbconfig";
 
-export class WeebCentralExtension
-  implements
-    Extension,
-    SearchResultsProviding,
-    MangaProviding,
-    ChapterProviding,
-    DiscoverSectionProviding,
-    SettingsFormProviding,
-    CloudflareBypassRequestProviding
-{
+export class WeebCentralExtension implements ExtensionImpl<typeof WeebCentralConfig> {
   globalRateLimiter = new BasicRateLimiter("ratelimiter", {
     numberOfRequests: 10,
     bufferInterval: 0.5,
@@ -206,7 +191,7 @@ export class WeebCentralExtension
       throw new Error("Genres tag section not found");
     }
     if (isInvalidTags(genreTag.tags)) {
-      throw new Error(`Please reset ${pbconfig.name} state in settings`);
+      throw new Error(`Please reset ${WeebCentralConfig.name} state in settings`);
     }
     return genreTag.tags;
   }
