@@ -15,19 +15,14 @@ import {
   URL,
   type Chapter,
   type ChapterDetails,
-  type ChapterProviding,
-  type CloudflareBypassRequestProviding,
   type Cookie,
   type DiscoverSection,
   type DiscoverSectionItem,
-  type DiscoverSectionProviding,
-  type Extension,
-  type MangaProviding,
+  type ExtensionImpl,
   type PagedResults,
   type Request,
   type SearchQuery,
   type SearchResultItem,
-  type SearchResultsProviding,
   type SourceManga,
   type Tag,
   type TagSection,
@@ -42,21 +37,12 @@ import { type CheerioAPI } from "cheerio";
 
 import { genreOptions } from "./genreOptions";
 import { genres } from "./genres";
-import { DOMAIN } from "./models";
+import { DOMAIN, type Metadata } from "./models";
 import { MangaFoxInterceptor } from "./network";
-
-type Metadata = { offset?: number; collectedIds?: string[] };
-
-// Should match the capabilities which you defined in pbconfig.ts
-type MangaFoxImplementation = Extension &
-  DiscoverSectionProviding &
-  SearchResultsProviding &
-  MangaProviding &
-  ChapterProviding &
-  CloudflareBypassRequestProviding;
+import type MangaFoxConfig from "./pbconfig";
 
 // Main extension class
-export class MangaFoxExtension implements MangaFoxImplementation {
+export class MangaFoxExtension implements ExtensionImpl<typeof MangaFoxConfig> {
   // Implementation of the main rate limiter
   mainRateLimiter = new BasicRateLimiter("main", {
     numberOfRequests: 4,
