@@ -2,7 +2,7 @@
 /* Copyright © 2026 Inkdex */
 
 import type { SettingsFormProviding } from "@paperback/types";
-import { Form } from "@paperback/types";
+import type { Form } from "@paperback/types";
 
 import { AtsumaruSettingsForm } from "./forms";
 

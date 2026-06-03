@@ -6,7 +6,6 @@ import {
   CookieStorageInterceptor,
   DiscoverSectionType,
   EndOfPageResults,
-  Form,
   URL,
   type AdvancedSearchForm,
   type Chapter,
@@ -15,6 +14,7 @@ import {
   type DiscoverSection,
   type DiscoverSectionItem,
   type ExtensionImpl,
+  type Form,
   type PagedResults,
   type Request,
   type SearchQuery,
@@ -37,7 +37,7 @@ import {
   parseSearch,
   parseViewMore,
 } from "./parsers";
-import MgekoConfig from "./pbconfig";
+import type MgekoConfig from "./pbconfig";
 
 export class MgekoExtension implements ExtensionImpl<typeof MgekoConfig> {
   globalRateLimiter = new BasicRateLimiter("rateLimiter", {

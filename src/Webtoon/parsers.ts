@@ -12,14 +12,14 @@ import {
 import { type CheerioAPI } from "cheerio";
 
 import { WebtoonSettings } from "./forms";
+import type { Language } from "./models";
 import {
+  BASE_URL,
+  getLanguagesTitle,
   type CheerioElement,
   type Tag,
   type WebtoonChaptersElemDto,
   type WebtoonChaptersListDto,
-  BASE_URL,
-  getLanguagesTitle,
-  Language,
 } from "./models";
 
 export abstract class WebtoonParser extends WebtoonSettings {

@@ -8,6 +8,7 @@ import {
   type DiscoverSection,
   type DiscoverSectionItem,
   type ExtensionImpl,
+  type Form,
   type PagedResults,
   type AdvancedSearchForm,
   type SearchQuery,
@@ -17,7 +18,6 @@ import {
   BasicRateLimiter,
   CookieStorageInterceptor,
   DiscoverSectionType,
-  Form,
 } from "@paperback/types";
 
 import { ComixAdvancedSearchForm } from "./forms/search";
@@ -25,7 +25,7 @@ import { getDiscoverySectionsOrder, MainSettings } from "./forms/settings";
 import type { Filters, Metadata, OptionItem, SearchMetadata } from "./models";
 import { ComixInterceptor, ComixApi } from "./network";
 import { ComixParser } from "./parsers";
-import ComixConfig from "./pbconfig";
+import type ComixConfig from "./pbconfig";
 import { ComixFilter } from "./utils/filter";
 import { buildFilter, getDefaultMetadata } from "./utils/helpers";
 

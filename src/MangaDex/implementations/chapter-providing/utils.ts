@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 /* Copyright © 2026 Inkdex */
 
-import { ContentRating } from "@paperback/types";
+import type { ContentRating } from "@paperback/types";
 
 import { paperbackToMangaDexRatings } from "../shared/parsers";
 import type { PrecomputedQuery } from "../shared/utils";

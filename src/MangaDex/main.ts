@@ -26,7 +26,7 @@ import {
 } from "./implementations/search-results/main";
 import { getSettingsForm } from "./implementations/settings-form/main";
 import { runStateMigrations } from "./implementations/shared/state";
-import MangaDexConfig from "./pbconfig";
+import type MangaDexConfig from "./pbconfig";
 import { MangaDexInterceptor } from "./services/network";
 
 export class MangaDexExtension implements ExtensionImpl<typeof MangaDexConfig> {

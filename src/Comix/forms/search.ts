@@ -3,17 +3,17 @@
 
 import {
   AdvancedSearchForm,
-  type FormSectionElement,
-  type SearchQuery,
   Section,
   SelectRow,
   SelectSection,
   StepperRow,
   TriStateSelectRow,
+  type FormSectionElement,
+  type SearchQuery,
 } from "@paperback/types";
 
 import type { SearchMetadata, TagMap } from "../models";
-import { ComixFilter } from "../utils/filter";
+import type { ComixFilter } from "../utils/filter";
 
 export class ComixAdvancedSearchForm extends AdvancedSearchForm {
   private searchMetadata: SearchMetadata;

@@ -2,10 +2,10 @@
 /* Copyright © 2026 Inkdex */
 
 import {
-  AdvancedSearchForm,
   BasicRateLimiter,
   DiscoverSectionType,
   URL,
+  type AdvancedSearchForm,
   type Chapter,
   type ChapterDetails,
   type ChapterProviding,
