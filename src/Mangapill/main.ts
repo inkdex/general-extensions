@@ -8,16 +8,12 @@ import {
   type AdvancedSearchForm,
   type Chapter,
   type ChapterDetails,
-  type ChapterProviding,
   type DiscoverSection,
   type DiscoverSectionItem,
-  type DiscoverSectionProviding,
-  type Extension,
-  type MangaProviding,
+  type ExtensionImpl,
   type PagedResults,
   type SearchQuery,
   type SearchResultItem,
-  type SearchResultsProviding,
   type SourceManga,
   type TagSection,
 } from "@paperback/types";
@@ -36,6 +32,7 @@ import {
   parseTags,
   parseTrendingSection,
 } from "./parsers";
+import type MangapillConfig from "./pbconfig";
 import {
   fetchChapterDetailsPage,
   fetchHomepage,
@@ -43,14 +40,7 @@ import {
   fetchSearchPage,
 } from "./requests";
 
-export class MangapillExtension
-  implements
-    Extension,
-    SearchResultsProviding,
-    MangaProviding,
-    ChapterProviding,
-    DiscoverSectionProviding
-{
+export class MangapillExtension implements ExtensionImpl<typeof MangapillConfig> {
   globalRateLimiter = new BasicRateLimiter("ratelimiter", {
     numberOfRequests: 10,
     bufferInterval: 0.5,
