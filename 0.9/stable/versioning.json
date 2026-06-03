@@ -1,5 +1,5 @@
 {
-  "buildTime": "2026-06-02T16:24:12.207Z",
+  "buildTime": "2026-06-03T12:58:00.894Z",
   "builtWith": {
     "toolchain": "1.0.0-alpha.87",
     "types": "1.0.0-alpha.87"
@@ -80,15 +80,14 @@
     {
       "name": "MangaDex",
       "description": "Extension that pulls content from mangadex.org.",
-      "version": "1.0.0-alpha.26",
+      "version": "1.0.0-alpha.27",
       "icon": "icon.png",
-      "languages": "multi",
+      "language": "multi",
       "contentRating": "SAFE",
       "capabilities": [
         1,
         4,
         8,
-        2,
         64,
         32
       ],
