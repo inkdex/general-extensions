@@ -6,9 +6,9 @@ import { ContentRating, SourceIntents, type ExtensionInfo } from "@paperback/typ
 export default {
   name: "Webtoon",
   description: `Extension that pulls content from webtoons.com.`,
-  version: "1.0.0-alpha.16",
+  version: "1.0.0-alpha.17",
   icon: "icon.png",
-  languages: "multi",
+  language: "multi",
   contentRating: ContentRating.EVERYONE,
   capabilities: [
     SourceIntents.CHAPTER_PROVIDING,
@@ -23,4 +23,4 @@ export default {
       github: "https://github.com/YvesPa",
     },
   ],
-} as ExtensionInfo;
+} satisfies ExtensionInfo;
