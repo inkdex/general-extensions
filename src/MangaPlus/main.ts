@@ -7,11 +7,9 @@ import {
   DiscoverSectionType,
   type Chapter,
   type ChapterDetails,
-  type ChapterProviding,
   type DiscoverSection,
   type DiscoverSectionItem,
-  type DiscoverSectionProviding,
-  type Extension,
+  type ExtensionImpl,
   type Form,
   type Metadata,
   type PagedResults,
@@ -19,8 +17,6 @@ import {
   type Response,
   type SearchQuery,
   type SearchResultItem,
-  type SearchResultsProviding,
-  type SettingsFormProviding,
   type SourceManga,
 } from "@paperback/types";
 
@@ -37,20 +33,14 @@ import {
   getSplitImages,
   MangaPlusSettingForm,
 } from "./MangaPlusSettings";
+import type MangaPlusConfig from "./pbconfig";
 
 const BASE_URL = "https://mangaplus.shueisha.co.jp";
 const API_URL = "https://jumpg-webapi.tokyo-cdn.com/api";
 
 const langCode = Language.ENGLISH;
 
-export class MangaPlusExtension
-  implements
-    Extension,
-    SearchResultsProviding,
-    ChapterProviding,
-    SettingsFormProviding,
-    DiscoverSectionProviding
-{
+export class MangaPlusExtension implements ExtensionImpl<typeof MangaPlusConfig> {
   globalRateLimiter = new BasicRateLimiter("rateLimiter", {
     numberOfRequests: 10,
     bufferInterval: 1,
