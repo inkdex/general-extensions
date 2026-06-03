@@ -18,7 +18,7 @@
     "prepare": "husky"
   },
   "devDependencies": {
-    "@paperback/toolchain": "^1.0.0-alpha.87",
+    "@paperback/toolchain": "^1.0.0-alpha.89",
     "@paperback/types": "^1.0.0-alpha.87",
     "@types/chai": "^5.2.3",
     "chai": "^6.2.2",
