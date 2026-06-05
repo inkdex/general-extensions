@@ -2,23 +2,18 @@
 /* Copyright © 2026 Inkdex */
 
 import {
-  AdvancedSearchForm,
+  type AdvancedSearchForm,
   BasicRateLimiter,
   DiscoverSectionType,
-  Form,
+  type Form,
   type Chapter,
   type ChapterDetails,
-  type ChapterProviding,
   type DiscoverSection,
   type DiscoverSectionItem,
-  type DiscoverSectionProviding,
-  type Extension,
-  type MangaProviding,
+  type ExtensionImpl,
   type PagedResults,
   type SearchQuery,
   type SearchResultItem,
-  type SearchResultsProviding,
-  type SettingsFormProviding,
   type SortingOption,
   type SourceManga,
 } from "@paperback/types";
@@ -47,16 +42,9 @@ import {
   parseFictionEntries,
   parseMangaDetails,
 } from "./parsers";
+import type RoyalRoadConfig from "./pbconfig";
 
-export class RoyalRoadExtension
-  implements
-    Extension,
-    SearchResultsProviding,
-    MangaProviding,
-    ChapterProviding,
-    DiscoverSectionProviding,
-    SettingsFormProviding
-{
+export class RoyalRoadExtension implements ExtensionImpl<typeof RoyalRoadConfig> {
   globalRateLimiter = new BasicRateLimiter("ratelimiter", {
     numberOfRequests: 5,
     bufferInterval: 0.5,
