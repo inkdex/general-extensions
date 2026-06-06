@@ -3,27 +3,39 @@
 
 import {
   CloudflareError,
+  ContentRating,
+  type DiscoverSectionItem,
   PaperbackInterceptor,
-  URL,
   type Request,
   type Response,
   type SearchQuery,
   type SortingOption,
+  URL,
 } from "@paperback/types";
 
 import {
-  DOMAIN,
-  type ChapterPagesResponse,
   type ChapterListResponse,
+  type ChapterPagesResponse,
+  DOMAIN,
   type MangaDataResponse,
+  type PageMetadata,
   type SearchMetadata,
   type SearchResponse,
   type SearchSuggestionsResponse,
   type Volumes,
 } from "./models";
-import { deNormalizeId, getShowAdultStatus, getSectionContentTypes } from "./utils";
+import {
+  defaultMetadata,
+  deNormalizeId,
+  getDemographicHidden,
+  getFilters,
+  getGenresHidden,
+  getSectionContentTypes,
+  getShowAdultStatus,
+  getThemesHidden,
+} from "./utils";
 
-export class MangaDotInterceptor extends PaperbackInterceptor {
+export class MangaDotNetInterceptor extends PaperbackInterceptor {
   override async interceptRequest(request: Request): Promise<Request> {
     return {
       ...request,
@@ -54,7 +66,7 @@ export class MangaDotInterceptor extends PaperbackInterceptor {
   }
 }
 
-export class MangaDotApi {
+export class MangaDotNetApi {
   private async fetchApi<T>(request: Request): Promise<T> {
     const [, data] = await Application.scheduleRequest(request);
 
@@ -65,6 +77,81 @@ export class MangaDotApi {
     }
   }
 
+  async getGenreSection(metadata: PageMetadata | undefined): Promise<{
+    items: DiscoverSectionItem[];
+    metadata: PageMetadata | undefined;
+  }> {
+    const allGenres: DiscoverSectionItem[] = [];
+    const page = metadata?.page ?? 1;
+    getFilters()
+      .genre.filter((filterName) => !getGenresHidden().includes(filterName.id))
+      .forEach((filterItem) => {
+        allGenres.push({
+          type: "genresCarouselItem",
+          searchQuery: {
+            title: "",
+            metadata: defaultMetadata(filterItem.id),
+          },
+          name: filterItem.title,
+          contentRating: ContentRating.EVERYONE,
+        });
+      });
+    return {
+      items: allGenres,
+      metadata: { page: page + 1 },
+    };
+  }
+
+  async getDemographicSection(metadata: PageMetadata | undefined): Promise<{
+    items: DiscoverSectionItem[];
+    metadata: PageMetadata | undefined;
+  }> {
+    const allGenres: DiscoverSectionItem[] = [];
+    const page = metadata?.page ?? 1;
+    getFilters()
+      .demographic.filter((filterName) => !getDemographicHidden().includes(filterName.id))
+      .forEach((filterItem) => {
+        allGenres.push({
+          type: "genresCarouselItem",
+          searchQuery: {
+            title: "",
+            metadata: defaultMetadata(filterItem.id),
+          },
+          name: filterItem.title,
+          contentRating: ContentRating.EVERYONE,
+        });
+      });
+    return {
+      items: allGenres,
+      metadata: { page: page + 1 },
+    };
+  }
+
+  async getThemesSection(metadata: PageMetadata | undefined): Promise<{
+    items: DiscoverSectionItem[];
+    metadata: PageMetadata | undefined;
+  }> {
+    const allGenres: DiscoverSectionItem[] = [];
+    const page = metadata?.page ?? 1;
+    getFilters()
+      .themeAndContent.filter((filterName) => !getThemesHidden().includes(filterName.id))
+      .forEach((filterItem) => {
+        allGenres.push({
+          type: "genresCarouselItem",
+          searchQuery: {
+            title: "",
+            metadata: defaultMetadata(filterItem.id),
+          },
+          name: filterItem.title,
+          contentRating: ContentRating.EVERYONE,
+        });
+      });
+    return {
+      items: allGenres,
+      metadata: { page: page + 1 },
+    };
+  }
+
   async getSection(section: string, page: number): Promise<SearchResponse> {
     const url = new URL(DOMAIN)
       .addPathComponent("api")
@@ -73,7 +160,7 @@ export class MangaDotApi {
       .addPathComponent(section.replaceAll("_", "-"))
       .setQueryItems({
         origin: getSectionContentTypes().join(",").replaceAll("&", ","),
-        adult: getShowAdultStatus() ? "both" : "0",
+        adult: getShowAdultStatus(),
         page: page.toString(),
       });
     return this.fetchApi<SearchResponse>({ url: url.toString(), method: "GET" });
@@ -107,7 +194,13 @@ export class MangaDotApi {
   }
 
   async getSearch(query: SearchQuery<SearchMetadata>, page: number, sorting: SortingOption) {
-    const formattedGenres = Object.entries(query.metadata?.genres ?? []).map(([genre, state]) => {
+    const genres = {
+      ...query.metadata?.genres,
+      ...query.metadata?.demographic,
+      ...query.metadata?.more,
+      ...query.metadata?.themes,
+    };
+    const formattedGenres = Object.entries(genres).map(([genre, state]) => {
       const normalized = deNormalizeId(genre);
       return state === "excluded" ? `-${normalized}` : normalized;
     });
@@ -125,7 +218,7 @@ export class MangaDotApi {
         artist: (query.metadata?.artist ?? []).join(","),
         sortBy: sort,
         sortOrder: order ? order : "",
-        adult: query.metadata?.adult === true ? "both" : "0",
+        adult: query.metadata?.adult ?? getShowAdultStatus(),
       });
     return this.fetchApi<SearchResponse>({ url: url.toString(), method: "GET" });
   }

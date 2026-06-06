@@ -9,7 +9,6 @@ import {
   SelectRow,
   SelectSection,
   TriStateSelectRow,
-  ToggleRow,
   type FlowSectionElement,
   type FormItemElement,
   type FormSectionElement,
@@ -17,11 +16,17 @@ import {
   type SearchQuery,
 } from "@paperback/types";
 
-import { MangaDot } from "../main";
+import { MangaDotNet } from "../main";
 import { ORIGIN, STATUS, type SearchMetadata } from "../models";
-import { defaultMetadata, deNormalizeId, getGenres, normalizeId } from "../utils";
+import {
+  defaultMetadata,
+  deNormalizeId,
+  getFilters,
+  getShowAdultStatus,
+  normalizeId,
+} from "../utils";
 
-class MangaDotAdvancedSearchForm extends AdvancedSearchForm {
+class MangaDotNetAdvancedSearchForm extends AdvancedSearchForm {
   override getSearchQueryMetadata(): SearchMetadata {
     return this.searchMetadata;
   }
@@ -43,10 +48,17 @@ class MangaDotAdvancedSearchForm extends AdvancedSearchForm {
       Section("status", this.getStatusFilter()),
       Section("origin", this.getOriginFilter()),
       Section("adult", [
-        ToggleRow("adultToggle", {
+        SelectRow("adultToggle", {
           title: "Show Adult results",
-          value: this.searchMetadata.adult ?? false,
-          onValueChange: Application.Selector(this as MangaDotAdvancedSearchForm, "handleAdult"),
+          value: this.searchMetadata.adult ?? getShowAdultStatus(),
+          options: [
+            { id: "0", title: "No" },
+            { id: "1", title: "Yes" },
+            { id: "both", title: "Both" },
+          ],
+          minItemCount: 1,
+          maxItemCount: 1,
+          onValueChange: Application.Selector(this as MangaDotNetAdvancedSearchForm, "handleAdult"),
         }),
       ]),
       Section("author", [
@@ -71,9 +83,42 @@ class MangaDotAdvancedSearchForm extends AdvancedSearchForm {
       TriStateSelectRow("genres", {
         title: "Genres",
         layout: "list",
-        onValueChange: Application.Selector(this as MangaDotAdvancedSearchForm, "handleGenres"),
-        items: getGenres(),
+        onValueChange: Application.Selector(this as MangaDotNetAdvancedSearchForm, "handleGenres"),
+        items: getFilters().genre,
         value: this.searchMetadata.genres ?? {},
+        allowEmptySelection: true,
+        allowExclusion: true,
+        isHidden: false,
+      }),
+      TriStateSelectRow("demographic", {
+        title: "Demographic",
+        layout: "list",
+        onValueChange: Application.Selector(
+          this as MangaDotNetAdvancedSearchForm,
+          "handleDemographic",
+        ),
+        items: getFilters().demographic,
+        value: this.searchMetadata.demographic ?? {},
+        allowEmptySelection: true,
+        allowExclusion: true,
+        isHidden: false,
+      }),
+      TriStateSelectRow("themes", {
+        title: "Themes",
+        layout: "list",
+        onValueChange: Application.Selector(this as MangaDotNetAdvancedSearchForm, "handleThemes"),
+        items: getFilters().themeAndContent,
+        value: this.searchMetadata.themes ?? {},
+        allowEmptySelection: true,
+        allowExclusion: true,
+        isHidden: false,
+      }),
+      TriStateSelectRow("more", {
+        title: "More",
+        layout: "list",
+        onValueChange: Application.Selector(this as MangaDotNetAdvancedSearchForm, "handleMore"),
+        items: getFilters().more,
+        value: this.searchMetadata.more ?? {},
         allowEmptySelection: true,
         allowExclusion: true,
         isHidden: false,
@@ -86,9 +131,12 @@ class MangaDotAdvancedSearchForm extends AdvancedSearchForm {
       SelectRow("status", {
         title: "Status",
         layout: "list",
-        onValueChange: Application.Selector(this as MangaDotAdvancedSearchForm, "handleStatus"),
+        onValueChange: Application.Selector(this as MangaDotNetAdvancedSearchForm, "handleStatus"),
         items: STATUS,
-        value: this.searchMetadata.status ?? [""],
+        value:
+          this.searchMetadata.status && this.searchMetadata.status.length > 0
+            ? this.searchMetadata.status
+            : [""],
         minItemCount: 1,
         maxItemCount: 1,
         isHidden: false,
@@ -101,9 +149,12 @@ class MangaDotAdvancedSearchForm extends AdvancedSearchForm {
       SelectRow("origin", {
         title: "Origin",
         layout: "list",
-        onValueChange: Application.Selector(this as MangaDotAdvancedSearchForm, "handleOrigin"),
+        onValueChange: Application.Selector(this as MangaDotNetAdvancedSearchForm, "handleOrigin"),
         items: ORIGIN,
-        value: this.searchMetadata.origin ?? [""],
+        value:
+          this.searchMetadata.origin && this.searchMetadata.origin.length > 0
+            ? this.searchMetadata.origin
+            : [""],
         minItemCount: 1,
         maxItemCount: ORIGIN.length,
         isHidden: false,
@@ -111,8 +162,20 @@ class MangaDotAdvancedSearchForm extends AdvancedSearchForm {
     ];
   }
 
-  async handleAdult(value: boolean): Promise<void> {
+  async handleAdult(value: string[]): Promise<void> {
     this.searchMetadata.adult = value;
+  }
+
+  async handleDemographic(value: { [id: string]: "included" | "excluded" }): Promise<void> {
+    this.searchMetadata.demographic = value;
+  }
+
+  async handleThemes(value: { [id: string]: "included" | "excluded" }): Promise<void> {
+    this.searchMetadata.themes = value;
+  }
+
+  async handleMore(value: { [id: string]: "included" | "excluded" }): Promise<void> {
+    this.searchMetadata.more = value;
   }
 
   async handleGenres(value: { [id: string]: "included" | "excluded" }): Promise<void> {
@@ -217,7 +280,7 @@ class AuthorFilter extends AdvancedSearchForm {
   async handleAuthorLabel(value: string): Promise<void> {
     this.searchedValue = value;
     if (value.length > 2) {
-      const authors = await MangaDot.api.getAuthor(value);
+      const authors = await MangaDotNet.api.getAuthor(value);
       this.authorFiltered = authors.suggestions;
     }
   }
@@ -304,10 +367,10 @@ class ArtistFilter extends AdvancedSearchForm {
   async handleArtistLabel(value: string): Promise<void> {
     this.searchedValue = value;
     if (value.length > 2) {
-      const artists = await MangaDot.api.getArtist(value);
+      const artists = await MangaDotNet.api.getArtist(value);
       this.artistsFiltered = artists.suggestions;
     }
   }
 }
 
-export default MangaDotAdvancedSearchForm;
+export default MangaDotNetAdvancedSearchForm;
