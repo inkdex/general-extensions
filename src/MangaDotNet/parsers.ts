@@ -2,9 +2,9 @@
 /* Copyright © 2026 Inkdex */
 
 import {
-  ContentRating,
   type Chapter,
   type ChapterDetails,
+  ContentRating,
   type DiscoverSectionItem,
   type PagedResults,
   type SearchResultItem,
@@ -12,9 +12,11 @@ import {
 } from "@paperback/types";
 
 import {
-  DOMAIN,
-  type ChapterPagesResponse,
   type ChapterListResponse,
+  type ChapterPagesResponse,
+  DOMAIN,
+  type ItemInfo,
+  type ItemInfoElements,
   type MangaData,
   type MangaDataResponse,
   type PageMetadata,
@@ -165,6 +167,25 @@ export const parseSection = (
       imageUrl: `${DOMAIN}${item.photo}`,
       contentRating: getRating(item),
     };
+    const ratingItem: ItemInfo = {
+      symbol: "star.fill",
+      text: `${item.avg_rating}`,
+    };
+
+    const status: ItemInfo = {
+      symbol: "book.fill",
+      text: `${item.status}`,
+    };
+
+    let itemInfoElements: ItemInfoElements | undefined = undefined;
+
+    if (item.avg_rating && item.status) {
+      itemInfoElements = [ratingItem, status];
+    } else if (item.avg_rating) {
+      itemInfoElements = [ratingItem];
+    } else if (item.status) {
+      itemInfoElements = [status];
+    }
     switch (type) {
       case "chapterUpdatesCarouselItem":
         return {
@@ -175,7 +196,13 @@ export const parseSection = (
           publishDate: getDate(item.last_chapter_date),
         };
       case "featuredCarouselItem":
-        return { ...base, type, supertitle: getArrayAuthor(item) };
+        return {
+          ...base,
+          type,
+          supertitle: getArrayAuthor(item),
+          summary: item.description,
+          infoItems: itemInfoElements,
+        };
       case "prominentCarouselItem":
         return { ...base, type, subtitle: getArrayAuthor(item) };
       default:

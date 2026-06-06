@@ -20,10 +20,10 @@ import {
   type SourceManga,
 } from "@paperback/types";
 
-import MangaDotAdvancedSearchForm from "./forms/search";
+import MangaDotNetAdvancedSearchForm from "./forms/search";
 import { SettingsForm } from "./forms/settings";
 import { DOMAIN, type PageMetadata, type SearchMetadata } from "./models";
-import { MangaDotApi, MangaDotInterceptor } from "./network";
+import { MangaDotNetApi, MangaDotNetInterceptor } from "./network";
 import {
   parseChapterPages,
   parseChapters,
@@ -32,18 +32,18 @@ import {
   parseSection,
   type SectionItemType,
 } from "./parsers";
-import type MangaDotConfig from "./pbconfig";
+import type MangaDotNetConfig from "./pbconfig";
 import { defaultMetadata, checkFilters } from "./utils";
 
-export class MangaDotExtension implements ExtensionImpl<typeof MangaDotConfig> {
-  api = new MangaDotApi();
+export class MangaDotNetExtension implements ExtensionImpl<typeof MangaDotNetConfig> {
+  api = new MangaDotNetApi();
   globalRateLimiter = new BasicRateLimiter("rateLimiter", {
     numberOfRequests: 5,
     bufferInterval: 1,
     ignoreImages: true,
   });
 
-  mainInterceptor = new MangaDotInterceptor("main");
+  mainInterceptor = new MangaDotNetInterceptor("main");
   cookieStorageInterceptor = new CookieStorageInterceptor({
     storage: "stateManager",
   });
@@ -103,6 +103,21 @@ export class MangaDotExtension implements ExtensionImpl<typeof MangaDotConfig> {
         title: "Most Tracked Comics",
         type: DiscoverSectionType.simpleCarousel,
       },
+      {
+        id: "genres",
+        title: "Genres",
+        type: DiscoverSectionType.genres,
+      },
+      {
+        id: "themes",
+        title: "Themes",
+        type: DiscoverSectionType.genres,
+      },
+      {
+        id: "demographics",
+        title: "Demographics",
+        type: DiscoverSectionType.genres,
+      },
     ];
   }
 
@@ -110,6 +125,17 @@ export class MangaDotExtension implements ExtensionImpl<typeof MangaDotConfig> {
     section: DiscoverSection,
     metadata: PageMetadata | undefined,
   ): Promise<PagedResults<DiscoverSectionItem>> {
+    await checkFilters(this.api);
+
+    if (section.id === "genres") {
+      return this.api.getGenreSection(metadata);
+    }
+    if (section.id === "demographics") {
+      return this.api.getDemographicSection(metadata);
+    }
+    if (section.id === "themes") {
+      return this.api.getThemesSection(metadata);
+    }
     const page = metadata?.page ?? 1;
     const sectionElements = await this.api.getSection(section.id, page);
     const itemTypes: Record<string, SectionItemType> = {
@@ -133,7 +159,7 @@ export class MangaDotExtension implements ExtensionImpl<typeof MangaDotConfig> {
     searchQuery: SearchQuery<SearchMetadata>,
   ): Promise<AdvancedSearchForm> {
     await checkFilters(this.api);
-    return new MangaDotAdvancedSearchForm(searchQuery);
+    return new MangaDotNetAdvancedSearchForm(searchQuery);
   }
 
   async getSearchResults(
@@ -168,4 +194,4 @@ export class MangaDotExtension implements ExtensionImpl<typeof MangaDotConfig> {
   }
 }
 
-export const MangaDot = new MangaDotExtension();
+export const MangaDotNet = new MangaDotNetExtension();

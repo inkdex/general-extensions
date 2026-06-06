@@ -53,7 +53,6 @@ export interface MangaData {
   description: string;
   banner_image: string;
   content_rating: string | null;
-  avg_rating: number | null;
   alt_titles: string[] | string | null;
   authors: string[] | string | null;
   artists: string[] | string | null;
@@ -65,6 +64,7 @@ export interface MangaData {
   chapter_count: number;
   is_blurworthy: boolean;
   is_adult: boolean;
+  avg_rating: number | null;
 }
 
 export interface MangaDataResponse {
@@ -101,13 +101,23 @@ export interface Volumes {
 
 export type SearchMetadata = {
   genres?: { [id: string]: "included" | "excluded" };
+  demographic?: { [id: string]: "included" | "excluded" };
+  themes?: { [id: string]: "included" | "excluded" };
+  more?: { [id: string]: "included" | "excluded" };
   origin?: string[];
   status?: string[];
   author?: string[];
   artist?: string[];
-  adult?: boolean;
+  adult?: string[];
 };
 
 export type PageMetadata = {
   page: number;
 };
+
+export type ItemInfo = {
+  symbol: string;
+  text: string;
+};
+
+export type ItemInfoElements = [ItemInfo] | [ItemInfo, ItemInfo];
