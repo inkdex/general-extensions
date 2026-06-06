@@ -20,7 +20,6 @@ import {
 import * as cheerio from "cheerio";
 
 import { RoyalRoadAdvancedSearchForm, RoyalRoadSettingsForm } from "./forms";
-import { getShareUrl } from "./helpers";
 import {
   DISCOVER_LISTINGS,
   GENRES,
@@ -43,6 +42,7 @@ import {
   parseMangaDetails,
 } from "./parsers";
 import type RoyalRoadConfig from "./pbconfig";
+import { getShareUrl } from "./utils";
 
 export class RoyalRoadExtension implements ExtensionImpl<typeof RoyalRoadConfig> {
   globalRateLimiter = new BasicRateLimiter("ratelimiter", {
