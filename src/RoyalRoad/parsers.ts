@@ -9,9 +9,9 @@ import {
   type Tag,
 } from "@paperback/types";
 import { type CheerioAPI } from "cheerio";
-import { decodeHTML } from "entities";
 
 import { getAuthorNoteSettings } from "./forms";
+import { DEFAULT_LANGUAGE_CODE, type FictionEntry } from "./models";
 import {
   fixVoidElements,
   getShareUrl,
@@ -19,8 +19,7 @@ import {
   toChapterId,
   toMangaId,
   formatImageUrl,
-} from "./helpers";
-import { DEFAULT_LANGUAGE_CODE, type FictionEntry } from "./models";
+} from "./utils";
 
 // Shared parser for the `div.fiction-list-item` cards used across every
 // discovery listing and the search results page.
@@ -33,19 +32,19 @@ export const parseFictionEntries = ($: CheerioAPI): FictionEntry[] => {
     if (!href) continue;
     entries.push({
       mangaId: toMangaId(href),
-      title: decodeHTML(link.text().trim()),
+      title: link.text().trim(),
       imageUrl: formatImageUrl($("figure img", item).first().attr("src") ?? ""),
       description:
-        decodeHTML(
+        Application.decodeHTMLEntities(
           $(`div#description-${toMangaId(href).split("/")[0]}`, item)
             .text()
             .trim(),
         ) ?? "",
       stats: {
-        followers: decodeHTML(stats.find("i.fa-users").siblings().text().trim()) ?? "",
-        views: decodeHTML(stats.find("i.fa-eye").siblings().text().trim()) ?? "",
+        followers: stats.find("i.fa-users").siblings().text().trim() ?? "",
+        views: stats.find("i.fa-eye").siblings().text().trim() ?? "",
         rating: stats.find("i.fa-star").siblings().attr("title") ?? "",
-        chapters: decodeHTML(stats.find("i.fa-list").siblings().text().trim()) ?? "",
+        chapters: stats.find("i.fa-list").siblings().text().trim() ?? "",
       },
     });
   }
@@ -63,12 +62,10 @@ export const isLastListingPage = ($: CheerioAPI): boolean => {
 };
 
 export const parseMangaDetails = ($: CheerioAPI, mangaId: string): SourceManga => {
-  const title = decodeHTML(
-    $("div.fic-title h1").first().text().trim() || $("h1").first().text().trim(),
-  );
+  const title = $("div.fic-title h1").first().text().trim() || $("h1").first().text().trim();
   const image = formatImageUrl($("div.cover-art-container img").first().attr("src") ?? "");
-  const author = decodeHTML($("h4 a").first().text().trim());
-  const synopsis = decodeHTML($("div.description").first().text().trim());
+  const author = $("h4 a").first().text().trim();
+  const synopsis = Application.decodeHTMLEntities($("div.description").first().text().trim());
 
   const genres: Tag[] = [];
   for (const genreObj of $("a.fiction-tag").toArray()) {
@@ -125,7 +122,7 @@ export const parseChapters = ($: CheerioAPI, sourceManga: SourceManga): Chapter[
 
     chapters.push({
       chapterId: toChapterId(href),
-      title: decodeHTML(link.text().trim()),
+      title: link.text().trim(),
       chapNum: index + 1,
       publishDate,
       langCode: DEFAULT_LANGUAGE_CODE,
@@ -149,14 +146,18 @@ export const parseChapterDetails = (
 
   const authorNote = $("div.author-note").html()?.replaceAll("&nbsp;", " ") ?? "";
   const authorNoteTitle = $("div.author-note-portlet .portlet-title").first().text().trim();
+  const heading =
+    "<h2>" + $("div.md-text-left").find("h1.break-word").first().text().trim() + "</h2>";
 
   // Readium parses the chapter as XHTML, so unclosed void tags like <br> must be
   // normalised into their self-closing form first.
   let body: string;
   if (getAuthorNoteSettings() && authorNote) {
-    body = fixVoidElements(authorNoteTitle + "\n" + authorNote + "\n <hr />" + content);
+    body = fixVoidElements(
+      authorNoteTitle + "\n" + authorNote + "\n <hr />" + heading + "\n" + content,
+    );
   } else {
-    body = fixVoidElements(content);
+    body = fixVoidElements(heading + "\n" + content);
   }
   const html = `<html xmlns="http://www.w3.org/1999/xhtml"><head></head><body>${body}</body></html>`;
 
