@@ -12,54 +12,66 @@ const IMAGE_URL_RE = /\.(png|gif|jpeg|jpg|webp)(\?|$)/i;
 
 export class MangaDexInterceptor extends PaperbackInterceptor {
   override async interceptRequest(request: Request): Promise<Request> {
-    // Impossible to have undefined headers, ensured by the app
+    // The host always sets headers, so this is never undefined.
     request.headers = {
       ...request.headers,
       referer: `${MANGADEX_DOMAIN}/`,
     };
 
-    let accessToken = getAccessToken();
-    // Bearer only on MangaDex API. Trailing slash blocks "api.mangadex.org.evil.example".
-    if (
-      !accessToken ||
-      !request.url.startsWith(MANGADEX_API + "/") ||
-      IMAGE_URL_RE.test(request.url)
-    ) {
-      return request;
-    }
-
-    // 60s pad against in flight expiry. exp is epoch seconds, so a non numeric
-    // or implausibly small value means a corrupt token and counts as expired.
-    const expSeconds = Number(accessToken.tokenBody.exp);
-    const expValid = Number.isFinite(expSeconds) && expSeconds > 1_000_000_000;
-    const expired = !expValid || expSeconds <= Date.now() / 1000 + 60;
-    if (expired) {
-      if (!accessToken.refreshToken) {
-        // No refresh token. Clear session for a clean logged out state.
-        saveAccessToken(undefined, undefined);
+    try {
+      // getAccessToken() and the authRequestCache shared-request check (inside
+      // refreshSession) must stay synchronous. An await before that check would let
+      // many refreshes fire at once.
+      let accessToken = getAccessToken();
+      // Bearer only on MangaDex API. Trailing slash blocks "api.mangadex.org.evil.example".
+      if (
+        !accessToken ||
+        !request.url.startsWith(MANGADEX_API + "/") ||
+        IMAGE_URL_RE.test(request.url)
+      ) {
         return request;
       }
-      const outcome = await refreshSession(accessToken.refreshToken);
-      switch (outcome.kind) {
-        case "rotated":
-        case "racedRotation":
-          accessToken = outcome.token;
-          break;
-        case "racedLogout":
-        case "loggedOut":
-          return request;
-        case "transient":
-          // Refresh hit a transient error (auth endpoint down, network blip)
-          console.log(`[MangaDex] Token refresh transient error: ${outcome.message}`);
-          return request;
-      }
-    }
 
-    request.headers = {
-      ...request.headers,
-      Authorization: "Bearer " + accessToken.accessToken,
-    };
-    return request;
+      // 60s pad so a token about to expire refreshes early. exp is epoch seconds, so a
+      // non numeric or implausibly small value means a corrupt token and counts as expired.
+      const expSeconds = Number(accessToken.tokenBody.exp);
+      // Lower bound rejects pre-2001 junk. Upper bound (year 2100) rejects a corrupt
+      // far-future exp that would otherwise always look fresh and never refresh.
+      const expValid =
+        Number.isFinite(expSeconds) && expSeconds > 1_000_000_000 && expSeconds < 4_102_444_800;
+      const expired = !expValid || expSeconds <= Date.now() / 1000 + 60;
+      if (expired) {
+        if (!accessToken.refreshToken) {
+          // No refresh token. Clear session for a clean logged out state.
+          saveAccessToken(undefined, undefined);
+          return request;
+        }
+        const outcome = await refreshSession(accessToken.refreshToken);
+        switch (outcome.kind) {
+          case "rotated":
+          case "racedRotation":
+            accessToken = outcome.token;
+            break;
+          case "racedLogout":
+          case "loggedOut":
+            return request;
+          case "transient":
+            // Refresh hit a temporary error (auth endpoint down, network blip).
+            console.log(`[MangaDex] Token refresh transient error: ${outcome.message}`);
+            return request;
+        }
+      }
+
+      request.headers = {
+        ...request.headers,
+        Authorization: "Bearer " + accessToken.accessToken,
+      };
+      return request;
+    } catch (e: unknown) {
+      // A host state fault must not fail every request. Send it without auth instead.
+      console.log(`[MangaDex] interceptRequest auth error, sending unauthenticated: ${String(e)}`);
+      return request;
+    }
   }
 
   override async interceptResponse(
@@ -77,7 +89,6 @@ interface MangaDexErrorEnvelope {
   errors?: MangaDexError[];
 }
 
-// Normalize to a real Error
 function normalizeRequestError(err: unknown, url: string): Error {
   if (err instanceof Error) return err;
   const native = err as { localizedDescription?: unknown; message?: unknown } | null;

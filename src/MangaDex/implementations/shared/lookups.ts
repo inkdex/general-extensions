@@ -19,9 +19,9 @@ export interface Rating {
   default?: true;
 }
 
-// Single source of truth for the four MangaDex content ratings. Other modules
+// The one place that defines the four MangaDex content ratings. Other modules
 // derive contentRatingMap, ratingIconMap, paperbackToMangaDexRatings, and
-// SYNTHETIC_RATING_TAGS from this list
+// SYNTHETIC_RATING_TAGS from this list.
 export const RATINGS: readonly Rating[] = [
   {
     enum: MDContentRating.Safe,
@@ -70,13 +70,13 @@ export interface StatusEntry {
   enum: Status;
   name: string;
   icon: string;
-  // false for client-side synthetic statuses (e.g. PublishingFinished) that
+  // false for statuses we add ourselves (e.g. PublishingFinished) that
   // the MangaDex /manga search filter does not accept.
   searchable: boolean;
 }
 
-// Single source of truth for publication statuses. Includes PublishingFinished
-// even though it is synthetic, so the local update filter can offer it.
+// The one place that defines publication statuses. Includes PublishingFinished
+// even though we add it ourselves, so the local update filter can offer it.
 export const STATUSES: readonly StatusEntry[] = [
   { enum: Status.Ongoing, name: "Ongoing", icon: "▶️", searchable: true },
   { enum: Status.Completed, name: "Completed", icon: "✅", searchable: true },
@@ -92,16 +92,20 @@ export interface ImageQuality {
   default?: string[];
 }
 
-// Multiple source PNGs at once from MangaDex can OOM the
-// iOS image pipeline. Default discover/search to .512.jpg.
+// Loading several original PNGs at once can run the iOS image pipeline out of
+// memory. Default every section to .512.jpg as a safe balance.
 export const IMAGE_QUALITIES: readonly ImageQuality[] = [
   {
     name: "Source (Original/Best)",
     enum: "source",
     ending: "",
-    default: ["manga"],
   },
-  { name: "<= 512px", enum: "512", ending: ".512.jpg", default: ["discover", "search"] },
+  {
+    name: "<= 512px",
+    enum: "512",
+    ending: ".512.jpg",
+    default: ["discover", "search", "manga", "artwork"],
+  },
   { name: "<= 256px", enum: "256", ending: ".256.jpg" },
 ];
 

@@ -13,7 +13,7 @@ const CURATED_LISTS_CACHE_KEY = "mangadex_curated_lists_cache";
 const CURATED_LISTS_CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 const USER_LISTS_FETCH_LIMIT = 100;
 
-// Fallback IDs if discovery fails and no cache exists
+// Fallback IDs if discovery fails and no cache exists.
 const FALLBACK_SEASONAL_ID = "68ab4f4e-6f01-4898-9038-c5eee066be27";
 const FALLBACK_RECOMMENDED_ID = "805ba886-dd99-4aa4-b460-4bd7c7b71352";
 const FALLBACK_SELF_PUBLISHED_ID = "f66ebc10-ef89-46d1-be96-bb704559e04a";
@@ -150,6 +150,10 @@ function writeCache(ids: Partial<CuratedListIds>): void {
   Application.setState({ ids, fetchedAt: Date.now() } as CuratedListCache, CURATED_LISTS_CACHE_KEY);
 }
 
+export function resetCuratedListCache(): void {
+  Application.setState(undefined, CURATED_LISTS_CACHE_KEY);
+}
+
 function withFallbacks(ids: Partial<CuratedListIds>): CuratedListIds {
   return {
     seasonal: ids.seasonal ?? FALLBACK_SEASONAL_ID,
@@ -172,11 +176,11 @@ async function fetchAndDiscover(): Promise<Partial<CuratedListIds>> {
     method: "GET",
   });
   const ids = discoverFromResponse(response);
-  // Skip caching a fully empty result
+  // Skip caching a fully empty result.
   if (hasAnyMatch(ids)) {
     writeCache(ids);
   } else {
-    // Make a silent fall through to hardcoded IDs observable
+    // Log it so this quiet fall through to hardcoded IDs is visible.
     console.log("[MangaDex] Curated list discovery matched zero lists, using hardcoded fallbacks");
   }
   return ids;
@@ -186,7 +190,7 @@ function startFetch(): Promise<Partial<CuratedListIds>> {
   if (inFlightFetch !== null) return inFlightFetch;
   const promise = fetchAndDiscover();
   inFlightFetch = promise;
-  // .catch suppresses the unhandled rejection on the cleanup chain
+  // .catch stops the cleanup chain from being flagged as an unhandled rejection.
   promise
     .finally(() => {
       if (inFlightFetch === promise) inFlightFetch = null;

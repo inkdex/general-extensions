@@ -18,7 +18,7 @@ export interface AssignedChapterNumber {
   isUnnumbered: boolean;
 }
 
-// Oneshots come back as null or "". Number() = 0 would collapse extras to one dedup id.
+// Oneshots come back as null or "". Number() = 0 would merge separate extras into one dedup id.
 export function assignChapterNumber(
   rawChap: string | null | undefined,
   prevChapNum: number,
@@ -42,12 +42,12 @@ export function buildChapterIdentifier(
   name: string,
   translatedLanguage: string,
   unnumberedIndex: number,
-  volume: number,
+  rawVolume: string,
   resetNumbersOnVolume: boolean,
 ): string {
   if (!isUnnumbered) {
     return resetNumbersOnVolume
-      ? `${volume}-${chapNum}-${translatedLanguage}`
+      ? `${rawVolume}-${chapNum}-${translatedLanguage}`
       : `${chapNum}-${translatedLanguage}`;
   }
   const key = name.trim().toLowerCase() || `idx${unnumberedIndex}`;

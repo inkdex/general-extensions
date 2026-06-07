@@ -140,7 +140,7 @@ export enum Status {
   Ongoing = "ongoing",
   Hiatus = "hiatus",
   Cancelled = "cancelled",
-  // Synthetic. Set by parseMangaItemDetails. The API never returns it.
+  // We add this ourselves in parseMangaItemDetails. The API never returns it.
   PublishingFinished = "publishing_finished",
 }
 
@@ -205,6 +205,9 @@ export interface Metadata extends JSONObject {
   offset?: number;
   // Carried by list: search across pages so /list is fetched only once.
   listMangaIds?: string[];
+  // Carried by the latest-updates and uploader feeds to dedup manga ids across
+  // pages. Capped to the most recent MAX_SEEN_IDS to keep the saved data small.
+  emittedIds?: string[];
 }
 
 export interface StatisticsResponse {
@@ -350,14 +353,6 @@ export interface CoverSearchResponse {
   offset?: number;
   total?: number;
   errors?: MangaDexError[];
-}
-
-export interface TokenResponse {
-  access_token: string;
-  refresh_token: string;
-  token_type: string;
-  expires_in: number;
-  session_state: string;
 }
 
 export interface TokenBody {

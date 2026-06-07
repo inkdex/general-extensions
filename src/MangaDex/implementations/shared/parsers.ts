@@ -9,6 +9,7 @@ import type {
   AltTitle,
   ChapterAttributes,
   ChapterData,
+  CoverSearchResponse,
   DatumAttributes,
   Links,
   MangaDetailsResponse,
@@ -62,7 +63,7 @@ export const contentRatingMap: Record<string, ContentRating> = Object.fromEntrie
 
 // Maps a lowercased MangaDex rating to Paperback's enum. Unknown values default
 // to ADULT so a new MangaDex rating stays gated until it is explicitly mapped.
-export function resolvePaperbackRating(rawContentRating: string): ContentRating {
+function resolvePaperbackRating(rawContentRating: string): ContentRating {
   return contentRatingMap[rawContentRating] ?? ContentRating.ADULT;
 }
 
@@ -86,8 +87,8 @@ const ratingIconMap: Record<string, string> = Object.fromEntries(
   RATINGS.map((r) => [r.enum, r.icon]),
 );
 
-// Both inline refresh paths in chapter-providing/main.ts must use this so the
-// rule stays the same as the /aggregate-based promotion in parseMangaItemDetails
+// Both metadata refresh paths in chapter-providing/main.ts must use this so the rule
+// matches the /aggregate-based promotion in parseMangaItemDetails.
 export function reconcileStoredCompletedStatus(
   apiStatus: Status,
   storedStatus: string | undefined,
@@ -98,9 +99,9 @@ export function reconcileStoredCompletedStatus(
   return apiStatus;
 }
 
-// lastVolume scopes the match so resetting chapter numbers cannot
-// false confirm. Null lastChapter returns false (cannot verify).
-export function aggregateContainsLastChapter(
+// lastVolume limits the match so a title that resets chapter numbers cannot
+// give a false positive. A null lastChapter returns false (cannot verify).
+function aggregateContainsLastChapter(
   aggregate: AggregateResponse | undefined,
   lastChapter: string | null | undefined,
   lastVolume?: string | null,
@@ -110,7 +111,7 @@ export function aggregateContainsLastChapter(
   if (allVolumes.length === 0) return false;
   const candidates =
     lastVolume !== null && lastVolume !== undefined && lastVolume !== ""
-      ? allVolumes.filter((v) => v.volume === lastVolume)
+      ? allVolumes.filter((v) => v.volume === lastVolume || v.volume === "none" || v.volume === "")
       : allVolumes;
   // hasOwnProperty.call avoids matches via Object.prototype.
   return candidates.some((v) =>
@@ -118,7 +119,7 @@ export function aggregateContainsLastChapter(
   );
 }
 
-// NBSP + ZWJ pair the renderer needs to push subtitle to line 2. Keeps card heights uniform.
+// 31 spaces + trailing ZWJ + subtitle to line 2. Keeps card heights uniform.
 const ZWJ_PADDING = " ".repeat(30) + " ‍";
 
 // Assertion function narrows json.data to T[] so the caller can use it directly.
@@ -131,16 +132,12 @@ export function assertDataArray<T>(
   }
 }
 
-export function buildCoverImageUrl(
-  mangaId: string,
-  fileName: string,
-  thumbnailQuality: string,
-): string {
+function buildCoverImageUrl(mangaId: string, fileName: string, thumbnailQuality: string): string {
   return `${COVER_BASE_URL}/${mangaId}/${fileName}${getImageQualityEnding(thumbnailQuality)}`;
 }
 
 // Empty string when no cover_art. Paperback then shows its built in placeholder.
-export function extractCoverImageUrl(
+function extractCoverImageUrl(
   relationships: Relationship[] | undefined,
   mangaId: string,
   thumbnailQuality: string,
@@ -149,6 +146,41 @@ export function extractCoverImageUrl(
     ?.attributes?.fileName;
   if (!coverFileName) return "";
   return buildCoverImageUrl(mangaId, coverFileName, thumbnailQuality);
+}
+
+// Build the full cover gallery URLs for MangaInfo.artworkUrls. Covers are sorted by
+// numeric volume ascending with null/empty/non-numeric volumes last, so the gallery reads
+// volume 1, 2, 3 rather than the API's null first, string sorted order. Returns undefined
+// when there is nothing to show
+export function buildArtworkUrls(
+  mangaId: string,
+  coverJson: CoverSearchResponse | undefined,
+  quality: string,
+): string[] | undefined {
+  const covers = coverJson?.data;
+  if (!Array.isArray(covers) || covers.length === 0) return undefined;
+  const sorted = [...covers].sort((a, b) => {
+    const av = parseFloat(a?.attributes?.volume ?? "");
+    const bv = parseFloat(b?.attributes?.volume ?? "");
+    const an = Number.isNaN(av);
+    const bn = Number.isNaN(bv);
+    if (an && bn) return 0;
+    if (an) return 1;
+    if (bn) return -1;
+    return av - bv;
+  });
+  const seen = new Set<string>();
+  const urls: string[] = [];
+  for (const cover of sorted) {
+    const fileName = cover?.attributes?.fileName;
+    if (!fileName) continue;
+    const url = buildCoverImageUrl(mangaId, fileName, quality);
+    if (!seen.has(url)) {
+      seen.add(url);
+      urls.push(url);
+    }
+  }
+  return urls.length > 0 ? urls : undefined;
 }
 
 // Returns the first manga relationship with a non-empty id, or undefined.
@@ -231,6 +263,14 @@ const getFirstValue = (
   values: Record<string, string | undefined> | undefined,
 ): string | undefined => Object.values(values ?? {}).find((v) => v);
 
+// Raw (undecoded) first truthy value across all alt titles. Last resort before
+// the "Untitled" placeholder so a manga with only alt titles still gets a name.
+const getFirstAltValue = (altTitles: AltTitle[] | undefined): string | undefined =>
+  altTitles
+    ?.filter((x): x is AltTitle => !!x && typeof x === "object")
+    .flatMap((x) => Object.values(x))
+    .find((v): v is string => typeof v === "string" && v.length > 0);
+
 const flattenDecodedAltTitles = (altTitles: AltTitle[] | undefined): string[] =>
   altTitles
     ?.filter((x): x is AltTitle => !!x && typeof x === "object")
@@ -254,7 +294,8 @@ const resolvePrimaryTitleRaw = (
     getFirstLanguageMatch(title, languages) ??
     getFirstLanguageMatchFromAlt(altTitles, languages) ??
     getFirstValue(title) ??
-    ""
+    getFirstAltValue(altTitles) ??
+    "Untitled"
   );
 };
 
@@ -303,12 +344,14 @@ export const parseMangaList = (
       ? ratingIconMap[(mangaDetails.contentRating as string)?.toLowerCase() ?? ""] || ""
       : "";
 
-    // With chapterDetailsMap, a miss = filtered language. Do NOT fall back to the manga level.
     let chapterVolume: string | undefined;
     let chapterNumber: string | undefined;
     if (chapterDetailsMap) {
       const latestChapterId = manga.attributes.latestUploadedChapter;
       const latestChapterDetails = latestChapterId ? chapterDetailsMap[latestChapterId] : undefined;
+      // A missing map entry (chapter deleted/withheld since the manga fetch) intentionally
+      // leaves the subtitle blank. Do NOT fall back to the manga-level lastVolume/lastChapter
+      // here, that would show a stale value.
       if (latestChapterDetails) {
         chapterVolume = latestChapterDetails.volume ?? undefined;
         chapterNumber = latestChapterDetails.chapter ?? undefined;
@@ -323,9 +366,8 @@ export const parseMangaList = (
       { showVolume, showChapter, compact: showSearchRatingInSubtitle },
     );
 
-    const rating = ratingJson?.statistics?.[mangaId]?.rating?.average
-      ? (ratingJson.statistics[mangaId].rating.average * 10).toFixed(0) + "%"
-      : "";
+    const averageRating = ratingJson?.statistics?.[mangaId]?.rating?.average;
+    const rating = typeof averageRating === "number" ? (averageRating * 10).toFixed(0) + "%" : "";
 
     const iconPrefix = `${ratingIcon}${statusIcon}${rating}`;
     const subtitle = (iconPrefix ? `${iconPrefix} ${chapterInfo}` : chapterInfo).trim();
@@ -379,6 +421,7 @@ export const parseMangaDetails = (
   aggregate?: AggregateResponse,
   // When set, replaces the default cover_art relationship's fileName.
   coverFileNameOverride?: string,
+  artworkUrls?: string[],
 ): SourceManga => {
   if (!json.data || !json.data.attributes) {
     throw new Error(`MangaDex returned no manga data for ${mangaId}`);
@@ -398,7 +441,7 @@ export const parseMangaDetails = (
   let artist = joinCreditNames("artist");
 
   // Pass synopsis through unchanged so the update batch comparison matches, with no placeholder.
-  let synopsis = mangaItemDetails.synopsis;
+  const synopsis = mangaItemDetails.synopsis;
 
   const nativeTitleDisplay = settings?.nativeTitleDisplay ?? getNativeTitleDisplay();
   const preferredTitle = mangaItemDetails.preferredLanguageTitle;
@@ -421,9 +464,8 @@ export const parseMangaDetails = (
     ? buildCoverImageUrl(mangaId, coverFileNameOverride, thumbnailQuality)
     : extractCoverImageUrl(json.data.relationships, mangaId, thumbnailQuality);
 
-  const rating = ratingJson?.statistics?.[mangaId]?.rating?.average
-    ? ratingJson.statistics[mangaId].rating.average / 10
-    : undefined;
+  const averageRating = ratingJson?.statistics?.[mangaId]?.rating?.average;
+  const rating = typeof averageRating === "number" ? averageRating / 10 : undefined;
 
   return {
     mangaId: mangaId,
@@ -439,7 +481,8 @@ export const parseMangaDetails = (
       contentRating: mangaItemDetails.contentRating,
       shareUrl: mangaItemDetails.shareUrl,
       rating,
-      // Raw rating for the chapter provider's gate. latestUploadedChapter omitted = null.
+      artworkUrls,
+      // Raw rating for the chapter provider's rating check. latestUploadedChapter omitted = null.
       additionalInfo: mangaDetails.latestUploadedChapter
         ? {
             mdContentRating: mangaItemDetails.mdContentRating,
@@ -472,7 +515,6 @@ export function readMangaTitleSettings(): MangaDetailsSettings {
   };
 }
 
-// Adds mangaThumbnail for the cover URL build.
 export function readMangaDetailsSettings(): MangaDetailsSettings {
   return {
     ...readMangaTitleSettings(),
@@ -514,7 +556,13 @@ export function parseMangaItemDetails(
   const description = mangaDetails.description as Record<string, string | undefined> | undefined;
   const descriptionMatch = getFirstLanguageMatch(description, languages) ?? description?.en ?? "";
 
-  const desc = decodeHTML(descriptionMatch).replace(/\[\/?[bus]]/g, "");
+  // The bounded [^\][]* (not [^\]]*) stops an attribute value at the next bracket, so the
+  // regex runs in linear time. The unbounded form backtracks badly and can hang the host JS
+  // thread (a ReDoS) on a description full of unclosed tag openers like "[a=[a=[a=".
+  const desc = decodeHTML(descriptionMatch).replace(
+    /\[\/?(?:[a-z][a-z0-9]*|\*)(?:=[^\][]*)?\]/gi,
+    "",
+  );
 
   const links = mangaDetails.links as Links | undefined;
   const trackers = (

@@ -18,6 +18,7 @@ import {
   getRatingName,
 } from "../../shared/lookups";
 import {
+  getArtworkThumbnail,
   getDataSaver,
   getDiscoverThumbnail,
   getForcePort443,
@@ -30,9 +31,11 @@ import {
   getRomanizedPriorityEnabled,
   getSearchThumbnail,
   getShowAltTitlesInSynopsis,
+  getShowCoverArtwork,
   getShowFinalChapterInSynopsis,
   getSkipSameChapter,
   getTryFirstVolumeCover,
+  setArtworkThumbnail,
   setDataSaver,
   setDiscoverThumbnail,
   setForcePort443,
@@ -45,6 +48,7 @@ import {
   setRomanizedPriorityEnabled,
   setSearchThumbnail,
   setShowAltTitlesInSynopsis,
+  setShowCoverArtwork,
   setShowFinalChapterInSynopsis,
   setSkipSameChapter,
   setTryFirstVolumeCover,
@@ -69,6 +73,7 @@ export class ContentSettingsForm extends Form {
     const discoverThumb = getDiscoverThumbnail();
     const searchThumb = getSearchThumbnail();
     const mangaThumb = getMangaThumbnail();
+    const artworkThumb = getArtworkThumbnail();
 
     return [
       Section("generalContent", [
@@ -153,10 +158,13 @@ export class ContentSettingsForm extends Form {
             "handleSkipSameChapterChange",
           ),
         }),
-        ToggleRow("force_port", {
+        ToggleRow("force_port_443", {
           title: "Force Port 443",
           value: getForcePort443(),
-          onValueChange: Application.Selector(this as ContentSettingsForm, "handleForcePortChange"),
+          onValueChange: Application.Selector(
+            this as ContentSettingsForm,
+            "handleForcePort443Change",
+          ),
         }),
         ToggleRow("include_unavailable", {
           title: "Show Unavailable Chapters",
@@ -192,6 +200,15 @@ export class ContentSettingsForm extends Form {
           onValueChange: Application.Selector(
             this as ContentSettingsForm,
             "handleTryFirstVolumeCoverChange",
+          ),
+        }),
+        ToggleRow("show_cover_artwork", {
+          title: "Show Cover Artwork",
+          subtitle: "Adds a gallery of every volume and edition cover",
+          value: getShowCoverArtwork(),
+          onValueChange: Application.Selector(
+            this as ContentSettingsForm,
+            "handleShowCoverArtworkChange",
           ),
         }),
       ]),
@@ -246,6 +263,25 @@ export class ContentSettingsForm extends Form {
               "handleMangaThumbChange",
             ),
           }),
+          ...(getShowCoverArtwork()
+            ? [
+                SelectRow("artwork_thumbnail", {
+                  title: "Cover Artwork",
+                  subtitle: getImageQualityName(artworkThumb),
+                  value: [artworkThumb],
+                  minItemCount: 1,
+                  maxItemCount: 1,
+                  options: getImageQualityEnumList().map((x) => ({
+                    id: x,
+                    title: getImageQualityName(x),
+                  })),
+                  onValueChange: Application.Selector(
+                    this as ContentSettingsForm,
+                    "handleArtworkThumbChange",
+                  ),
+                }),
+              ]
+            : []),
         ],
       ),
     ];
@@ -292,7 +328,7 @@ export class ContentSettingsForm extends Form {
     setSkipSameChapter(value);
   }
 
-  async handleForcePortChange(value: boolean): Promise<void> {
+  async handleForcePort443Change(value: boolean): Promise<void> {
     setForcePort443(value);
   }
 
@@ -312,6 +348,11 @@ export class ContentSettingsForm extends Form {
     setTryFirstVolumeCover(value);
   }
 
+  async handleShowCoverArtworkChange(value: boolean): Promise<void> {
+    setShowCoverArtwork(value);
+    this.reloadForm();
+  }
+
   async handleDiscoverThumbChange(value: string[]): Promise<void> {
     setDiscoverThumbnail(value[0]);
     Application.invalidateDiscoverSections();
@@ -325,6 +366,11 @@ export class ContentSettingsForm extends Form {
 
   async handleMangaThumbChange(value: string[]): Promise<void> {
     setMangaThumbnail(value[0]);
+    this.reloadForm();
+  }
+
+  async handleArtworkThumbChange(value: string[]): Promise<void> {
+    setArtworkThumbnail(value[0]);
     this.reloadForm();
   }
 }

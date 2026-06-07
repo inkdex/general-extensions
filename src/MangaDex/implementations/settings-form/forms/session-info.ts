@@ -6,7 +6,7 @@ import { ButtonRow, Form, LabelRow, Section, type FormSectionElement } from "@pa
 import { getAccessToken, refreshSession, saveAccessToken } from "../../shared/state";
 
 export class SessionInfoForm extends Form {
-  // Transient "Successfully logged out" view. Cleared by any render with a valid token.
+  // Temporary "Successfully logged out" view. Cleared by any render with a valid token.
   private justLoggedOut = false;
   private onAuthChanged: () => void;
 

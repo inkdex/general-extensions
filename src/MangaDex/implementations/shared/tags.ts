@@ -9,10 +9,9 @@ import { buildTagListUrl } from "./urls";
 
 const TAG_CACHE_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
-// Open string type: a future MangaDex group is accepted and
-// rendered generically instead of stranding the cache.
+// A plain string, not an enum, so a future MangaDex group still parses and
+// renders normally instead of breaking the cache.
 export type TagGroup = string;
-export const KNOWN_TAG_GROUPS = ["format", "genre", "theme", "content", "content_rating"] as const;
 
 export interface Tag {
   id: string;
@@ -35,8 +34,8 @@ interface RawTagListResponse {
   }>;
 }
 
-// Ordinal synthetic tags derived from RATINGS. Position is the tag id so
-// content rating tags stay in Safe -> Mature order (preserved by getSearchTagSections).
+// Our own content rating tags built from RATINGS. The position is the tag id, so
+// the ratings stay in Safe -> Mature order (kept by getSearchTagSections).
 const SYNTHETIC_RATING_TAGS: Tag[] = RATINGS.map((r, i) => ({
   id: String(i + 1),
   group: "content_rating",
@@ -45,24 +44,24 @@ const SYNTHETIC_RATING_TAGS: Tag[] = RATINGS.map((r, i) => ({
 
 export const CONTENT_RATING_GROUP = "content_rating";
 
-// Maps synthetic tag id -> API enum value (NOT display label). Used to
-// translate UI tag selections back into contentRating[] query params.
+// Maps our rating tag id -> API enum value (NOT display label). Turns UI tag
+// selections back into contentRating[] query params.
 export const SYNTHETIC_RATING_ID_TO_NAME: Readonly<Record<string, string>> = Object.fromEntries(
   RATINGS.map((r, i) => [String(i + 1), r.enum]),
 );
 
-// Real /manga/tag responses have 60+ entries plus 4 synthetic
-// ratings. Anything smaller is suspect, so refuse to save it.
+// A real /manga/tag response has 60+ entries plus our 4 rating tags.
+// Anything smaller looks broken, so refuse to save it.
 const MIN_FETCHED_TAG_ENTRIES = 40;
 
 let inFlightFetch: Promise<TagCache> | null = null;
 
-// Shared cold start promise so concurrent ensureTags callers
-// produce one fallback write and one retry timer update, not N.
+// Shared promise for the first load so concurrent ensureTags callers
+// produce one fallback write and one retry timer update, not many.
 let inFlightColdStart: Promise<TagCache> | null = null;
 
-// Backoff for the synthetic only fallback (fetchedAt === 0). Stops
-// a persistent outage from firing /manga/tag on every UI render.
+// Retry delay used when only the fallback tags are cached (fetchedAt === 0).
+// Stops a long outage from hitting /manga/tag on every UI render.
 const SYNTH_BACKOFF_START_MS = 60 * 1000;
 const SYNTH_BACKOFF_MAX_MS = 60 * 60 * 1000;
 let synthRetryAt = 0;
@@ -80,8 +79,8 @@ export function getCachedTags(): TagCache | null {
     return null;
   }
   const cache = raw as TagCache;
-  // Every legitimate cache holds at least the four synthetic
-  // ratings, so empty means the persisted value got corrupted.
+  // Every valid cache holds at least the four rating tags, so an empty
+  // list means the saved value got corrupted.
   if (cache.tags.length === 0) {
     return null;
   }
@@ -111,8 +110,8 @@ export function setCachedTags(cache: TagCache): void {
   Application.setState(cache, "mangadex_tag_cache");
 }
 
-// Drops the saved cache and resets the backoff so the next
-// ensureTags call is a cold start. Used by "Reset to Defaults".
+// Drops the saved cache and resets the retry delay so the next
+// ensureTags call fetches fresh. Used by "Reset to Defaults".
 export function resetTagCache(): void {
   Application.setState(undefined, "mangadex_tag_cache");
   synthRetryAt = 0;
@@ -120,8 +119,8 @@ export function resetTagCache(): void {
 }
 
 export async function fetchTags(): Promise<TagCache> {
-  // /manga/tag rejects extra query params strictly. Adding limit
-  // here would strand the extension on the synthetic fallback.
+  // /manga/tag rejects extra query params strictly. Adding limit here would
+  // make the call fail and leave the extension stuck on the fallback tags.
   const response = await fetchJSON<RawTagListResponse>({
     url: buildTagListUrl(),
     method: "GET",
@@ -135,8 +134,8 @@ export async function fetchTags(): Promise<TagCache> {
     tags: [...SYNTHETIC_RATING_TAGS, ...apiTags],
     fetchedAt: Date.now(),
   };
-  // A nearly empty 200 would otherwise be cached for 30 days. Throw
-  // so the synthetic fallback runs and the retry timer applies.
+  // A nearly empty 200 would otherwise sit in the cache for 30 days. Throw so
+  // the fallback tags load and the retry timer kicks in.
   if (cache.tags.length < MIN_FETCHED_TAG_ENTRIES) {
     throw new Error(
       `MangaDex /manga/tag returned only ${apiTags.length} tags (need >= ${MIN_FETCHED_TAG_ENTRIES - SYNTHETIC_RATING_TAGS.length})`,
@@ -146,8 +145,8 @@ export async function fetchTags(): Promise<TagCache> {
   return cache;
 }
 
-// Returns the in flight fetch, or starts one. Background callers
-// swallow errors. Manual callers surface them to the UI.
+// Returns the running fetch, or starts one. Background callers
+// swallow errors. Manual callers show them in the UI.
 function startFetch(): Promise<TagCache> {
   if (inFlightFetch !== null) return inFlightFetch;
   const promise = fetchTags();
@@ -165,8 +164,8 @@ function startFetch(): Promise<TagCache> {
 export async function ensureTags(): Promise<TagCache> {
   const cache = getCachedTags();
   if (!cache) {
-    // Cold start. All concurrent callers share the same promise so
-    // a failed fetch produces one fallback write, not N.
+    // First load. All concurrent callers share one promise so a failed
+    // fetch produces one fallback write, not many.
     if (inFlightColdStart === null) {
       inFlightColdStart = startFetch()
         .catch((err): TagCache => {
@@ -174,17 +173,18 @@ export async function ensureTags(): Promise<TagCache> {
           const fallback: TagCache = { tags: [...SYNTHETIC_RATING_TAGS], fetchedAt: 0 };
           setCachedTags(fallback);
           synthRetryAt = Date.now() + synthBackoffMs;
+          synthBackoffMs = Math.min(synthBackoffMs * 2, SYNTH_BACKOFF_MAX_MS);
           return fallback;
         })
         .finally(() => {
-          // Clear so a later cold start can reenter this branch.
+          // Clear so a later first load can enter this branch again.
           inFlightColdStart = null;
         });
     }
     return inFlightColdStart;
   }
   if (cache.fetchedAt === 0) {
-    // Synthetic only fallback. Retry on backoff. A successful
+    // Only the fallback tags are cached. Retry after the delay. A successful
     // refresh replaces the cache and we leave this branch.
     if (Date.now() >= synthRetryAt) {
       synthRetryAt = Date.now() + synthBackoffMs;
@@ -210,8 +210,8 @@ export async function ensureTags(): Promise<TagCache> {
   return cache;
 }
 
-// Manual refresh joins an in flight fetch or starts one. Bypasses
-// freshness checks and errors propagate.
+// Manual refresh joins a running fetch or starts one. Skips the
+// freshness checks, and errors propagate.
 export function forceRefreshTags(): Promise<TagCache> {
   return startFetch();
 }
@@ -239,8 +239,8 @@ export async function getSearchTagSections(enabledRatings?: string[]): Promise<T
     });
   }
   for (const section of sections.values()) {
-    // Content rating is ordinal (Safe -> Pornographic), so preserve
-    // the insertion order from SYNTHETIC_RATING_TAGS instead of sorting.
+    // Content ratings have a meaningful order (Safe -> Pornographic), so keep
+    // the order from SYNTHETIC_RATING_TAGS instead of sorting.
     if (section.id === CONTENT_RATING_GROUP) continue;
     section.tags?.sort((a, b) => a.title.localeCompare(b.title));
   }

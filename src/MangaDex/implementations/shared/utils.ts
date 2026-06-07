@@ -10,6 +10,11 @@ import type { Metadata } from "./models";
 // queries. Past that the API returns 400
 export const MAX_API_OFFSET = 10000;
 
+// Cap on the cross-page dedup id list stored in section metadata, to keep the
+// saved data small. Duplicates happen at adjacent page boundaries, so keeping the
+// most recent window is enough.
+export const MAX_SEEN_IDS = 500;
+
 // Default page size for /manga, /chapter, and /list searches. MangaDex's limit
 // param caps at 100 for /manga and /chapter, and at 500 only for /manga/{id}/feed.
 export const MANGA_PAGE_LIMIT = 100;
@@ -23,7 +28,7 @@ export function chunk<T>(items: readonly T[], size: number): T[][] {
   return out;
 }
 
-// 404 surfaces in three message shapes depending on which layer threw
+// A 404 shows up in three different message forms depending on which layer threw.
 export function isNotFoundError(err: unknown): boolean {
   const msg = err instanceof Error ? err.message : String(err);
   return (
@@ -31,7 +36,7 @@ export function isNotFoundError(err: unknown): boolean {
   );
 }
 
-// Restores caller-supplied order over a /manga?ids[] result
+// Restores caller-supplied order over a /manga?ids[] result.
 export function reorderById<T extends { id: string }>(
   items: readonly T[],
   orderedIds: readonly string[],
@@ -57,7 +62,7 @@ export function computeNextMetadata(
   return { offset: nextOffset };
 }
 
-// MangaDex's createdAtSince filter. Anchored to start of UTC day
+// MangaDex's createdAtSince filter. Anchored to start of UTC day.
 export function formatCreatedAtSince(ms: number): string {
   const d = new Date(ms);
   d.setUTCHours(0, 0, 0, 0);
@@ -97,7 +102,7 @@ export function shouldSkipByCount(
   return (count / total) * 100 >= threshold;
 }
 
-// Skip the host call when no entities are possible.
+// Skip the host call when there are no HTML entities to decode.
 export function decodeHTML(text: string): string {
   if (!text || !text.includes("&")) return text;
   return Application.decodeHTMLEntities(text) ?? text;
@@ -149,8 +154,8 @@ export interface PrecomputedQuery {
   anywhereRegex: RegExp | null;
 }
 
-// Defensive escape: a tokenizer change that lets a metacharacter
-// through would otherwise break RegExp construction.
+// Escape regex special characters. If a tokenizer change ever let one through,
+// it would otherwise break RegExp construction.
 const escapeRegExp = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 const hasAsciiWord = (s: string): boolean => /[A-Za-z0-9]/.test(s);
@@ -171,7 +176,7 @@ export function precomputeQuery(queryTitle: string): PrecomputedQuery {
 }
 
 export const relevanceScore = (title: string, query: PrecomputedQuery): number => {
-  // Scale: 100 exact, 99 prefix phrase, 95 phrase, 90 prefix adj, 85 adj,
+  // Scale: 100 exact, 99 prefix phrase, 95 phrase, 90 prefix adjacent, 85 adjacent,
   // 80 in order, 75 any order, <70 partial.
   if (query.words.length === 0) {
     return 0;
@@ -227,7 +232,7 @@ export const relevanceScore = (title: string, query: PrecomputedQuery): number =
       }
     }
     if (!inOrder) {
-      // Streaming pointer replay. Keeps the 80 vs 75 boundary for "King ... the King".
+      // Second pass with a moving pointer. Keeps the 80 vs 75 boundary for "King ... the King".
       let titlePos = 0;
       inOrder = true;
       for (const queryWord of query.words) {
@@ -297,8 +302,8 @@ const findAdjacentSequence = (titleWords: string[], queryWords: string[]): numbe
   return -1;
 };
 
-// Both inputs MUST be stemmed. Restemming here would waste cycles
-// in the partial match hot path.
+// Both inputs MUST be stemmed. Stemming again here would waste time in the
+// partial match path, which runs a lot.
 const stemmedWordSimilarity = (a: string, b: string): number => {
   if (a === b) {
     return 1.0;

@@ -10,6 +10,7 @@ import {
   type ListSectionElement,
 } from "@paperback/types";
 
+import { resetCuratedListCache } from "../../shared/curated-lists";
 import { resetAllSettings } from "../../shared/state";
 import { resetTagCache } from "../../shared/tags";
 import { ContentSettingsForm } from "./content-settings";
@@ -68,11 +69,12 @@ export class MangaDexSettingsForm extends Form {
   }
 
   async handleResetSettings(): Promise<void> {
-    // Clearing each key makes the getX() fallbacks the single source of truth.
+    // Clearing each key makes the getX() fallbacks the one source of default values.
     resetAllSettings();
-    // Clearing the tag cache here prevents a user who reset because tags
-    // looked broken from waiting 30 days.
+    // Clearing the tag and curated-list caches here means a user who reset because tags
+    // or discover looked broken does not have to wait for the cache to expire.
     resetTagCache();
+    resetCuratedListCache();
     Application.invalidateDiscoverSections();
     this.reloadForm();
   }

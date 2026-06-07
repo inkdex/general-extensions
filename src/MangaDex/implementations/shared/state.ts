@@ -52,8 +52,20 @@ function getKey<T extends boolean | string | number>(key: string, defaultValue: 
   if (typeof defaultValue === "number" && !Number.isFinite(value)) return defaultValue;
   return value as T;
 }
+
+// Like getKey for numbers, but also rejects non-integers (e.g. a stored 1.5 that would
+// change the shouldSkipByCount branch). Falls back to the default.
+function getIntKey(key: string, defaultValue: number): number {
+  const value = getKey(key, defaultValue);
+  return Number.isInteger(value) ? value : defaultValue;
+}
+
 function setKey<T>(key: string, value: T): void {
   Application.setState(value, key);
+}
+
+function setNumberKey(key: string, value: number, fallback: number): void {
+  setKey(key, Number.isFinite(value) ? value : fallback);
 }
 
 // ===== Discover sections =====
@@ -120,7 +132,7 @@ export interface DiscoverSectionDefinition {
   setEnabled: (value: boolean) => void;
 }
 
-// Single source of truth for the six discover sections. Used by the
+// The one place that defines the six discover sections. Used by the
 // discover provider (titles + types) and the settings form (titles + toggles).
 export const SECTION_DEFINITIONS: readonly DiscoverSectionDefinition[] = [
   {
@@ -193,7 +205,12 @@ export const setNativeTitleDisplay = (v: string): void => setKey("native_title_d
 
 // ===== Content rating and chapter behavior =====
 
-export const getRatings = (): string[] => readStringArray("ratings", () => getDefaultRatings());
+export const getRatings = (): string[] => {
+  // An empty stored array would produce no contentRating[] in the URL and silently apply
+  // the API default. Fall back to defaults. Limit this to getRatings only.
+  const ratings = readStringArray("ratings", () => getDefaultRatings());
+  return ratings.length > 0 ? ratings : getDefaultRatings();
+};
 export const setRatings = (v: string[]): void => setKey("ratings", v);
 export const getDataSaver = (): boolean => getKey("data_saver", false);
 export const setDataSaver = (v: boolean): void => setKey("data_saver", v);
@@ -216,13 +233,15 @@ export const setShowFinalChapterInSynopsis = (v: boolean): void =>
   setKey("show_final_chapter_in_synopsis", v);
 export const getTryFirstVolumeCover = (): boolean => getKey("try_first_volume_cover", false);
 export const setTryFirstVolumeCover = (v: boolean): void => setKey("try_first_volume_cover", v);
+export const getShowCoverArtwork = (): boolean => getKey("show_cover_artwork", false);
+export const setShowCoverArtwork = (v: boolean): void => setKey("show_cover_artwork", v);
 
 // ===== Thumbnail quality =====
 
 let stateMigrationsRan = false;
 
-// Called once from initialise() so thumbnail getters do not pay the
-// per call schema check on every search/discover render.
+// Called once from initialise() so the thumbnail getters skip the schema
+// check on every search/discover render.
 export function runStateMigrations(): void {
   if (stateMigrationsRan) return;
   const schema = Application.getState("thumbnail_quality_schema") as number | undefined;
@@ -246,6 +265,9 @@ export const setSearchThumbnail = (v: string): void => setKey("search_thumbnail"
 export const getMangaThumbnail = (): string =>
   getKey("manga_thumbnail", getDefaultImageQuality("manga"));
 export const setMangaThumbnail = (v: string): void => setKey("manga_thumbnail", v);
+export const getArtworkThumbnail = (): string =>
+  getKey("artwork_thumbnail", getDefaultImageQuality("artwork"));
+export const setArtworkThumbnail = (v: string): void => setKey("artwork_thumbnail", v);
 
 // ===== Search subtitle display =====
 
@@ -309,15 +331,16 @@ export const setMetadataUpdater = (v: boolean): void => setKey("metadata_updater
 export const getSkipPublicationStatus = (): string[] =>
   readStringArray("skip_publication_status", () => []);
 export const setSkipPublicationStatus = (v: string[]): void => setKey("skip_publication_status", v);
-export const getSkipNewChapters = (): number => getKey("skip_new_chapters", 0);
-export const setSkipNewChapters = (v: number): void => setKey("skip_new_chapters", v);
-export const getSkipUnreadChapters = (): number => getKey("skip_unread_chapters", 0);
-export const setSkipUnreadChapters = (v: number): void => setKey("skip_unread_chapters", v);
+export const getSkipNewChapters = (): number => getIntKey("skip_new_chapters", 0);
+export const setSkipNewChapters = (v: number): void => setNumberKey("skip_new_chapters", v, 0);
+export const getSkipUnreadChapters = (): number => getIntKey("skip_unread_chapters", 0);
+export const setSkipUnreadChapters = (v: number): void =>
+  setNumberKey("skip_unread_chapters", v, 0);
 
 // ===== Reset =====
 
 // Every owned settings key. Reset clears these so the getter fallbacks above
-// become the single source of truth for default values. Auth tokens, schema
+// become the one place that defines default values. Auth tokens, schema
 // markers, and the tag cache are excluded (they reset via their own paths).
 const SETTINGS_KEYS: readonly string[] = [
   "discover_section_order",
@@ -339,9 +362,11 @@ const SETTINGS_KEYS: readonly string[] = [
   "show_alt_titles_in_synopsis",
   "show_final_chapter_in_synopsis",
   "try_first_volume_cover",
+  "show_cover_artwork",
   "discover_thumbnail",
   "search_thumbnail",
   "manga_thumbnail",
+  "artwork_thumbnail",
   "show_status_icons",
   "show_content_rating_icons",
   "show_volume_in_subtitle",
@@ -396,19 +421,22 @@ export function readJwtBody(token: string): TokenBody | null {
   }
 }
 
-// MangaDex/Keycloak invalidation shapes. Force-logout decisions must
-// agree across the interceptor and the session-info form
-export function isAuthInvalidError(err: unknown): boolean {
+// Decides whether an auth error really means the refresh token is dead. The
+// interceptor and the session-info form must agree on when to force a logout.
+function isAuthInvalidError(err: unknown): boolean {
   const msg = err instanceof Error ? err.message : String(err);
-  return /status code: 40[01]/.test(msg) || /invalid_grant|invalid_token/i.test(msg);
+  // Only a 400/401 from the token endpoint means the refresh token is truly rejected.
+  // Any other status (a 5xx, or a 4xx such as 403/409) is temporary even if its body text
+  // contains invalid_grant/invalid_token, so it must not force a logout.
+  return /status code: 40[01]/.test(msg);
 }
 
 export function getAccessToken(): AccessToken | undefined {
-  // Cache hit. saveAccessToken keeps secure state and the cache
-  // consistent because it is the only writer to either.
+  // Cache hit. saveAccessToken keeps secure state and the cache in sync. The repair
+  // path below is the one other secure-state writer and clears the cache in the same step.
   if (cacheValid) return cachedTokenResult;
 
-  // The orphan refresh probe heals secure state that the host left half cleared after a crash.
+  // Clear a stray refresh token the host left behind when it half cleared state after a crash.
   const accessToken = Application.getSecureState("access_token") as string | undefined;
   if (!accessToken) {
     const orphan = Application.getSecureState("refresh_token") as string | undefined;
@@ -426,9 +454,9 @@ export function getAccessToken(): AccessToken | undefined {
     return saveAccessToken(undefined, undefined);
   }
   if (parsed.typ === "Refresh") {
-    // The slots are swapped: the access slot holds a Refresh JWT
+    // The slots are swapped: the access slot holds a Refresh JWT.
     const refreshParsed = refreshToken ? readJwtBody(refreshToken) : null;
-    if (refreshParsed && refreshParsed.typ !== "Refresh") {
+    if (refreshParsed && refreshParsed.typ === "Bearer") {
       return saveAccessToken(refreshToken, accessToken);
     }
     return saveAccessToken(undefined, undefined);
@@ -442,7 +470,7 @@ export function saveAccessToken(
   accessToken: string | undefined,
   refreshToken: string | undefined,
 ): AccessToken | undefined {
-  // Parse before persisting. An unparseable save would desync cache from secure state.
+  // Parse before persisting. Saving an unparseable token would leave the cache and secure state out of sync.
   if (!accessToken) {
     Application.setSecureState(undefined, "access_token");
     Application.setSecureState(undefined, "refresh_token");
@@ -512,7 +540,7 @@ async function _authEndpointRequest(payload: string): Promise<AuthResponse> {
   return json;
 }
 
-export function authEndpointRequest(payload: string): Promise<AuthResponse> {
+function authEndpointRequest(payload: string): Promise<AuthResponse> {
   if (!(payload in authRequestCache)) {
     authRequestCache[payload] = _authEndpointRequest(payload).finally(() => {
       delete authRequestCache[payload];
@@ -545,7 +573,13 @@ export async function refreshSession(originalRefreshToken: string): Promise<Refr
     }
     return { kind: "rotated", token: saved };
   } catch (e: unknown) {
-    const currentTokens = getAccessToken();
+    let currentTokens: AccessToken | undefined;
+    try {
+      currentTokens = getAccessToken();
+    } catch {
+      // A host state fault here must not escape as an unhandled rejection.
+      return { kind: "transient", message: e instanceof Error ? e.message : String(e) };
+    }
     if (currentTokens?.refreshToken !== originalRefreshToken) {
       if (!currentTokens) return { kind: "racedLogout" };
       return { kind: "racedRotation", token: currentTokens };

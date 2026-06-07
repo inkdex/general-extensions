@@ -132,7 +132,7 @@ export class SearchSettingsForm extends Form {
     try {
       const cache = await forceRefreshTags();
       this.refreshStatus = `Refreshed ${cache.tags.length} tags`;
-      // Invalidate so tag driven discover rows rebuild against the refreshed cache.
+      // Refresh discover so the tag based rows rebuild from the new cache.
       Application.invalidateDiscoverSections();
     } catch (error) {
       this.refreshStatus = `Refresh failed: ${error instanceof Error ? error.message : String(error)}`;

@@ -37,6 +37,7 @@ import {
 import { buildLatestChaptersUrl, buildMangaListUrl } from "../shared/urls";
 import {
   MANGA_PAGE_LIMIT,
+  MAX_SEEN_IDS,
   chunk,
   computeNextMetadata,
   formatCreatedAtSince,
@@ -58,8 +59,8 @@ const SECTION_TYPE_MAP: Record<string, DiscoverSectionType> = {
 };
 
 // Prominent and simple carousels share one item shape and differ only by type.
-// Generic over the literal so each item still narrows to its DiscoverSectionItem
-// member. Featured items carry a different shape and are built inline.
+// The generic keeps each item typed as its own DiscoverSectionItem member.
+// Featured items have a different shape and are built inline.
 function toCarouselItems<T extends "prominentCarouselItem" | "simpleCarouselItem">(
   items: ReturnType<typeof parseMangaList>,
   type: T,
@@ -181,7 +182,7 @@ async function getCuratedListItems(
     return Array.isArray(result.value.data) ? result.value.data : [];
   });
   if (allData.length === 0) {
-    // Show an empty section if user's filters hid all results
+    // Show an empty section if user's filters hid all results.
     if (responses.some((r) => r.status === "fulfilled")) {
       return { items: [], metadata: undefined };
     }
@@ -270,12 +271,15 @@ async function getLatestUpdatesItems(
   metadata: Metadata | undefined,
 ): Promise<PagedResults<DiscoverSectionItem>> {
   const offset: number = metadata?.offset ?? 0;
+  const seen = new Set<string>(metadata?.emittedIds ?? []);
+  const withSeen = (m: Metadata | undefined): Metadata | undefined =>
+    m ? { ...m, emittedIds: Array.from(seen).slice(-MAX_SEEN_IDS) } : m;
 
   const ratings: string[] = getRatings();
   const languages: string[] = getLanguages();
   const excludedUploaders = getBlockedUploaders();
 
-  // Chapter first. Query the latest chapters in the user's language
+  // Chapter first. Query the latest chapters in the user's language.
   const chaptersResponse = await fetchJSON<ChapterResponse>({
     url: buildLatestChaptersUrl({
       limit: MANGA_PAGE_LIMIT,
@@ -298,27 +302,26 @@ async function getLatestUpdatesItems(
   const { ids: orderedMangaIds, chapterByMangaId } = collectUniqueMangaIdsFromChapters(
     chaptersResponse.data,
   );
+  const newIds = orderedMangaIds.filter((id) => !seen.has(id));
+  for (const id of newIds) seen.add(id);
 
-  if (orderedMangaIds.length === 0) {
-    return { items: [], metadata: nextMetadata };
+  if (newIds.length === 0) {
+    return { items: [], metadata: withSeen(nextMetadata) };
   }
 
   const mangaResponse = await fetchJSON<SearchResponse>({
     url: buildMangaListUrl({
-      limit: orderedMangaIds.length,
+      limit: newIds.length,
       ratings,
       languages,
-      ids: orderedMangaIds,
+      ids: newIds,
     }).toString(),
     method: "GET",
   });
   assertDataArray(mangaResponse, section.title);
 
   // Restore chapter order, dropping any manga that came back missing.
-  const items = parseMangaList(
-    reorderById(mangaResponse.data, orderedMangaIds),
-    getDiscoverThumbnail,
-  );
+  const items = parseMangaList(reorderById(mangaResponse.data, newIds), getDiscoverThumbnail);
   const showVolume = getShowVolume();
   const showChapter = getShowChapter();
 
@@ -346,7 +349,7 @@ async function getLatestUpdatesItems(
 
   return {
     items: carouselItems,
-    metadata: nextMetadata,
+    metadata: withSeen(nextMetadata),
   };
 }
 

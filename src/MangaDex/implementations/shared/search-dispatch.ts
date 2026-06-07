@@ -21,8 +21,8 @@ const URL_PATH_TO_PREFIX: Record<string, SearchPrefix> = {
   list: "list",
 };
 
-// Pattern captures already enforce v4 shape, so callers do not need
-// to revalidate the captured group.
+// The patterns already require a valid v4 UUID, so callers do not need
+// to re-check the captured group.
 const URL_PATTERN = new RegExp(
   `mangadex\\.org\\/(title|chapter|group|author|user|list)\\/(${UUID_FRAGMENT})`,
   "i",

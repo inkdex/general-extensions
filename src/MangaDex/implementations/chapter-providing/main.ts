@@ -14,6 +14,7 @@ import { getMangaDetails } from "../manga/main";
 import { MDLanguages } from "../shared/languages";
 import { resolveChapterId, resolveMangaId, resolveMangaIds } from "../shared/legacy";
 import type {
+  ChapterData,
   ChapterDetailsResponse,
   ChapterRelationship,
   ChapterResponse,
@@ -79,13 +80,51 @@ async function fetchLatestUploadedChapter(mangaId: string): Promise<string | nul
   return json.data?.attributes?.latestUploadedChapter ?? null;
 }
 
+async function reconcileLatestUploadedChapter(
+  sourceManga: SourceManga,
+  mangaId: string,
+  verifiedLatestChapterId: string | null,
+  optimizeUpdates: boolean,
+  mangaDetailsFreshlyFetched: boolean,
+): Promise<void> {
+  // Uses the manga level latestUploadedChapter from API. The optimizeUpdates path compares against it.
+  let nextLatestChapter: string | null | undefined = verifiedLatestChapterId ?? undefined;
+  if (nextLatestChapter === undefined && optimizeUpdates) {
+    // Feed empty in user's languages, so reuse fresh additionalInfo or fetch /manga/{id}.
+    if (mangaDetailsFreshlyFetched) {
+      nextLatestChapter = sourceManga.mangaInfo.additionalInfo?.latestUploadedChapter ?? null;
+    } else {
+      try {
+        nextLatestChapter = await fetchLatestUploadedChapter(mangaId);
+      } catch {
+        // Stay undefined. A temporary error must not wipe the saved value.
+      }
+    }
+  }
+  if (typeof nextLatestChapter === "string") {
+    sourceManga.mangaInfo.additionalInfo = {
+      ...sourceManga.mangaInfo.additionalInfo,
+      latestUploadedChapter: nextLatestChapter,
+    };
+  } else if (
+    nextLatestChapter === null &&
+    sourceManga.mangaInfo.additionalInfo &&
+    "latestUploadedChapter" in sourceManga.mangaInfo.additionalInfo
+  ) {
+    // Server confirms zero chapters, so drop the stored id and updates stop flagging "changed".
+    const next = { ...sourceManga.mangaInfo.additionalInfo };
+    delete next.latestUploadedChapter;
+    sourceManga.mangaInfo.additionalInfo = next;
+  }
+}
+
 type InlinedMangaAttributes = DatumAttributes & {
   tags?: unknown;
   latestUploadedChapter?: string;
 };
 
-// The first feed page inlines the full manga entity into the "manga"
-// relationship slot so the cast is guarded.
+// The first feed page packs the whole manga object into the "manga"
+// relationship slot, so the cast below is guarded.
 function readInlinedMangaItem(
   rel: ChapterRelationship | undefined,
 ): { id: string; attributes: InlinedMangaAttributes } | undefined {
@@ -93,6 +132,58 @@ function readInlinedMangaItem(
     return undefined;
   }
   return { id: rel.id, attributes: rel.attributes as unknown as InlinedMangaAttributes };
+}
+
+// Reads the manga object included on page 1 (no separate /manga call) to refresh
+// metadata in place, work out the volume reset dedup flag, and get the confirmed latest chapter id.
+function applyFirstPageInlineMetadata(
+  data: ChapterData[],
+  mangaId: string,
+  sourceManga: SourceManga,
+  flags: { optimizeUpdates: boolean; willRefreshInlineMetadata: boolean },
+  inlineMetadataSettings: MangaDetailsSettings | undefined,
+): { resetChapterNumbersOnVolume: boolean; verifiedLatestChapterId: string | null } {
+  let resetChapterNumbersOnVolume = false;
+  let verifiedLatestChapterId: string | null = null;
+  const mangaItem = readInlinedMangaItem(
+    findMangaRelationship<ChapterRelationship>(data.flatMap((c) => c?.relationships ?? [])),
+  );
+  const idMatches = mangaItem?.id?.toLowerCase() === mangaId;
+  const mangaAttrs = mangaItem?.attributes;
+  // Guard against MangaDex including a different manga in the relationship.
+  if (idMatches && mangaAttrs) {
+    resetChapterNumbersOnVolume = mangaAttrs.chapterNumbersResetOnNewVolume === true;
+  }
+  if (flags.optimizeUpdates && idMatches && mangaAttrs?.latestUploadedChapter) {
+    verifiedLatestChapterId = mangaAttrs.latestUploadedChapter;
+  }
+  // Skip if tags array is missing. An empty tagGroups would mismatch /manga forever.
+  if (
+    flags.willRefreshInlineMetadata &&
+    idMatches &&
+    mangaAttrs &&
+    Array.isArray(mangaAttrs.tags)
+  ) {
+    const mangaItemDetails = parseMangaItemDetails(mangaId, mangaAttrs, inlineMetadataSettings);
+    sourceManga.mangaInfo.primaryTitle = mangaItemDetails.primaryTitle;
+    sourceManga.mangaInfo.secondaryTitles = mangaItemDetails.secondaryTitles;
+    sourceManga.mangaInfo.synopsis = mangaItemDetails.synopsis;
+    // Keep a prior publishing_finished correction unless the API
+    // status actually changed.
+    sourceManga.mangaInfo.status = reconcileStoredCompletedStatus(
+      mangaAttrs.status,
+      sourceManga.mangaInfo.status,
+    );
+    sourceManga.mangaInfo.tagGroups = mangaItemDetails.tagGroups;
+    sourceManga.mangaInfo.contentRating = mangaItemDetails.contentRating;
+    sourceManga.mangaInfo.shareUrl = mangaItemDetails.shareUrl;
+    // Raw rating: Paperback's enum collapses erotica/pornographic into ADULT.
+    sourceManga.mangaInfo.additionalInfo = {
+      ...sourceManga.mangaInfo.additionalInfo,
+      mdContentRating: mangaItemDetails.mdContentRating,
+    };
+  }
+  return { resetChapterNumbersOnVolume, verifiedLatestChapterId };
 }
 
 export async function getChapters(
@@ -144,7 +235,7 @@ export async function getChapters(
   const skipSameChapter = getSkipSameChapter();
   const ratings: string[] = getRatings();
 
-  // Deferred so we can first refresh mdContentRating from the inline manga relationship.
+  // Held back so we can first refresh mdContentRating from the manga object on page 1.
   let ratingGateEvaluated = false;
   const evaluateRatingGate = (): void => {
     if (ratingGateEvaluated) return;
@@ -187,15 +278,15 @@ export async function getChapters(
   let offset = 0;
   let hasResults = true;
   let prevChapNum = 0;
-  // Synthetic suffix for unnumbered chapters. Avoids collisions with fractionals.
+  // Suffix for unnumbered chapters. Avoids clashing with fractional numbers.
   let unnumberedIndex = 0;
-  // Paperback sorts on volume when any chapter has one, so a single volume tagged chapter
-  // floats above the volume-null rest. If any chapter is missing volume, flatten all to 0.
+  // Paperback sorts on volume when any chapter has one, so a single chapter with a volume
+  // sorts above the ones without. If any chapter is missing a volume, set them all to 0.
   let anyMissingVolume = false;
 
   let verifiedLatestChapterId: string | null = null;
-  // True when the title restarts chapter numbering each volume. Read from the inline
-  // manga relationship so the dedup key can keep volume and not drop real chapters.
+  // True when the title restarts chapter numbering each volume. Read from the manga
+  // object on page 1 so the dedup key can keep the volume and not drop real chapters.
   let resetChapterNumbersOnVolume = false;
   // Only the first page includes "manga". The relationship is identical across pages.
   const baseIncludes = ["scanlation_group"];
@@ -234,45 +325,19 @@ export async function getChapters(
 
     assertDataArray(json, mangaId);
 
-    // Read the inline manga relationship (no separate /manga call) for the metadata
+    // Read the manga object on page 1 (no separate /manga call) for the metadata
     // refresh, the latest chapter check, and the volume reset dedup flag.
     if (needsInlineManga && offset === FEED_PAGE_LIMIT) {
-      const mangaItem = readInlinedMangaItem(
-        findMangaRelationship<ChapterRelationship>(
-          json.data.flatMap((c) => c?.relationships ?? []),
-        ),
+      const refresh = applyFirstPageInlineMetadata(
+        json.data,
+        mangaId,
+        sourceManga,
+        { optimizeUpdates, willRefreshInlineMetadata },
+        inlineMetadataSettings,
       );
-      const idMatches = mangaItem?.id?.toLowerCase() === mangaId;
-      const mangaAttrs = mangaItem?.attributes;
-      // Guard against MangaDex inlining a different manga's relationship.
-      if (idMatches && mangaAttrs) {
-        resetChapterNumbersOnVolume = mangaAttrs.chapterNumbersResetOnNewVolume === true;
-      }
-      if (optimizeUpdates && idMatches && mangaAttrs?.latestUploadedChapter) {
-        verifiedLatestChapterId = mangaAttrs.latestUploadedChapter;
-      }
-      // Skip if tags array is missing. An empty tagGroups would mismatch /manga forever.
-      if (willRefreshInlineMetadata && idMatches && mangaAttrs && Array.isArray(mangaAttrs.tags)) {
-        const mangaItemDetails = parseMangaItemDetails(mangaId, mangaAttrs, inlineMetadataSettings);
-        sourceManga.mangaInfo.primaryTitle = mangaItemDetails.primaryTitle;
-        sourceManga.mangaInfo.secondaryTitles = mangaItemDetails.secondaryTitles;
-        sourceManga.mangaInfo.synopsis = mangaItemDetails.synopsis;
-        // Keep a prior publishing_finished correction unless the API
-        // status actually changed.
-        sourceManga.mangaInfo.status = reconcileStoredCompletedStatus(
-          mangaAttrs.status,
-          sourceManga.mangaInfo.status,
-        );
-        sourceManga.mangaInfo.tagGroups = mangaItemDetails.tagGroups;
-        sourceManga.mangaInfo.contentRating = mangaItemDetails.contentRating;
-        sourceManga.mangaInfo.shareUrl = mangaItemDetails.shareUrl;
-        // Raw rating: Paperback's enum collapses erotica/pornographic into ADULT.
-        sourceManga.mangaInfo.additionalInfo = {
-          ...sourceManga.mangaInfo.additionalInfo,
-          mdContentRating: mangaItemDetails.mdContentRating,
-        };
-      }
-      // Run the gate on page 1 even if empty, so the "rating not enabled" error surfaces.
+      resetChapterNumbersOnVolume = refresh.resetChapterNumbersOnVolume;
+      verifiedLatestChapterId = refresh.verifiedLatestChapterId;
+      // Run the rating check on page 1 even if empty, so the "rating not enabled" error shows.
       evaluateRatingGate();
     }
 
@@ -311,7 +376,7 @@ export async function getChapters(
           name,
           chapterDetails.translatedLanguage ?? "",
           unnumberedIndex,
-          volume,
+          chapterDetails.volume ?? "",
           resetChapterNumbersOnVolume,
         );
         if (collectedChapters!.has(identifier)) continue;
@@ -328,14 +393,24 @@ export async function getChapters(
 
       const externalUrl = chapterDetails.externalUrl;
       const isUnavailable = pages === 0 || !!externalUrl || chapterDetails.isUnavailable === true;
-      // Externally hosted chapters can have pages > 0 (a promo image),
-      // so the toggle must gate all unavailable cases, not just pages=0.
+      // Externally hosted chapters can have pages > 0 (a promo image), so the toggle
+      // must cover all unavailable cases, not just pages=0.
       const shouldInclude = !isUnavailable || includeUnavailable;
       if (shouldInclude) {
         // Count toward the volume flatten only once a chapter actually ships,
         // so a filtered entry can't drop every volume to 0.
-        if (!chapterDetails.volume) anyMissingVolume = true;
+        if (!chapterDetails.volume || Number.isNaN(Number(chapterDetails.volume)))
+          anyMissingVolume = true;
         const titleForChapter = isUnavailable ? `[Unavailable] ${name}` : name;
+        // Mark the permanently unreadable cases so getChapterDetails can skip the
+        // /at-home call (a guaranteed 404 for removed chapters, empty for external)
+        // and surface a clear reason instead
+        let additionalInfo: Record<string, string> | undefined;
+        if (externalUrl) {
+          additionalInfo = { unavailable: "external", externalUrl };
+        } else if (chapterDetails.isUnavailable === true) {
+          additionalInfo = { unavailable: "removed" };
+        }
         chapters.push({
           chapterId,
           sourceManga,
@@ -346,6 +421,7 @@ export async function getChapters(
           version: group,
           publishDate: time,
           sortingIndex: 0,
+          ...(additionalInfo ? { additionalInfo } : {}),
         });
         if (identifier !== undefined) collectedChapters!.add(identifier);
       }
@@ -362,35 +438,13 @@ export async function getChapters(
     }
   }
 
-  // Uses the manga level latestUploadedChapter from API. The optimizeUpdates path compares against it.
-  let nextLatestChapter: string | null | undefined = verifiedLatestChapterId ?? undefined;
-  if (nextLatestChapter === undefined && optimizeUpdates) {
-    // Feed empty in user's languages, so reuse fresh additionalInfo or fetch /manga/{id}.
-    if (mangaDetailsFreshlyFetched) {
-      nextLatestChapter = sourceManga.mangaInfo.additionalInfo?.latestUploadedChapter ?? null;
-    } else {
-      try {
-        nextLatestChapter = await fetchLatestUploadedChapter(mangaId);
-      } catch {
-        // Stay undefined. A transient error must not wipe the saved value.
-      }
-    }
-  }
-  if (typeof nextLatestChapter === "string") {
-    sourceManga.mangaInfo.additionalInfo = {
-      ...sourceManga.mangaInfo.additionalInfo,
-      latestUploadedChapter: nextLatestChapter,
-    };
-  } else if (
-    nextLatestChapter === null &&
-    sourceManga.mangaInfo.additionalInfo &&
-    "latestUploadedChapter" in sourceManga.mangaInfo.additionalInfo
-  ) {
-    // Server confirms zero chapters, so drop the stored id and updates stop flagging "changed".
-    const next = { ...sourceManga.mangaInfo.additionalInfo };
-    delete next.latestUploadedChapter;
-    sourceManga.mangaInfo.additionalInfo = next;
-  }
+  await reconcileLatestUploadedChapter(
+    sourceManga,
+    mangaId,
+    verifiedLatestChapterId,
+    optimizeUpdates,
+    mangaDetailsFreshlyFetched,
+  );
 
   const filteredChapters =
     sinceDate instanceof Date
@@ -409,6 +463,21 @@ export async function getChapters(
 }
 
 export async function getChapterDetails(chapter: Chapter): Promise<ChapterDetails> {
+  // Unavailable chapters have no pages on MangaDex, so skip the /at-home round trip
+  // and tell the user why. The marker is set in getChapters.
+  const unavailable = chapter.additionalInfo?.unavailable;
+  if (unavailable === "external") {
+    const externalUrl = chapter.additionalInfo?.externalUrl;
+    throw new Error(
+      externalUrl
+        ? `This chapter is hosted on another site: ${externalUrl}`
+        : "This chapter is hosted on another site and can't be read in MangaDex.",
+    );
+  }
+  if (unavailable === "removed") {
+    throw new Error("This chapter was removed from MangaDex and can no longer be read.");
+  }
+
   const [chapterId, mangaId] = await Promise.all([
     resolveChapterId(chapter.chapterId),
     resolveMangaId(chapter.sourceManga.mangaId),
@@ -470,7 +539,8 @@ export async function processTitlesForUpdates(
     mangaMap.set(manga.mangaId, manga);
   }
   if (skipped.length > 0) {
-    await Promise.all(skipped.map((mangaId) => updateManager.setNewChapters(mangaId, [])));
+    // Use allSettled so one failed save doesn't cancel the whole update pass.
+    await Promise.allSettled(skipped.map((mangaId) => updateManager.setNewChapters(mangaId, [])));
   }
 
   const optimizeUpdates = getOptimizeUpdates();
@@ -519,7 +589,7 @@ export async function processTitlesForUpdates(
 
           const latestApiChapter = mangaData.attributes.latestUploadedChapter;
           const latestStoredChapter = storedManga.mangaInfo?.additionalInfo?.latestUploadedChapter;
-          // Value compare, not truthiness. The case (stored=id, api=null) happens on DMCA takedown.
+          // Compare the values, not just truthy/falsy. The case (stored=id, api=null) happens on a DMCA takedown.
           const chapterChanged = (latestApiChapter ?? null) !== (latestStoredChapter ?? null);
 
           const skipUnread = shouldSkipByCount(
@@ -559,7 +629,7 @@ export async function processTitlesForUpdates(
           if (result.status === "fulfilled") {
             const stored = mangaMap.get(missingIds[k]);
             const latestStored = stored?.mangaInfo?.additionalInfo?.latestUploadedChapter ?? null;
-            // Skip when api reports no chapters or when the chapter id matches stored
+            // Skip when api reports no chapters or when the chapter id matches stored.
             if (result.value === null || result.value === latestStored) {
               idsToSkip.push(missingIds[k]);
             }
@@ -573,7 +643,10 @@ export async function processTitlesForUpdates(
         idsToSkip.push(...missingIds);
       }
 
-      await Promise.all(idsToSkip.map((mangaId) => updateManager.setNewChapters(mangaId, [])));
+      // Use allSettled so one failed save doesn't cancel the remaining batches.
+      await Promise.allSettled(
+        idsToSkip.map((mangaId) => updateManager.setNewChapters(mangaId, [])),
+      );
     }
   }
 }
