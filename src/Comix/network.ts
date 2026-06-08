@@ -23,8 +23,8 @@ import {
   type ResultManga,
   type Filter,
 } from "./models";
-import { descrambleImage, readScrambleHeaders } from "./utils/descramble";
 import type { ComixFilter } from "./utils/filter";
+import { decryptComixImage, readEncHeaders } from "./utils/imageByteDecrypt";
 import { chapterListViaWebView, pageListViaWebView } from "./utils/webView";
 
 export class ComixInterceptor extends PaperbackInterceptor {
@@ -55,15 +55,17 @@ export class ComixInterceptor extends PaperbackInterceptor {
       });
     }
 
-    if (!response.mimeType?.startsWith("image/")) return data;
-    const scrambleParams = readScrambleHeaders(response.headers);
-    if (!scrambleParams) return data;
+    // Encrypted images carry X-Enc-* headers regardless of mime type (the
+    // corrupted prefix can defeat byte-sniffing), so key off the headers, not
+    // the mime type.
+    const encParams = readEncHeaders(response.headers);
+    if (!encParams) return data;
 
     try {
-      return await descrambleImage(data, scrambleParams, response.mimeType ?? "image/webp");
+      return decryptComixImage(data, encParams);
     } catch (error) {
       console.log(
-        `[Comix] descramble failed for ${request.url}: ${
+        `[Comix] image decrypt failed for ${request.url}: ${
           error instanceof Error ? error.message : String(error)
         }`,
       );
