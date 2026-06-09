@@ -19,10 +19,12 @@ import {
   type ItemInfoElements,
   type MangaData,
   type MangaDataResponse,
+  type MangaSection,
+  type MangaSectionItem,
   type PageMetadata,
   type SearchResponse,
 } from "./models";
-import { normalizeId } from "./utils";
+import { generateTagElement } from "./utils";
 
 function parseStringArray(value: string[] | string | null): string[] {
   if (value == null) return [];
@@ -82,10 +84,7 @@ export const parseMangaInfo = (manga: MangaDataResponse, volumes: string[]): Sou
         {
           id: "genres",
           title: "Genres",
-          tags: mangaInfo.genres.map((genre) => ({
-            id: normalizeId(genre),
-            title: genre,
-          })),
+          tags: mangaInfo.genres.map((genre) => generateTagElement(genre)),
         },
       ],
       shareUrl: `${DOMAIN}/manga/${mangaInfo.id}`,
@@ -156,16 +155,29 @@ export type SectionItemType =
   | "featuredCarouselItem";
 
 export const parseSection = (
-  sectionElements: SearchResponse,
+  sectionElements: SearchResponse | MangaSection,
   page: number,
   type: SectionItemType,
 ): PagedResults<DiscoverSectionItem> => {
-  const items = sectionElements.manga_list.map((item): DiscoverSectionItem => {
+  let sectionItems: MangaData[] | MangaSectionItem[] = [];
+  const isMangaData = "manga_list" in sectionElements;
+  if (isMangaData) {
+    sectionItems = sectionElements.manga_list;
+  }
+  if ("items" in sectionElements) {
+    sectionItems = sectionElements.items;
+  }
+
+  const items = sectionItems.map((item): DiscoverSectionItem => {
     const base = {
       mangaId: item.id.toString(),
       title: item.title,
       imageUrl: `${DOMAIN}${item.photo}`,
-      contentRating: getRating(item),
+      contentRating: isMangaData
+        ? getRating(item as MangaData)
+        : item.is_blurworthy
+          ? ContentRating.ADULT
+          : ContentRating.EVERYONE,
     };
     const ratingItem: ItemInfo = {
       symbol: "star.fill",
@@ -199,18 +211,33 @@ export const parseSection = (
         return {
           ...base,
           type,
-          supertitle: getArrayAuthor(item),
-          summary: item.description,
+          supertitle: isMangaData
+            ? getArrayAuthor(item as MangaData)
+            : `Chapters ${item.chapter_count}`,
+          summary: isMangaData ? (item as MangaData).description : "",
           infoItems: itemInfoElements,
         };
       case "prominentCarouselItem":
-        return { ...base, type, subtitle: getArrayAuthor(item) };
+        return {
+          ...base,
+          type,
+          subtitle: isMangaData
+            ? getArrayAuthor(item as MangaData)
+            : `Chapters ${item.chapter_count}`,
+        };
       default:
-        return { ...base, type: "simpleCarouselItem", subtitle: getArrayAuthor(item) };
+        return {
+          ...base,
+          type: "simpleCarouselItem",
+          subtitle: isMangaData
+            ? getArrayAuthor(item as MangaData)
+            : `Chapters ${item.chapter_count}`,
+        };
     }
   });
   return {
     items,
-    metadata: sectionElements.pagination.total_pages > page ? { page: page + 1 } : undefined,
+    metadata:
+      isMangaData && sectionElements.pagination.total_pages > page ? { page: page + 1 } : undefined,
   };
 };

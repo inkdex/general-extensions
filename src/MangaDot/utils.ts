@@ -4,7 +4,7 @@
 import type { Tag } from "@paperback/types";
 
 import type { SearchMetadata } from "./models";
-import type { MangaDotNetApi } from "./network";
+import type { MangaDotApi } from "./network";
 
 export function normalizeId(id: string): string {
   return id.replaceAll("-", "@#@").replaceAll("'", "&#@").replaceAll(" ", "#@&");
@@ -43,7 +43,14 @@ export function getShowAdultStatus(): string[] {
 }
 
 export function getTimeRangeStatus(): string[] {
-  return (Application.getState("time_range") as string[] | undefined) ?? [""];
+  return (Application.getState("content_range") as string[] | undefined) ?? [""];
+}
+
+export function generateTagElement(tag: string): Tag {
+  return {
+    id: normalizeId(tag),
+    title: deNormalizeId(tag),
+  };
 }
 
 export function defaultMetadata(filterItem: string = ""): SearchMetadata {
@@ -72,7 +79,7 @@ export function getFilters(): GenreFilters {
   }
 }
 
-export async function checkFilters(api: MangaDotNetApi): Promise<void> {
+export async function checkFilters(api: MangaDotApi): Promise<void> {
   await updateFilters(
     getFilters().genre.length === 0 ||
       getFilters().themeAndContent.length === 0 ||
@@ -81,7 +88,7 @@ export async function checkFilters(api: MangaDotNetApi): Promise<void> {
   );
 }
 
-export async function updateFilters(force: boolean, api: MangaDotNetApi): Promise<void> {
+export async function updateFilters(force: boolean, api: MangaDotApi): Promise<void> {
   const lastFilterFetch = Number(Application.getState("last_genres_fetch") ?? 0);
   const cached = lastFilterFetch + 172800 > new Date().valueOf() / 1000;
   if (cached && !force) {
@@ -158,31 +165,19 @@ export function groupGenres(genres: readonly string[]): GenreFilters {
   for (const genre of genres) {
     switch (CATEGORY_MAP[genre]) {
       case "Demographic":
-        grouped.demographic.push({
-          id: normalizeId(genre),
-          title: deNormalizeId(genre),
-        });
+        grouped.demographic.push(generateTagElement(genre));
         break;
 
       case "Genre":
-        grouped.genre.push({
-          id: normalizeId(genre),
-          title: deNormalizeId(genre),
-        });
+        grouped.genre.push(generateTagElement(genre));
         break;
 
       case "Theme & content":
-        grouped.themeAndContent.push({
-          id: normalizeId(genre),
-          title: deNormalizeId(genre),
-        });
+        grouped.themeAndContent.push(generateTagElement(genre));
         break;
 
       default:
-        grouped.more.push({
-          id: normalizeId(genre),
-          title: deNormalizeId(genre),
-        });
+        grouped.more.push(generateTagElement(genre));
         break;
     }
   }

@@ -16,17 +16,17 @@ import {
   type SearchQuery,
 } from "@paperback/types";
 
-import { MangaDotNet } from "../main";
+import { MangaDot } from "../main";
 import { ORIGIN, STATUS, type SearchMetadata } from "../models";
 import {
   defaultMetadata,
   deNormalizeId,
+  generateTagElement,
   getFilters,
   getShowAdultStatus,
-  normalizeId,
 } from "../utils";
 
-class MangaDotNetAdvancedSearchForm extends AdvancedSearchForm {
+class MangaDotAdvancedSearchForm extends AdvancedSearchForm {
   override getSearchQueryMetadata(): SearchMetadata {
     return this.searchMetadata;
   }
@@ -58,7 +58,7 @@ class MangaDotNetAdvancedSearchForm extends AdvancedSearchForm {
           ],
           minItemCount: 1,
           maxItemCount: 1,
-          onValueChange: Application.Selector(this as MangaDotNetAdvancedSearchForm, "handleAdult"),
+          onValueChange: Application.Selector(this as MangaDotAdvancedSearchForm, "handleAdult"),
         }),
       ]),
       Section("author", [
@@ -83,7 +83,7 @@ class MangaDotNetAdvancedSearchForm extends AdvancedSearchForm {
       TriStateSelectRow("genres", {
         title: "Genres",
         layout: "list",
-        onValueChange: Application.Selector(this as MangaDotNetAdvancedSearchForm, "handleGenres"),
+        onValueChange: Application.Selector(this as MangaDotAdvancedSearchForm, "handleGenres"),
         items: getFilters().genre,
         value: this.searchMetadata.genres ?? {},
         allowEmptySelection: true,
@@ -94,7 +94,7 @@ class MangaDotNetAdvancedSearchForm extends AdvancedSearchForm {
         title: "Demographic",
         layout: "list",
         onValueChange: Application.Selector(
-          this as MangaDotNetAdvancedSearchForm,
+          this as MangaDotAdvancedSearchForm,
           "handleDemographic",
         ),
         items: getFilters().demographic,
@@ -106,7 +106,7 @@ class MangaDotNetAdvancedSearchForm extends AdvancedSearchForm {
       TriStateSelectRow("themes", {
         title: "Themes",
         layout: "list",
-        onValueChange: Application.Selector(this as MangaDotNetAdvancedSearchForm, "handleThemes"),
+        onValueChange: Application.Selector(this as MangaDotAdvancedSearchForm, "handleThemes"),
         items: getFilters().themeAndContent,
         value: this.searchMetadata.themes ?? {},
         allowEmptySelection: true,
@@ -116,7 +116,7 @@ class MangaDotNetAdvancedSearchForm extends AdvancedSearchForm {
       TriStateSelectRow("more", {
         title: "More",
         layout: "list",
-        onValueChange: Application.Selector(this as MangaDotNetAdvancedSearchForm, "handleMore"),
+        onValueChange: Application.Selector(this as MangaDotAdvancedSearchForm, "handleMore"),
         items: getFilters().more,
         value: this.searchMetadata.more ?? {},
         allowEmptySelection: true,
@@ -131,7 +131,7 @@ class MangaDotNetAdvancedSearchForm extends AdvancedSearchForm {
       SelectRow("status", {
         title: "Status",
         layout: "list",
-        onValueChange: Application.Selector(this as MangaDotNetAdvancedSearchForm, "handleStatus"),
+        onValueChange: Application.Selector(this as MangaDotAdvancedSearchForm, "handleStatus"),
         items: STATUS,
         value:
           this.searchMetadata.status && this.searchMetadata.status.length > 0
@@ -149,7 +149,7 @@ class MangaDotNetAdvancedSearchForm extends AdvancedSearchForm {
       SelectRow("origin", {
         title: "Origin",
         layout: "list",
-        onValueChange: Application.Selector(this as MangaDotNetAdvancedSearchForm, "handleOrigin"),
+        onValueChange: Application.Selector(this as MangaDotAdvancedSearchForm, "handleOrigin"),
         items: ORIGIN,
         value:
           this.searchMetadata.origin && this.searchMetadata.origin.length > 0
@@ -250,10 +250,7 @@ class AuthorFilter extends AdvancedSearchForm {
               id: "authorSearch",
               layout: "list",
               value: this.savedAuthorFiltered ?? [],
-              items: this.authorFiltered.map((elem) => ({
-                id: normalizeId(elem),
-                title: deNormalizeId(elem),
-              })),
+              items: this.authorFiltered.map((elem) => generateTagElement(elem)),
               minItemCount: 0,
               maxItemCount: this.authorFiltered.length,
             }),
@@ -265,10 +262,7 @@ class AuthorFilter extends AdvancedSearchForm {
               id: "selections",
               layout: "list",
               value: this.savedAuthorFiltered ?? [],
-              items: this.savedAuthorFiltered.map((elem) => ({
-                id: normalizeId(elem),
-                title: deNormalizeId(elem),
-              })),
+              items: this.savedAuthorFiltered.map((elem) => generateTagElement(elem)),
               minItemCount: 0,
               maxItemCount: this.savedAuthorFiltered.length,
             }),
@@ -280,7 +274,7 @@ class AuthorFilter extends AdvancedSearchForm {
   async handleAuthorLabel(value: string): Promise<void> {
     this.searchedValue = value;
     if (value.length > 2) {
-      const authors = await MangaDotNet.api.getAuthor(value);
+      const authors = await MangaDot.api.getAuthor(value);
       this.authorFiltered = authors.suggestions;
     }
   }
@@ -337,10 +331,7 @@ class ArtistFilter extends AdvancedSearchForm {
               id: "artistSearch",
               layout: "list",
               value: this.savedArtistFiltered ?? [],
-              items: this.artistsFiltered.map((elem) => ({
-                id: normalizeId(elem),
-                title: deNormalizeId(elem),
-              })),
+              items: this.artistsFiltered.map((elem) => generateTagElement(elem)),
               minItemCount: 0,
               maxItemCount: this.artistsFiltered.length,
             }),
@@ -352,10 +343,7 @@ class ArtistFilter extends AdvancedSearchForm {
               id: "selections",
               layout: "list",
               value: this.savedArtistFiltered ?? [],
-              items: this.savedArtistFiltered.map((elem) => ({
-                id: normalizeId(elem),
-                title: deNormalizeId(elem),
-              })),
+              items: this.savedArtistFiltered.map((elem) => generateTagElement(elem)),
               minItemCount: 0,
               maxItemCount: this.savedArtistFiltered.length,
             }),
@@ -367,10 +355,10 @@ class ArtistFilter extends AdvancedSearchForm {
   async handleArtistLabel(value: string): Promise<void> {
     this.searchedValue = value;
     if (value.length > 2) {
-      const artists = await MangaDotNet.api.getArtist(value);
+      const artists = await MangaDot.api.getArtist(value);
       this.artistsFiltered = artists.suggestions;
     }
   }
 }
 
-export default MangaDotNetAdvancedSearchForm;
+export default MangaDotAdvancedSearchForm;
