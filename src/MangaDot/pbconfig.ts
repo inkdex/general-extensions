@@ -4,7 +4,7 @@
 import { ContentRating, SourceIntents, type ExtensionInfo } from "@paperback/types";
 
 export default {
-  name: "MangaDotNet",
+  name: "MangaDot",
   description: "Extension that pulls content from MangaDot.net",
   version: "1.0.0-alpha.2",
   icon: "icon.png",

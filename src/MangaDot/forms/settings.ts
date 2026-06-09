@@ -3,8 +3,8 @@
 
 import { ButtonRow, Form, FormConfirmationError, Section, SelectRow } from "@paperback/types";
 
-import { ORIGIN } from "../models";
-import type { MangaDotNetApi } from "../network";
+import { ORIGIN, RANGE } from "../models";
+import type { MangaDotApi } from "../network";
 import {
   getContentTypes,
   getGenresHidden,
@@ -15,11 +15,12 @@ import {
   getThemesHidden,
   getDemographicHidden,
   getMoreHidden,
+  getTimeRangeStatus,
 } from "../utils";
 
 export class SettingsForm extends Form {
-  api: MangaDotNetApi;
-  constructor(api: MangaDotNetApi) {
+  api: MangaDotApi;
+  constructor(api: MangaDotApi) {
     super();
     this.api = api;
   }
@@ -106,6 +107,19 @@ export class SettingsForm extends Form {
               "handleSectionTypeStatusChange",
             ),
           }),
+          SelectRow("timeRange_type", {
+            title: "Content Type",
+            subtitle:
+              "Day/Week/Month ranges are limited to 30 items and do not contain some information. This settings will NOT apply to 'Most Viewed'",
+            value: getTimeRangeStatus(),
+            options: RANGE,
+            minItemCount: 1,
+            maxItemCount: 1,
+            onValueChange: Application.Selector(
+              this as SettingsForm,
+              "handleTimeRangeStatusChange",
+            ),
+          }),
         ],
       ),
       Section(
@@ -157,6 +171,11 @@ export class SettingsForm extends Form {
 
   async handleTypeStatusChange(value: string[]): Promise<void> {
     await this.updateValue(value, "content_type");
+  }
+
+  async handleTimeRangeStatusChange(value: string[]): Promise<void> {
+    await this.updateValue(value, "content_range");
+    Application.invalidateDiscoverSections();
   }
 
   async handleSectionTypeStatusChange(value: string[]): Promise<void> {

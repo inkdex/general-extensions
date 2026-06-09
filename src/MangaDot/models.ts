@@ -24,6 +24,25 @@ export const STATUS: Tag[] = [
   },
 ];
 
+export const RANGE: Tag[] = [
+  {
+    id: "daily",
+    title: "Day",
+  },
+  {
+    id: "weekly",
+    title: "Week",
+  },
+  {
+    id: "monthly",
+    title: "Month",
+  },
+  {
+    id: "",
+    title: "Of All Times",
+  },
+];
+
 export const ORIGIN: Tag[] = [
   {
     id: "",
@@ -47,7 +66,7 @@ export const ORIGIN: Tag[] = [
   },
 ];
 
-export interface MangaData {
+export interface MangaData extends MangaSectionItem {
   genres: string[];
   date_added: string;
   description: string;
@@ -56,15 +75,27 @@ export interface MangaData {
   alt_titles: string[] | string | null;
   authors: string[] | string | null;
   artists: string[] | string | null;
+  is_adult: boolean;
+}
+
+export interface MangaSectionItem {
   id: number;
   title: string;
   photo: string;
   status: string;
-  last_chapter_date: string;
+  hiatus: string;
+  country_of_origin: string;
   chapter_count: number;
-  is_blurworthy: boolean;
-  is_adult: boolean;
+  view_count: number;
+  tracked_count: number;
   avg_rating: number | null;
+  rating_count: number;
+  last_chapter_date: string;
+  is_blurworthy: number;
+}
+
+export interface MangaSection {
+  items: MangaSectionItem[];
 }
 
 export interface MangaDataResponse {
@@ -121,3 +152,9 @@ export type ItemInfo = {
 };
 
 export type ItemInfoElements = [ItemInfo] | [ItemInfo, ItemInfo];
+
+export interface ApiRequestConfig {
+  path: string | string[];
+  query?: Record<string, string | string[]>;
+  headers?: Record<string, string>;
+}

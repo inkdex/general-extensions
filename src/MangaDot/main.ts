@@ -20,10 +20,10 @@ import {
   type SourceManga,
 } from "@paperback/types";
 
-import MangaDotNetAdvancedSearchForm from "./forms/search";
+import MangaDotAdvancedSearchForm from "./forms/search";
 import { SettingsForm } from "./forms/settings";
 import { DOMAIN, type PageMetadata, type SearchMetadata } from "./models";
-import { MangaDotNetApi, MangaDotNetInterceptor } from "./network";
+import { MangaDotApi, MangaDotInterceptor } from "./network";
 import {
   parseChapterPages,
   parseChapters,
@@ -32,18 +32,18 @@ import {
   parseSection,
   type SectionItemType,
 } from "./parsers";
-import type MangaDotNetConfig from "./pbconfig";
+import type MangaDotConfig from "./pbconfig";
 import { defaultMetadata, checkFilters } from "./utils";
 
-export class MangaDotNetExtension implements ExtensionImpl<typeof MangaDotNetConfig> {
-  api = new MangaDotNetApi();
+export class MangaDotExtension implements ExtensionImpl<typeof MangaDotConfig> {
+  api = new MangaDotApi();
   globalRateLimiter = new BasicRateLimiter("rateLimiter", {
     numberOfRequests: 5,
     bufferInterval: 1,
     ignoreImages: true,
   });
 
-  mainInterceptor = new MangaDotNetInterceptor("main");
+  mainInterceptor = new MangaDotInterceptor("main");
   cookieStorageInterceptor = new CookieStorageInterceptor({
     storage: "stateManager",
   });
@@ -84,14 +84,19 @@ export class MangaDotNetExtension implements ExtensionImpl<typeof MangaDotNetCon
   async getDiscoverSections(): Promise<DiscoverSection[]> {
     return [
       {
-        id: "top_rated",
-        title: "Top Rated",
+        id: "most_viewed",
+        title: "Most Viewed",
         type: DiscoverSectionType.featured,
       },
       {
-        id: "recently_added",
-        title: "Recently Added",
+        id: "top_rated",
+        title: "Top Rated",
         type: DiscoverSectionType.prominentCarousel,
+      },
+      {
+        id: "most_tracked",
+        title: "Most Tracked Comics",
+        type: DiscoverSectionType.simpleCarousel,
       },
       {
         id: "latest_updates",
@@ -99,10 +104,11 @@ export class MangaDotNetExtension implements ExtensionImpl<typeof MangaDotNetCon
         type: DiscoverSectionType.chapterUpdates,
       },
       {
-        id: "most_tracked",
-        title: "Most Tracked Comics",
-        type: DiscoverSectionType.simpleCarousel,
+        id: "recently_added",
+        title: "Recently Added",
+        type: DiscoverSectionType.chapterUpdates,
       },
+
       {
         id: "genres",
         title: "Genres",
@@ -139,10 +145,11 @@ export class MangaDotNetExtension implements ExtensionImpl<typeof MangaDotNetCon
     const page = metadata?.page ?? 1;
     const sectionElements = await this.api.getSection(section.id, page);
     const itemTypes: Record<string, SectionItemType> = {
-      latest_updates: "chapterUpdatesCarouselItem",
-      recently_added: "prominentCarouselItem",
-      top_rated: "featuredCarouselItem",
+      most_viewed: "featuredCarouselItem",
+      top_rated: "prominentCarouselItem",
       most_tracked: "simpleCarouselItem",
+      recently_added: "chapterUpdatesCarouselItem",
+      latest_updates: "chapterUpdatesCarouselItem",
     };
     return parseSection(sectionElements, page, itemTypes[section.id] ?? "simpleCarouselItem");
   }
@@ -159,7 +166,7 @@ export class MangaDotNetExtension implements ExtensionImpl<typeof MangaDotNetCon
     searchQuery: SearchQuery<SearchMetadata>,
   ): Promise<AdvancedSearchForm> {
     await checkFilters(this.api);
-    return new MangaDotNetAdvancedSearchForm(searchQuery);
+    return new MangaDotAdvancedSearchForm(searchQuery);
   }
 
   async getSearchResults(
@@ -180,8 +187,8 @@ export class MangaDotNetExtension implements ExtensionImpl<typeof MangaDotNetCon
       { id: "relevance", label: "Relevance" },
       { id: "latest$asc", label: "Latest ↑" },
       { id: "latest$desc", label: "Latest ↓" },
-      { id: "alphabetical$asc", label: "A-Z ↑" },
-      { id: "alphabetical$desc", label: "A-Z ↓" },
+      { id: "alphabetical$asc", label: "Z-A" },
+      { id: "alphabetical$desc", label: "A-Z" },
       { id: "chapters$asc", label: "Chapters ↑" },
       { id: "chapters$desc", label: "Chapters ↓" },
       { id: "views$asc", label: "Most Viewed ↑" },
@@ -194,4 +201,4 @@ export class MangaDotNetExtension implements ExtensionImpl<typeof MangaDotNetCon
   }
 }
 
-export const MangaDotNet = new MangaDotNetExtension();
+export const MangaDot = new MangaDotExtension();
