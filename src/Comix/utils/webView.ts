@@ -65,13 +65,33 @@ async function runProxiedWebView<T>(
 
 // The SPA fetches chapters on mount and on Next-button click. Capture the
 // decrypted JSON for each fetch via JSON.parse, then drive pagination by
-// clicking the Next button until meta.lastPage is reached.
+// clicking the Next button until meta.lastPage is reached. Chapter requests
+// are rewritten to limit=100 before they fire, so most titles resolve in one
+// or two fetches instead of one per default-sized page; if the site renames
+// the param the regex stops matching and we just paginate at the default.
 export async function chapterListViaWebView(
   mangaId: string,
   cookieInterceptor: CookieStorageInterceptor,
 ): Promise<ChapterItem[]> {
   const bootstrap = `
     (function () {
+      function rewriteUrl(url) {
+        if (typeof url === "string" && url.indexOf("/chapters") !== -1 && /[?&]limit=\\d+/.test(url))
+          return url.replace(/([?&]limit=)\\d+/, "$1100");
+        return url;
+      }
+      var origOpen = XMLHttpRequest.prototype.open;
+      XMLHttpRequest.prototype.open = function (method, url) {
+        arguments[1] = rewriteUrl(url);
+        return origOpen.apply(this, arguments);
+      };
+      var origFetch = window.fetch;
+      window.fetch = function (input, init) {
+        if (typeof input === "string") input = rewriteUrl(input);
+        else if (input && typeof input.url === "string")
+          input = new Request(rewriteUrl(input.url), input);
+        return origFetch.call(this, input, init);
+      };
       var items = [];
       var seenPages = new Set();
       var totalPages = null;
