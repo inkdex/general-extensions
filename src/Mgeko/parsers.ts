@@ -15,6 +15,14 @@ import {
 } from "@paperback/types";
 import { type CheerioAPI } from "cheerio";
 
+const formatCount = (raw: string): string => {
+  const n = parseInt(raw.replace(/,/g, ""), 10);
+  if (isNaN(n)) return raw;
+  if (n < 1_000) return n.toString();
+  if (n < 1_000_000) return `${+(n / 1_000).toFixed(1)}K`;
+  return `${+(n / 1_000_000).toFixed(1)}M`;
+};
+
 export const parseMangaDetails = (
   $: CheerioAPI,
   mangaId: string,
@@ -49,6 +57,9 @@ export const parseMangaDetails = (
   }
   const tagGroups: TagSection[] = [{ id: "0", title: "genres", tags: arrayTags }];
 
+  const rawRating = parseFloat($(".rating-star strong").contents().first().text().trim());
+  const rating = isNaN(rawRating) ? undefined : rawRating / 5;
+
   const rawStatus = $("small:contains(Status)", "div.header-stats").prev().text().trim();
   let status = "ONGOING";
   switch (rawStatus.toUpperCase()) {
@@ -71,6 +82,7 @@ export const parseMangaDetails = (
       primaryTitle,
       secondaryTitles,
       contentRating: ContentRating.EVERYONE,
+      rating,
       status,
       author,
       tagGroups,
@@ -150,7 +162,15 @@ export const parseViewMore = ($: CheerioAPI): DiscoverSectionItem[] => {
     const imageUrl = $("img", obj).first().attr("src") ?? "";
     const title = Application.decodeHTMLEntities($("img", obj).first().attr("alt") ?? "");
     const mangaId = $("a", obj).attr("href")?.replace(/\/$/, "").split("/").pop() ?? "";
-    const subtitle = $(".comic-card__stat--rating", obj).text().trim();
+    const ratingText = $(".comic-card__stat--rating", obj).text().trim().replace("⭐", "★");
+    const views =
+      $(".comic-card__stat--hot span", obj)
+        .map((_, el) => $(el).text().trim())
+        .toArray()
+        .find((t) => t) ?? "";
+    const subtitle = [ratingText, views ? `▲ ${formatCount(views)}` : ""]
+      .filter(Boolean)
+      .join(" · ");
 
     if (!mangaId || !title || collectedIds.includes(mangaId)) continue;
 
@@ -242,7 +262,15 @@ export const parseSearch = ($: CheerioAPI, baseUrl: string): SearchResultItem[] 
 
     const title = Application.decodeHTMLEntities($("img", obj).first().attr("alt") ?? "");
     const mangaId = $("a", obj).attr("href")?.replace(/\/$/, "").split("/").pop() ?? "";
-    const subtitle: string = $(".comic-card__stat--rating", obj).text().trim();
+    const ratingText = $(".comic-card__stat--rating", obj).text().trim().replace("⭐", "★");
+    const views =
+      $(".comic-card__stat--hot span", obj)
+        .map((_, el) => $(el).text().trim())
+        .toArray()
+        .find((t) => t) ?? "";
+    const subtitle = [ratingText, views ? `▲ ${formatCount(views)}` : ""]
+      .filter(Boolean)
+      .join(" · ");
 
     if (!mangaId || !title) continue;
 
