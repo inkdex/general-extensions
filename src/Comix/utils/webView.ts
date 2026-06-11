@@ -6,23 +6,72 @@ import * as cheerio from "cheerio";
 
 import { type ChapterItem, DOMAIN } from "../models";
 
+// Cloudflare binds cf_clearance to a User-Agent. executeInWebView runs in a
+// WKWebView whose UA (a macOS-Safari string) differs from Application's default
+// (iPad) and can't be overridden (no UA option on executeInWebView), so the
+// WebView's own loads — main.js, the API XHRs — would carry an identity the
+// clearance doesn't cover and Cloudflare blocks them. Since we can't change the
+// WebView UA, we adopt it everywhere: read it once, then sign native requests +
+// the CF challenge with it (see network.ts) so the clearance is issued for, and
+// matches, the UA the WebView actually uses.
+//
+// Cached in memory only — not persisted. If a future iOS/Paperback update
+// changes the WebView UA, the next app session re-reads it and self-heals,
+// rather than reusing a stale UA that no longer matches the issued clearance.
+let cachedWebViewUA: string | undefined;
+let webViewUAPromise: Promise<string> | undefined;
+
+async function queryWebViewUserAgent(): Promise<string> {
+  try {
+    // A bare document with no subresources needs no network and no clearance,
+    // so this is safe to run before any cf_clearance is established.
+    const raw = await Application.executeInWebView({
+      source: {
+        html: "<html><head></head><body></body></html>",
+        baseUrl: `${DOMAIN}/`,
+        loadCSS: false,
+        loadImages: false,
+      },
+      inject: "return navigator.userAgent",
+      storage: { cookies: [] },
+    });
+    if (typeof raw.result === "string" && raw.result) {
+      cachedWebViewUA = raw.result;
+      return raw.result;
+    }
+  } catch (error) {
+    console.log(
+      `[Comix] WebView UA query failed: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+  // Fall back to the app UA if the probe fails (keeps native requests working).
+  return Application.getDefaultUserAgent();
+}
+
+export function getWebViewUserAgent(): Promise<string> {
+  if (cachedWebViewUA) return Promise.resolve(cachedWebViewUA);
+  if (!webViewUAPromise) webViewUAPromise = queryWebViewUserAgent();
+  return webViewUAPromise;
+}
+
 // Loads a Comix page in a WebView and lets the site's own JS run end-to-end:
 // the bundle signs API requests and decrypts `{e:"blob"}` responses internally,
 // then calls JSON.parse on the plaintext. A Proxy on JSON.parse captures that
 // plaintext, so we never need to probe the rotating signer or reimplement the
-// decryption. WKWebView's default UA Paperback's UA — cf_clearance is issued
-// against Paperback's UA, so make XHR/fetch send that UA, otherwise CF
-// invalidates the cookie and every in-WebView API call gets the challenge page.
+// decryption. The WebView runs under its own UA, which cf_clearance is bound to
+// (see getWebViewUserAgent), so the page's own loads + API calls pass Cloudflare.
 async function runProxiedWebView<T>(
   pageUrl: string,
   bootstrap: string,
   cookieInterceptor: CookieStorageInterceptor,
 ): Promise<T> {
   const cookies = cookieInterceptor.cookiesForUrl(`${DOMAIN}/`);
-  const userAgent = await Application.getDefaultUserAgent();
+  const userAgent = await getWebViewUserAgent();
   const [, buffer] = await Application.scheduleRequest({ url: pageUrl, method: "GET" });
   const $ = cheerio.load(Application.arrayBufferToUTF8String(buffer));
 
+  // Belt-and-braces: also push the UA onto in-page XHR/fetch + a referer. (Most
+  // engines ignore a JS-set User-Agent, but it's harmless and the referer helps.)
   const uaShim = `
     (function () {
       var UA = ${JSON.stringify(userAgent)};
@@ -77,7 +126,7 @@ export async function chapterListViaWebView(
     (function () {
       function rewriteUrl(url) {
         if (typeof url === "string" && url.indexOf("/chapters") !== -1 && /[?&]limit=\\d+/.test(url))
-          return url.replace(/([?&]limit=)\\d+/, "$1100");
+          return url.replace(/([?&]limit=)\\d+/, function (_m, p1) { return p1 + "100"; });
         return url;
       }
       var origOpen = XMLHttpRequest.prototype.open;

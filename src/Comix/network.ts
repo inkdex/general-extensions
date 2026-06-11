@@ -25,7 +25,7 @@ import {
 } from "./models";
 import type { ComixFilter } from "./utils/filter";
 import { decryptComixImage, readEncHeaders } from "./utils/imageByteDecrypt";
-import { chapterListViaWebView, pageListViaWebView } from "./utils/webView";
+import { chapterListViaWebView, getWebViewUserAgent, pageListViaWebView } from "./utils/webView";
 
 export class ComixInterceptor extends PaperbackInterceptor {
   override async interceptRequest(request: Request): Promise<Request> {
@@ -34,7 +34,11 @@ export class ComixInterceptor extends PaperbackInterceptor {
       headers: {
         ...request.headers,
         referer: `${DOMAIN}/`,
-        "user-agent": await Application.getDefaultUserAgent(),
+        // Match the WebView's UA so cf_clearance (issued for this UA) covers
+        // both these native requests and the WebView's own loads/XHRs. Revert to
+        // Application.getDefaultUserAgent() once executeInWebView lets us set the
+        // WebView UA (or defaults it to the app UA) — see getWebViewUserAgent.
+        "user-agent": await getWebViewUserAgent(),
       },
     };
   }
@@ -46,11 +50,13 @@ export class ComixInterceptor extends PaperbackInterceptor {
   ): Promise<ArrayBuffer> {
     const cfMitigated = response.headers?.["cf-mitigated"];
     if (cfMitigated === "challenge") {
+      // Solve the challenge under the WebView's UA so the resulting clearance is
+      // bound to the identity the WebView (and its API XHRs) actually use.
       throw new CloudflareError({
         url: DOMAIN,
         method: "GET",
         headers: {
-          "user-agent": await Application.getDefaultUserAgent(),
+          "user-agent": await getWebViewUserAgent(),
         },
       });
     }
