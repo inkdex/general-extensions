@@ -13,6 +13,7 @@ import {
   type ExtensionImpl,
   type PagedResults,
   type SearchQuery,
+  type SearchResultItem,
   type SortingOption,
   type SourceManga,
 } from "@paperback/types";
@@ -35,7 +36,6 @@ import {
   MOST_VIEWED_SECTION_TITLE,
   NEW_TITLES_SECTION_ID,
   NEW_TITLES_SECTION_TITLE,
-  type SearchResultItem,
 } from "./models";
 import { MangaDemonInterceptor } from "./network";
 import { MangaDemonParser } from "./parsers";
@@ -299,18 +299,13 @@ class MangaDemonExtension implements ExtensionImpl<typeof MangaDemonConfig> {
       const html = Application.arrayBufferToUTF8String(buffer);
       const $ = cheerio.load(html);
       const results = await this.parser.parseQuickSearch($);
-      // After parsing results:
       // Map sanitizedId to realId for all items
-      if (Array.isArray(results)) {
-        results.forEach((item) => {
-          if (item?.mangaId) {
-            const sanitized = String(item.mangaId).replace(/[^a-zA-Z0-9]/g, "");
-            this.idMap[sanitized] = item.mangaId;
-          }
-        });
-      }
+      results.forEach((item) => {
+        const sanitized = item.mangaId.replace(/[^a-zA-Z0-9]/g, "");
+        this.idMap[sanitized] = item.mangaId;
+      });
       return {
-        items: Array.isArray(results) ? results : [],
+        items: results,
         metadata: undefined, // No pagination for quick search
       };
     }
@@ -365,18 +360,13 @@ class MangaDemonExtension implements ExtensionImpl<typeof MangaDemonConfig> {
       if (nextPageLink.length > 0 && nextPage <= lastPage) {
         hasNextPage = true;
       }
-      // After parsing results:
       // Map sanitizedId to realId for all items
-      if (Array.isArray(results)) {
-        results.forEach((item) => {
-          if (item?.mangaId) {
-            const sanitized = String(item.mangaId).replace(/[^a-zA-Z0-9]/g, "");
-            this.idMap[sanitized] = item.mangaId;
-          }
-        });
-      }
+      results.forEach((item) => {
+        const sanitized = item.mangaId.replace(/[^a-zA-Z0-9]/g, "");
+        this.idMap[sanitized] = item.mangaId;
+      });
       return {
-        items: Array.isArray(results) ? results : [],
+        items: results,
         metadata: hasNextPage ? { page: nextPage } : undefined,
       };
     }
@@ -416,18 +406,13 @@ class MangaDemonExtension implements ExtensionImpl<typeof MangaDemonConfig> {
       if (nextPageLink.length > 0) {
         hasNextPage = true;
       }
-      // After parsing results:
       // Map sanitizedId to realId for all items
-      if (Array.isArray(results)) {
-        results.forEach((item) => {
-          if (item?.mangaId) {
-            const sanitized = String(item.mangaId).replace(/[^a-zA-Z0-9]/g, "");
-            this.idMap[sanitized] = item.mangaId;
-          }
-        });
-      }
+      results.forEach((item) => {
+        const sanitized = item.mangaId.replace(/[^a-zA-Z0-9]/g, "");
+        this.idMap[sanitized] = item.mangaId;
+      });
       return {
-        items: Array.isArray(results) ? results : [],
+        items: results,
         metadata: hasNextPage ? { page: page + 1 } : undefined,
       };
     } else {
@@ -462,18 +447,13 @@ class MangaDemonExtension implements ExtensionImpl<typeof MangaDemonConfig> {
       if (nextPageLink.length > 0) {
         hasNextPage = true;
       }
-      // After parsing results:
       // Map sanitizedId to realId for all items
-      if (Array.isArray(results)) {
-        results.forEach((item) => {
-          if (item?.mangaId) {
-            const sanitized = String(item.mangaId).replace(/[^a-zA-Z0-9]/g, "");
-            this.idMap[sanitized] = item.mangaId;
-          }
-        });
-      }
+      results.forEach((item) => {
+        const sanitized = item.mangaId.replace(/[^a-zA-Z0-9]/g, "");
+        this.idMap[sanitized] = item.mangaId;
+      });
       return {
-        items: Array.isArray(results) ? results : [],
+        items: results,
         metadata: hasNextPage ? { page: page + 1 } : undefined,
       };
     }

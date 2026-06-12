@@ -48,11 +48,3 @@ export const NEW_TITLES_SECTION_TITLE = "New Titles";
 
 export const LATEST_NOVEL_SECTION_ID = "latest_novel";
 export const LATEST_NOVEL_SECTION_TITLE = "Latest Novel";
-
-export interface SearchResultItem {
-  mangaId: string;
-  title: string;
-  imageUrl: string;
-  views: string;
-  contentRating: ContentRating;
-}
