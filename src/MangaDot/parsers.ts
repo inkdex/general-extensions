@@ -2,9 +2,9 @@
 /* Copyright © 2026 Inkdex */
 
 import {
+  ContentRating,
   type Chapter,
   type ChapterDetails,
-  ContentRating,
   type DiscoverSectionItem,
   type PagedResults,
   type SearchResultItem,
@@ -12,9 +12,9 @@ import {
 } from "@paperback/types";
 
 import {
+  DOMAIN,
   type ChapterListResponse,
   type ChapterPagesResponse,
-  DOMAIN,
   type ItemInfo,
   type ItemInfoElements,
   type MangaData,
@@ -191,9 +191,9 @@ export const parseSection = (
 
     let itemInfoElements: ItemInfoElements | undefined = undefined;
 
-    if (item.avg_rating && item.status) {
+    if (item.avg_rating != null && item.status) {
       itemInfoElements = [ratingItem, status];
-    } else if (item.avg_rating) {
+    } else if (item.avg_rating != null) {
       itemInfoElements = [ratingItem];
     } else if (item.status) {
       itemInfoElements = [status];

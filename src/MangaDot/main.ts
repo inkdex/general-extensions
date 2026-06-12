@@ -134,13 +134,13 @@ export class MangaDotExtension implements ExtensionImpl<typeof MangaDotConfig> {
     await checkFilters(this.api);
 
     if (section.id === "genres") {
-      return this.api.getGenreSection(metadata);
+      return this.api.getGenreSection();
     }
     if (section.id === "demographics") {
-      return this.api.getDemographicSection(metadata);
+      return this.api.getDemographicSection();
     }
     if (section.id === "themes") {
-      return this.api.getThemesSection(metadata);
+      return this.api.getThemesSection();
     }
     const page = metadata?.page ?? 1;
     const sectionElements = await this.api.getSection(section.id, page);

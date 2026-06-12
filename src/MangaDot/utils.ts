@@ -80,12 +80,15 @@ export function getFilters(): GenreFilters {
 }
 
 export async function checkFilters(api: MangaDotApi): Promise<void> {
-  await updateFilters(
-    getFilters().genre.length === 0 ||
-      getFilters().themeAndContent.length === 0 ||
-      getFilters().demographic.length === 0,
-    api,
-  );
+  // Force only when no tags were stored at all.
+  const filters = getFilters();
+  const isEmpty =
+    filters.genre.length +
+      filters.themeAndContent.length +
+      filters.demographic.length +
+      filters.more.length ===
+    0;
+  await updateFilters(isEmpty, api);
 }
 
 export async function updateFilters(force: boolean, api: MangaDotApi): Promise<void> {

@@ -4,23 +4,24 @@
 import {
   CloudflareError,
   ContentRating,
-  type DiscoverSectionItem,
   PaperbackInterceptor,
+  URL,
+  type DiscoverSectionItem,
+  type PagedResults,
   type Request,
   type Response,
   type SearchQuery,
   type SortingOption,
-  URL,
+  type Tag,
 } from "@paperback/types";
 
 import {
+  DOMAIN,
   type ApiRequestConfig,
   type ChapterListResponse,
   type ChapterPagesResponse,
-  DOMAIN,
   type MangaDataResponse,
   type MangaSection,
-  type PageMetadata,
   type SearchMetadata,
   type SearchResponse,
   type SearchSuggestionsResponse,
@@ -96,79 +97,34 @@ export class MangaDotApi {
     return this.fetchApi<T>(request);
   }
 
-  async getGenreSection(metadata: PageMetadata | undefined): Promise<{
-    items: DiscoverSectionItem[];
-    metadata: PageMetadata | undefined;
-  }> {
-    const allGenres: DiscoverSectionItem[] = [];
-    const page = metadata?.page ?? 1;
-    getFilters()
-      .genre.filter((filterName) => !getGenresHidden().includes(filterName.id))
-      .forEach((filterItem) => {
-        allGenres.push({
-          type: "genresCarouselItem",
-          searchQuery: {
-            title: "",
-            metadata: defaultMetadata(filterItem.id),
-          },
-          name: filterItem.title,
-          contentRating: ContentRating.EVERYONE,
-        });
-      });
+  private buildTagSection(tags: Tag[], hiddenIds: string[]): PagedResults<DiscoverSectionItem> {
     return {
-      items: allGenres,
-      metadata: { page: page + 1 },
+      items: tags
+        .filter((tag) => !hiddenIds.includes(tag.id))
+        .map(
+          (tag): DiscoverSectionItem => ({
+            type: "genresCarouselItem",
+            searchQuery: {
+              title: "",
+              metadata: defaultMetadata(tag.id),
+            },
+            name: tag.title,
+            contentRating: ContentRating.EVERYONE,
+          }),
+        ),
     };
   }
 
-  async getDemographicSection(metadata: PageMetadata | undefined): Promise<{
-    items: DiscoverSectionItem[];
-    metadata: PageMetadata | undefined;
-  }> {
-    const allGenres: DiscoverSectionItem[] = [];
-    const page = metadata?.page ?? 1;
-    getFilters()
-      .demographic.filter((filterName) => !getDemographicHidden().includes(filterName.id))
-      .forEach((filterItem) => {
-        allGenres.push({
-          type: "genresCarouselItem",
-          searchQuery: {
-            title: "",
-            metadata: defaultMetadata(filterItem.id),
-          },
-          name: filterItem.title,
-          contentRating: ContentRating.EVERYONE,
-        });
-      });
-    return {
-      items: allGenres,
-      metadata: { page: page + 1 },
-    };
+  async getGenreSection(): Promise<PagedResults<DiscoverSectionItem>> {
+    return this.buildTagSection(getFilters().genre, getGenresHidden());
   }
 
-  async getThemesSection(metadata: PageMetadata | undefined): Promise<{
-    items: DiscoverSectionItem[];
-    metadata: PageMetadata | undefined;
-  }> {
-    const allGenres: DiscoverSectionItem[] = [];
-    const page = metadata?.page ?? 1;
-    getFilters()
-      .themeAndContent.filter((filterName) => !getThemesHidden().includes(filterName.id))
-      .forEach((filterItem) => {
-        allGenres.push({
-          type: "genresCarouselItem",
-          searchQuery: {
-            title: "",
-            metadata: defaultMetadata(filterItem.id),
-          },
-          name: filterItem.title,
-          contentRating: ContentRating.EVERYONE,
-        });
-      });
-    return {
-      items: allGenres,
-      metadata: { page: page + 1 },
-    };
+  async getDemographicSection(): Promise<PagedResults<DiscoverSectionItem>> {
+    return this.buildTagSection(getFilters().demographic, getDemographicHidden());
+  }
+
+  async getThemesSection(): Promise<PagedResults<DiscoverSectionItem>> {
+    return this.buildTagSection(getFilters().themeAndContent, getThemesHidden());
   }
   async getSection(section: string, page: number): Promise<SearchResponse | MangaSection> {
     if (section === "most_viewed") {
