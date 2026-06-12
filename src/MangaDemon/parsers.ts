@@ -6,7 +6,7 @@
 // Responsible for parsing HTML responses from demonicscans.org.
 // Extracts manga details, chapter lists, search results, and chapter page images.
 
-import { type Chapter, type DiscoverSectionItem, type SourceManga } from "@paperback/types";
+import { ContentRating, type Chapter, type DiscoverSectionItem, type SourceManga } from "@paperback/types";
 import { type CheerioAPI } from "cheerio";
 
 import { type SearchResultItem } from "./models";
@@ -35,6 +35,7 @@ export class MangaDemonParser {
         title,
         imageUrl,
         subtitle: `${views.toLocaleString()} views`,
+        contentRating: ContentRating.EVERYONE, // Site does not provide content rating
       });
     });
     return items;
@@ -65,6 +66,7 @@ export class MangaDemonParser {
         title,
         subtitle: topChapter,
         imageUrl: imageUrl,
+        contentRating: ContentRating.EVERYONE, // Site does not provide content rating
       });
     });
     // Only check for next page if there are items
@@ -106,6 +108,7 @@ export class MangaDemonParser {
           title,
           imageUrl,
           views,
+          contentRating: ContentRating.EVERYONE, // Site does not provide content rating
         });
       }
     });
@@ -135,6 +138,7 @@ export class MangaDemonParser {
           title,
           imageUrl,
           views,
+    	  contentRating: ContentRating.EVERYONE, // Site does not provide content rating
         });
       }
     });

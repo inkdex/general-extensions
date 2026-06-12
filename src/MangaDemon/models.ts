@@ -54,4 +54,5 @@ export interface SearchResultItem {
   title: string;
   imageUrl: string;
   views: string;
+  contentRating: ContentRating;
 }
