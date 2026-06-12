@@ -574,7 +574,7 @@ class MangaDemonExtension implements ExtensionImpl<typeof MangaDemonConfig> {
           status: details.status || "Unknown",
           ...(details.rating !== undefined ? { rating: details.rating } : {}),
           thumbnailUrl: details.cover || "",
-          contentRating: ContentRating.MATURE,
+          contentRating: ContentRating.EVERYONE, // Site does not provide content rating
         },
       };
       return sourceManga;
