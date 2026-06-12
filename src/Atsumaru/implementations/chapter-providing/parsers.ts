@@ -10,11 +10,23 @@ export function parseChapterList(
   sourceManga: SourceManga,
   scanlatorMap: Map<string, string>,
 ): Chapter[] {
-  return data.chapters.map((ch) => {
-    const groupName = ch.scanlationMangaId
-      ? (scanlatorMap.get(ch.scanlationMangaId) ?? "No Group")
-      : "No Group";
+  const sorted = data.chapters
+    .map((chapter) => {
+      const groupName = chapter.scanlationMangaId
+        ? (scanlatorMap.get(chapter.scanlationMangaId) ?? "No Group")
+        : "No Group";
 
+      return { chapter, groupName };
+    })
+    .sort((a, b) => {
+      if (a.chapter.number !== b.chapter.number) {
+        return b.chapter.number - a.chapter.number;
+      }
+
+      return a.groupName.localeCompare(b.groupName);
+    });
+
+  return sorted.map(({ chapter: ch, groupName }, index) => {
     const title = ch.title
       .replace(/^((Chapter|Episode|Ch\.?)\s*[\d.]+|#\s*[\d.]+)\s*(\bS\d+\b)?\s*[-:]?\s*/i, "")
       .trim();
@@ -28,7 +40,7 @@ export function parseChapterList(
       volume,
       langCode: "en",
       version: groupName,
-      sortingIndex: ch.index,
+      sortingIndex: sorted.length - index,
       publishDate: new Date(ch.createdAt),
     };
   });
