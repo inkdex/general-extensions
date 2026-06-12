@@ -108,9 +108,9 @@ export class SettingsForm extends Form {
             ),
           }),
           SelectRow("timeRange_type", {
-            title: "Content Type",
+            title: "Time Range",
             subtitle:
-              "Day/Week/Month ranges are limited to 30 items and do not contain some information. This settings will NOT apply to 'Most Viewed'",
+              "Day/Week/Month ranges may return fewer items and do not contain some information. This setting will NOT apply to 'Most Viewed'",
             value: getTimeRangeStatus(),
             options: RANGE,
             minItemCount: 1,
