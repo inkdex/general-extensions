@@ -10,9 +10,9 @@ import { type ChapterItem, DOMAIN } from "../models";
 // the bundle signs API requests and decrypts `{e:"blob"}` responses internally,
 // then calls JSON.parse on the plaintext. A Proxy on JSON.parse captures that
 // plaintext, so we never need to probe the rotating signer or reimplement the
-// decryption. WKWebView's default UA Paperback's UA — cf_clearance is issued
-// against Paperback's UA, so make XHR/fetch send that UA, otherwise CF
-// invalidates the cookie and every in-WebView API call gets the challenge page.
+// decryption. The WebView runs under the app's default UA (source.userAgent),
+// the same UA cf_clearance is bound to, so the page's own loads + same-origin
+// API XHRs all pass Cloudflare.
 async function runProxiedWebView<T>(
   pageUrl: string,
   bootstrap: string,
@@ -23,36 +23,10 @@ async function runProxiedWebView<T>(
   const [, buffer] = await Application.scheduleRequest({ url: pageUrl, method: "GET" });
   const $ = cheerio.load(Application.arrayBufferToUTF8String(buffer));
 
-  const uaShim = `
-    (function () {
-      var UA = ${JSON.stringify(userAgent)};
-      var REFERER = ${JSON.stringify(pageUrl)};
-      var origSetReq = XMLHttpRequest.prototype.setRequestHeader;
-      var origSend = XMLHttpRequest.prototype.send;
-      XMLHttpRequest.prototype.send = function () {
-        try {
-          origSetReq.call(this, "User-Agent", UA);
-        } catch {}
-        try {
-          origSetReq.call(this, "Referer", REFERER);
-        } catch {}
-        return origSend.apply(this, arguments);
-      };
-      var origFetch = window.fetch;
-      window.fetch = function (input, init) {
-        init = init || {};
-        var h = new Headers((init && init.headers) || (input && input.headers) || {});
-        h.set("User-Agent", UA);
-        h.set("Referer", REFERER);
-        init.headers = h;
-        return origFetch.call(this, input, init);
-      };
-    })();
-  `;
-  $("head").prepend(`<script>${uaShim}${bootstrap}</script>`);
+  $("head").prepend(`<script>${bootstrap}</script>`);
 
   const raw = await Application.executeInWebView({
-    source: { html: $.html(), baseUrl: pageUrl, loadCSS: false, loadImages: false },
+    source: { html: $.html(), baseUrl: pageUrl, loadCSS: false, loadImages: false, userAgent },
     inject: `return window.__comixResult__`,
     storage: { cookies },
   });
@@ -77,7 +51,7 @@ export async function chapterListViaWebView(
     (function () {
       function rewriteUrl(url) {
         if (typeof url === "string" && url.indexOf("/chapters") !== -1 && /[?&]limit=\\d+/.test(url))
-          return url.replace(/([?&]limit=)\\d+/, "$1100");
+          return url.replace(/([?&]limit=)\\d+/, function (_m, p1) { return p1 + "100"; });
         return url;
       }
       var origOpen = XMLHttpRequest.prototype.open;

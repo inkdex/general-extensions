@@ -96,7 +96,7 @@ export class ComixExtension implements ExtensionImpl<typeof ComixConfig> {
     return new MainSettings(this.filter, () => this.updateFilters(true));
   }
 
-  async saveCloudflareBypassCookies(cookies: Cookie[]): Promise<void> {
+  async cloudflareBypassCompleted(_request: Request, cookies: Cookie[]): Promise<void> {
     for (const cookie of cookies) {
       if (cookie.name == "cf_clearance") {
         this.cookieStorageInterceptor.setCookie(cookie);
