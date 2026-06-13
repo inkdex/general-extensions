@@ -1,8 +1,8 @@
 {
-  "buildTime": "2026-06-12T23:15:31.912Z",
+  "buildTime": "2026-06-13T01:32:31.589Z",
   "builtWith": {
-    "toolchain": "1.0.0-alpha.89",
-    "types": "1.0.0-alpha.89"
+    "toolchain": "1.0.0-alpha.91",
+    "types": "1.0.0-alpha.91"
   },
   "repository": {
     "name": "General Extensions (0.9)",
@@ -34,7 +34,7 @@
     {
       "name": "Comix",
       "description": "Extension that pulls content from Comix.to.",
-      "version": "1.0.0-alpha.35",
+      "version": "1.0.0-alpha.36",
       "icon": "icon.png",
       "language": "en",
       "contentRating": "SAFE",
