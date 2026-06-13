@@ -173,13 +173,22 @@ export class ComixExtension implements ExtensionImpl<typeof ComixConfig> {
   ): Promise<PagedResults<DiscoverSectionItem>> {
     const page = metadata?.page ?? 1;
     const fetchSimple = async (id: string) =>
-      this.parser.parseSectionSimple(page, await this.api.getJsonMangaApi(id, page));
+      this.parser.parseSectionSimple(
+        page,
+        await this.api.getJsonMangaApi(id, page, this.cookieStorageInterceptor),
+      );
     const fetchChapter = async (id: string) =>
-      this.parser.parseSectionChapter(page, await this.api.getJsonMangaApi(id, page));
+      this.parser.parseSectionChapter(
+        page,
+        await this.api.getJsonMangaApi(id, page, this.cookieStorageInterceptor),
+      );
     switch (section.id) {
       case "popular":
       case "follow":
-        return this.parser.parseSection(section.id, await this.api.getJsonMangaTopApi(section.id));
+        return this.parser.parseSection(
+          section.id,
+          await this.api.getJsonMangaTopApi(section.id, this.cookieStorageInterceptor),
+        );
       case "recent":
         return this.filter.getRecentSectionDiffType()
           ? fetchSimple("recent")
@@ -252,6 +261,7 @@ export class ComixExtension implements ExtensionImpl<typeof ComixConfig> {
       sortBy,
       orderBy,
       content,
+      this.cookieStorageInterceptor,
     );
     return this.parser.parseSearchResults(page, search);
   }
@@ -301,8 +311,8 @@ export class ComixExtension implements ExtensionImpl<typeof ComixConfig> {
   }
 
   async getMangaDetails(mangaId: string): Promise<SourceManga> {
-    const info = await this.api.getJsonMangaInfoApi(mangaId);
-    return this.parser.parseMangaDetails(mangaId, info);
+    const html = await this.api.getMangaDetailsHtml(mangaId);
+    return this.parser.parseMangaDetails(mangaId, html);
   }
 
   async getChapters(sourceManga: SourceManga): Promise<Chapter[]> {

@@ -44,7 +44,7 @@ export function readEncHeaders(headers: Record<string, string>): EncParams | nul
   return { seed: seed >>> 0, len: Math.floor(len) };
 }
 
-export function decryptComixImage(data: ArrayBuffer, params: EncParams): ArrayBuffer {
+export function decryptImage(data: ArrayBuffer, params: EncParams): ArrayBuffer {
   const bytes = new Uint8Array(data);
   const end = Math.min(params.len, bytes.length);
   let x = params.seed >>> 0;

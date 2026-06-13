@@ -12,20 +12,19 @@ import {
 } from "@paperback/types";
 
 import {
-  API,
   DOMAIN,
   type ApiResponse,
   type ApiRequestConfig,
   type ChapterItem,
   type ChapterPages,
   type Filters,
-  type MangaItem,
   type ResultManga,
   type Filter,
 } from "./models";
+import { decryptImage, readEncHeaders } from "./utils/decryptImage";
+import { descrambleImage, readScrambleHeaders } from "./utils/descramble";
 import type { ComixFilter } from "./utils/filter";
-import { decryptComixImage, readEncHeaders } from "./utils/imageByteDecrypt";
-import { chapterListViaWebView, pageListViaWebView } from "./utils/webView";
+import { browseViaWebView, chapterListViaWebView, pageListViaWebView } from "./utils/webView";
 
 export class ComixInterceptor extends PaperbackInterceptor {
   override async interceptRequest(request: Request): Promise<Request> {
@@ -55,32 +54,45 @@ export class ComixInterceptor extends PaperbackInterceptor {
       });
     }
 
-    // Encrypted images carry X-Enc-* headers regardless of mime type (the
-    // corrupted prefix can defeat byte-sniffing), so key off the headers, not
-    // the mime type.
-    const encParams = readEncHeaders(response.headers);
-    if (!encParams) return data;
-
-    try {
-      return decryptComixImage(data, encParams);
-    } catch (error) {
-      console.log(
-        `[Comix] image decrypt failed for ${request.url}: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-      );
-      return data;
+    // Page images are tile-shuffled (X-Scramble-*) or byte-XOR'd (X-Enc-*) — the
+    // site mixes both. Key off headers (a scrambled prefix defeats mime-sniffing).
+    const scrambleParams = readScrambleHeaders(response.headers);
+    if (scrambleParams) {
+      try {
+        return await descrambleImage(data, scrambleParams, response.mimeType ?? "image/webp");
+      } catch (error) {
+        console.log(
+          `[Comix] descramble failed for ${request.url}: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+        return data;
+      }
     }
+
+    const encParams = readEncHeaders(response.headers);
+    if (encParams) {
+      try {
+        return decryptImage(data, encParams);
+      } catch (error) {
+        console.log(
+          `[Comix] image decrypt failed for ${request.url}: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+        return data;
+      }
+    }
+
+    return data;
   }
 }
 
 export class ComixApi {
-  apiLink = "";
-
   constructor(private filter: ComixFilter) {}
 
   private async APIJson<T>(api: ApiRequestConfig): Promise<ApiResponse<T>> {
-    const url = new URL(API);
+    const url = new URL(DOMAIN).addPathComponent("api").addPathComponent("v1");
     const paths = Array.isArray(api.path) ? api.path : [api.path];
     paths.forEach((p) => url.addPathComponent(p));
     if (api.query) {
@@ -88,162 +100,119 @@ export class ComixApi {
         url.setQueryItem(key, value);
       }
     }
-    this.apiLink = url.toString();
-    const html = await this.getDataFromRequest();
+    const html = await this.fetchText(url.toString());
     return JSON.parse(html) as ApiResponse<T>;
   }
 
-  async getJsonMangaTopApi(section: string): Promise<ApiResponse<MangaItem[]>> {
+  private browseUrl(query: Record<string, string | string[]>): string {
+    const url = new URL(DOMAIN).addPathComponent("browse");
+    for (const [key, value] of Object.entries(query)) {
+      url.setQueryItem(key, value);
+    }
+    return url.toString();
+  }
+
+  async getJsonMangaTopApi(
+    section: string,
+    cookieStorageInterceptor: CookieStorageInterceptor,
+  ): Promise<ApiResponse<ResultManga>> {
     const hiddenGenres = [
       ...this.filter.getHiddenGenresSettings(),
       ...this.filter.getHiddenDemogSettings(),
     ];
     const types = this.filter.getShowOnlySettings();
-    const days = this.filter.getLimitSettings()[0];
-    const additionalInfo = ["author"];
-    const sections: Record<string, ApiRequestConfig> = {
+    // `/api/v1/manga/top` (trending/follows + days window) is now 403 and has no
+    // `/browse` HTML equivalent, so map to the closest browse orderings.
+    const sections: Record<string, Record<string, string | string[]>> = {
       popular: {
-        path: "manga/top",
-        query: {
-          type: "trending",
-          days: days,
-          limit: "15",
-          "includes[]": additionalInfo,
-          ...(types.length > 0 && { "types[]": types }),
-          ...(hiddenGenres.length > 0 && { "genres_ex[]": hiddenGenres }),
-        },
+        "order[score]": "desc",
+        ...(types.length > 0 && { "types[]": types }),
+        ...(hiddenGenres.length > 0 && { "genres_ex[]": hiddenGenres }),
       },
       follow: {
-        path: "manga/top",
-        query: {
-          type: "follows",
-          days: days,
-          limit: "50",
-          "includes[]": additionalInfo,
-          ...(types.length > 0 && { "types[]": types }),
-          ...(hiddenGenres.length > 0 && { "genres_ex[]": hiddenGenres }),
-        },
+        "order[follows_total]": "desc",
+        ...(types.length > 0 && { "types[]": types }),
+        ...(hiddenGenres.length > 0 && { "genres_ex[]": hiddenGenres }),
       },
     };
-    const config = sections[section];
-    if (!config) throw new Error(`${section} not found on API`);
-    return this.APIJson<MangaItem[]>({ path: config.path, query: config.query });
+    const query = sections[section];
+    if (!query) throw new Error(`${section} not found on API`);
+    const result = await browseViaWebView(this.browseUrl(query), cookieStorageInterceptor);
+    return { status: "ok", result };
   }
 
-  async getJsonMangaApi(section: string, page: number): Promise<ApiResponse<ResultManga>> {
+  async getJsonMangaApi(
+    section: string,
+    page: number,
+    cookieStorageInterceptor: CookieStorageInterceptor,
+  ): Promise<ApiResponse<ResultManga>> {
     const hiddenGenres = [
       ...this.filter.getHiddenGenresSettings(),
       ...this.filter.getHiddenDemogSettings(),
     ];
     const types = this.filter.getShowOnlySettings();
-    const days = this.filter.getLimitSettings()[0];
-    const additionalInfo = ["author"];
     const year = this.filter.getYearSettings();
-    const sections: Record<string, ApiRequestConfig> = {
-      popular: {
-        path: "manga/top",
-        query: {
-          type: "trending",
-          days: days,
-          limit: "15",
-          "includes[]": additionalInfo,
-          ...(types.length > 0 && { "types[]": types }),
-          ...(hiddenGenres.length > 0 && { "genres_ex[]": hiddenGenres }),
-        },
-      },
+    const sections: Record<string, Record<string, string | string[]>> = {
       trending_manga: {
-        path: "manga",
-        query: {
-          "order[views_30d]": "desc",
-          "types[]": "manga",
-          limit: "28",
-          "includes[]": additionalInfo,
-          page: page.toString(),
-          ...(hiddenGenres.length > 0 && { "genres_ex[]": hiddenGenres }),
-          ...(this.filter.getSectionTimesType() && {
-            "release_year[from]": year.toString(),
-          }),
-        },
+        "order[views_30d]": "desc",
+        "types[]": "manga",
+        page: page.toString(),
+        ...(hiddenGenres.length > 0 && { "genres_ex[]": hiddenGenres }),
+        ...(this.filter.getSectionTimesType() && {
+          "release_year[from]": year.toString(),
+        }),
       },
       trending_wt: {
-        path: "manga",
-        query: {
-          "order[views_30d]": "desc",
-          "types[]": ["manhwa", "manhua"],
-          limit: "28",
-          "includes[]": additionalInfo,
-          page: page.toString(),
-          ...(hiddenGenres.length > 0 && { "genres_ex[]": hiddenGenres }),
-          ...(this.filter.getSectionTimesType() && {
-            "release_year[from]": year.toString(),
-          }),
-        },
+        "order[views_30d]": "desc",
+        "types[]": ["manhwa", "manhua"],
+        page: page.toString(),
+        ...(hiddenGenres.length > 0 && { "genres_ex[]": hiddenGenres }),
+        ...(this.filter.getSectionTimesType() && {
+          "release_year[from]": year.toString(),
+        }),
       },
       recent: {
-        path: "manga",
-        query: {
-          "order[created_at]": "desc",
-          page: page.toString(),
-          limit: "20",
-          "includes[]": additionalInfo,
-          ...(types.length > 0 && { "types[]": types }),
-          ...(hiddenGenres.length > 0 && { "genres_ex[]": hiddenGenres }),
-        },
+        "order[created_at]": "desc",
+        page: page.toString(),
+        ...(types.length > 0 && { "types[]": types }),
+        ...(hiddenGenres.length > 0 && { "genres_ex[]": hiddenGenres }),
       },
       completed: {
-        path: "manga",
-        query: {
-          "statuses[]": "finished",
-          "order[chapter_updated_at]": "desc",
-          page: page.toString(),
-          limit: "20",
-          ...(types.length > 0 && { "types[]": types }),
-          ...(hiddenGenres.length > 0 && { "genres_ex[]": hiddenGenres }),
-        },
+        "statuses[]": "finished",
+        "order[chapter_updated_at]": "desc",
+        page: page.toString(),
+        ...(types.length > 0 && { "types[]": types }),
+        ...(hiddenGenres.length > 0 && { "genres_ex[]": hiddenGenres }),
       },
       updatesHot: {
-        path: "manga",
-        query: {
-          "order[chapter_updated_at]": "desc",
-          page: page.toString(),
-          limit: "20",
-          scope: "hot",
-          ...(types.length > 0 && { "types[]": types }),
-          ...(hiddenGenres.length > 0 && { "genres_ex[]": hiddenGenres }),
-        },
+        "order[chapter_updated_at]": "desc",
+        page: page.toString(),
+        scope: "hot",
+        ...(types.length > 0 && { "types[]": types }),
+        ...(hiddenGenres.length > 0 && { "genres_ex[]": hiddenGenres }),
       },
       updatesNew: {
-        path: "manga",
-        query: {
-          "order[chapter_updated_at]": "desc",
-          page: page.toString(),
-          limit: "20",
-          ...(types.length > 0 && { "types[]": types }),
-          ...(hiddenGenres.length > 0 && { "genres_ex[]": hiddenGenres }),
-        },
+        "order[chapter_updated_at]": "desc",
+        page: page.toString(),
+        ...(types.length > 0 && { "types[]": types }),
+        ...(hiddenGenres.length > 0 && { "genres_ex[]": hiddenGenres }),
       },
     };
-    const config = sections[section];
-    if (!config) throw new Error(`${section} not found on API`);
-    return this.APIJson<ResultManga>({ path: config.path, query: config.query });
+    const query = sections[section];
+    if (!query) throw new Error(`${section} not found on API`);
+    const result = await browseViaWebView(this.browseUrl(query), cookieStorageInterceptor);
+    return { status: "ok", result };
   }
 
-  private async getDataFromRequest(): Promise<string> {
-    const request = {
-      url: this.apiLink,
-      method: "GET",
-    };
-    const data = await Application.scheduleRequest(request);
+  private async fetchText(url: string): Promise<string> {
+    const data = await Application.scheduleRequest({ url, method: "GET" });
     return Application.arrayBufferToUTF8String(data[1]);
   }
 
-  async getJsonMangaInfoApi(mangaId: string) {
-    return this.APIJson<MangaItem>({
-      path: ["manga", mangaId],
-      query: {
-        "includes[]": ["author", "artist", "genre", "demographic"],
-      },
-    });
+  // Details still server-render their data into `<script id="initial-data">`, so
+  // fetch the HTML and let the parser extract it (the JSON API is now 403).
+  async getMangaDetailsHtml(mangaId: string): Promise<string> {
+    return this.fetchText(`${DOMAIN}/title/${mangaId}`);
   }
 
   async getJsonChapterApi(
@@ -262,7 +231,8 @@ export class ComixApi {
     sortBy: string,
     orderBy: string,
     content: string[],
-  ) {
+    cookieStorageInterceptor: CookieStorageInterceptor,
+  ): Promise<ApiResponse<ResultManga>> {
     const query: Record<string, string | string[]> = {
       page: page.toString(),
       [`order[${sortBy}]`]: orderBy,
@@ -276,7 +246,8 @@ export class ComixApi {
     filters.forEach((f) => {
       query[f.type] = f.filters;
     });
-    return this.APIJson<ResultManga>({ path: "manga", query: query });
+    const result = await browseViaWebView(this.browseUrl(query), cookieStorageInterceptor);
+    return { status: "ok", result };
   }
 
   async getJsonChapPagesApi(chapter: Chapter, cookieStorageInterceptor: CookieStorageInterceptor) {
