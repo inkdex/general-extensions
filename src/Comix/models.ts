@@ -3,7 +3,6 @@
 
 import type { JSONObject } from "@paperback/types";
 export const DOMAIN = "https://comix.to";
-export const API = `${DOMAIN}/api/v1`;
 export const NO_IMAGE = `${DOMAIN}/images/no-poster.png`;
 
 type FilterValue = "included" | "excluded";
@@ -24,8 +23,20 @@ export interface Filters {
   filters: string[];
 }
 
+export interface ListMeta {
+  total: number;
+  perPage: number;
+  page: number;
+  lastPage: number;
+  from: number;
+  to: number;
+  hasNext: boolean;
+  hasPrev: boolean;
+}
+
 export interface ResultManga {
   items: MangaItem[];
+  meta?: ListMeta;
 }
 
 export interface ChapterPages {

@@ -4,7 +4,7 @@
 import { type CookieStorageInterceptor } from "@paperback/types";
 import * as cheerio from "cheerio";
 
-import { type ChapterItem, DOMAIN } from "../models";
+import { type ChapterItem, type ResultManga, DOMAIN } from "../models";
 
 // Loads a Comix page in a WebView and lets the site's own JS run end-to-end:
 // the bundle signs API requests and decrypts `{e:"blob"}` responses internally,
@@ -37,35 +37,15 @@ async function runProxiedWebView<T>(
   return raw.result as T;
 }
 
-// The SPA fetches chapters on mount and on Next-button click. Capture the
-// decrypted JSON for each fetch via JSON.parse, then drive pagination by
-// clicking the Next button until meta.lastPage is reached. Chapter requests
-// are rewritten to limit=100 before they fire, so most titles resolve in one
-// or two fetches instead of one per default-sized page; if the site renames
-// the param the regex stops matching and we just paginate at the default.
+// Capture each chapter fetch's decrypted JSON via JSON.parse and paginate by
+// clicking Next until meta.lastPage. Don't rewrite the request URL — it carries
+// a per-request `_=` signature, so changing limit/params returns 403.
 export async function chapterListViaWebView(
   mangaId: string,
   cookieInterceptor: CookieStorageInterceptor,
 ): Promise<ChapterItem[]> {
   const bootstrap = `
     (function () {
-      function rewriteUrl(url) {
-        if (typeof url === "string" && url.indexOf("/chapters") !== -1 && /[?&]limit=\\d+/.test(url))
-          return url.replace(/([?&]limit=)\\d+/, function (_m, p1) { return p1 + "100"; });
-        return url;
-      }
-      var origOpen = XMLHttpRequest.prototype.open;
-      XMLHttpRequest.prototype.open = function (method, url) {
-        arguments[1] = rewriteUrl(url);
-        return origOpen.apply(this, arguments);
-      };
-      var origFetch = window.fetch;
-      window.fetch = function (input, init) {
-        if (typeof input === "string") input = rewriteUrl(input);
-        else if (input && typeof input.url === "string")
-          input = new Request(rewriteUrl(input.url), input);
-        return origFetch.call(this, input, init);
-      };
       var items = [];
       var seenPages = new Set();
       var totalPages = null;
@@ -170,4 +150,56 @@ export async function pageListViaWebView(
   );
   if (!payload) throw new Error("Comix pageListViaWebView: timed out waiting for pages JSON");
   return payload;
+}
+
+// `/browse` serves an empty shell and loads its list via an encrypted XHR, so
+// run the bundle and capture the decrypted `{result:{items,meta}}` off
+// JSON.parse. `&page=N` in the URL selects the page; one capture per call.
+export async function browseViaWebView(
+  browseUrl: string,
+  cookieInterceptor: CookieStorageInterceptor,
+): Promise<ResultManga> {
+  const bootstrap = `
+    (function () {
+      var doneResolve;
+      window.__comixResult__ = new Promise(function (r) {
+        doneResolve = r;
+      });
+      var done = false;
+      function finish(val) {
+        if (done) return;
+        done = true;
+        doneResolve(val);
+      }
+      var orig = JSON.parse;
+      JSON.parse = new Proxy(orig, {
+        apply: function (t, a, args) {
+          var parsed = Reflect.apply(t, a, args);
+          try {
+            var result = parsed && parsed.result;
+            if (
+              result &&
+              Array.isArray(result.items) &&
+              result.items.length > 0 &&
+              result.items[0] &&
+              result.items[0].hid !== undefined
+            ) {
+              finish({ items: result.items, meta: result.meta || result.pagination || null });
+            }
+          } catch {}
+          return parsed;
+        },
+      });
+      setTimeout(function () {
+        finish(null);
+      }, 20000);
+    })();
+  `;
+  const result = await runProxiedWebView<ResultManga | null>(
+    browseUrl,
+    bootstrap,
+    cookieInterceptor,
+  );
+  if (!result) throw new Error("Comix browseViaWebView: timed out waiting for browse JSON");
+  return result;
 }

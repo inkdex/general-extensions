@@ -12,6 +12,7 @@ import {
   type TagSection,
   ContentRating,
 } from "@paperback/types";
+import * as cheerio from "cheerio";
 
 import {
   type ApiResponse,
@@ -27,11 +28,40 @@ import {
 } from "./models";
 import { getPoster, getRanking, parseRelativeDate } from "./utils/helpers";
 
+// Comix server-renders page state into
+// `<script type="application/json" id="initial-data">` as a React-Query cache:
+// `{ page, queries: { '["manga","detail","{hid}"]': <payload>, ... } }`. Detail
+// pages embed the manga here because the JSON API itself is now 403.
+function parseInitialDataQueries(html: string): Record<string, unknown> | undefined {
+  const $ = cheerio.load(html);
+  // Script content is raw text (htmlparser2 does not entity-decode rawtext nodes),
+  // so `.text()` returns the JSON verbatim.
+  const raw = $("script#initial-data").text();
+  if (!raw) return undefined;
+  try {
+    return (JSON.parse(raw) as { queries?: Record<string, unknown> }).queries;
+  } catch {
+    return undefined;
+  }
+}
+
+// The `["manga","detail","{hid}"]` query value is the Manga object directly
+// (unwrapped); guard for a future `{ result }` wrapper too, keying off `hid`.
+function extractDetailManga(html: string): MangaItem | undefined {
+  const queries = parseInitialDataQueries(html);
+  if (!queries) return undefined;
+  const key = Object.keys(queries).find((k) => k.includes('"detail"'));
+  if (key === undefined) return undefined;
+  const value = queries[key] as MangaItem & { result?: MangaItem };
+  const manga = value?.result ?? value;
+  return manga?.hid !== undefined ? manga : undefined;
+}
+
 export class ComixParser {
-  parseSection(section: string, json: ApiResponse<MangaItem[]>) {
+  parseSection(section: string, json: ApiResponse<ResultManga>) {
     const latest: DiscoverSectionItem[] = [];
     if (json.status === "ok") {
-      for (const item of json.result) {
+      for (const item of json.result.items) {
         latest.push({
           type:
             section === "follow"
@@ -94,9 +124,10 @@ export class ComixParser {
           type: "simpleCarouselItem",
         });
       }
+      const hasNext = json.result.meta?.hasNext ?? json.result.items.length > 0;
       return {
         items: latest,
-        metadata: json.result.items.length > 0 ? { page: page + 1 } : undefined,
+        metadata: hasNext ? { page: page + 1 } : undefined,
       };
     }
     return { items: latest, metadata: undefined };
@@ -117,9 +148,10 @@ export class ComixParser {
           publishDate: parseRelativeDate(item.chapterUpdatedAtFormatted),
         });
       }
+      const hasNext = json.result.meta?.hasNext ?? json.result.items.length > 0;
       return {
         items: latest,
-        metadata: json.result.items.length > 0 ? { page: page + 1 } : undefined,
+        metadata: hasNext ? { page: page + 1 } : undefined,
       };
     }
     return { items: latest, metadata: undefined };
@@ -154,8 +186,11 @@ export class ComixParser {
     };
   }
 
-  parseMangaDetails(mangaId: string, info: ApiResponse<MangaItem>): SourceManga {
-    const manga = info.result;
+  parseMangaDetails(mangaId: string, html: string): SourceManga {
+    const manga = extractDetailManga(html);
+    if (!manga) {
+      throw new Error(`Comix: could not find detail data for ${mangaId}`);
+    }
     const toTag = (item: { id: number; title: string }): Tag => ({
       id: item.id.toString(),
       title: item.title,
@@ -207,9 +242,10 @@ export class ComixParser {
           subtitle: `Chapter ${item.finalChapter || item.latestChapter}`,
         });
       });
+      const hasNext = search.result.meta?.hasNext ?? search.result.items.length > 0;
       return {
         items: items,
-        metadata: search.result.items.length > 0 ? { page: page + 1 } : undefined,
+        metadata: hasNext ? { page: page + 1 } : undefined,
       };
     }
     return {
