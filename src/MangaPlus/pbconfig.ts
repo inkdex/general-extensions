@@ -6,7 +6,7 @@ import { ContentRating, SourceIntents, type ExtensionInfo } from "@paperback/typ
 export default {
   name: "MangaPlus",
   description: "Extension that pulls content from mangaplus.shueisha.co.jp.",
-  version: "1.0.0-alpha.10",
+  version: "1.0.0-alpha.11",
   icon: "icon.png",
   language: "en",
   contentRating: ContentRating.EVERYONE,

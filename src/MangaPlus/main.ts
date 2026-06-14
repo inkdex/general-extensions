@@ -339,21 +339,17 @@ export class MangaPlusExtension implements ExtensionImpl<typeof MangaPlusConfig>
 
   async interceptResponse(
     request: Request,
-    response: Response,
+    _response: Response,
     data: ArrayBuffer,
   ): Promise<ArrayBuffer> {
-    if (
-      !request.url.includes("encryptionKey") &&
-      response.headers["Content-Type"] !== "image/jpeg"
-    ) {
+    const fragmentIndex = request.url.lastIndexOf("#");
+    if (fragmentIndex == -1) return data;
+
+    const encryptionKey = request.url.substring(fragmentIndex + 1);
+    if (!encryptionKey) {
       return data;
     }
 
-    if (request.url.includes("title_thumbnail_portrait_list")) {
-      return data;
-    }
-
-    const encryptionKey = request.url.substring(request.url.lastIndexOf("#") + 1) ?? "";
     const decodedCipher = this.decodeXoRCipher(new Uint8Array(data), encryptionKey);
     return decodedCipher.buffer;
   }
