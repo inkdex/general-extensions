@@ -1,9 +1,21 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 /* Copyright © 2026 Inkdex */
 
-import { ButtonRow, Form, FormConfirmationError, Section, SelectRow } from "@paperback/types";
+import {
+  ButtonRow,
+  EditSection,
+  Form,
+  FormConfirmationError,
+  type FormItemElement,
+  type FormSectionElement,
+  LabelRow,
+  NavigationRow,
+  Section,
+  SelectRow,
+  ToggleRow,
+} from "@paperback/types";
 
-import { ORIGIN, RANGE } from "../models";
+import { discoverySections, ORIGIN } from "../models";
 import type { MangaDotApi } from "../network";
 import {
   getContentTypes,
@@ -15,7 +27,7 @@ import {
   getThemesHidden,
   getDemographicHidden,
   getMoreHidden,
-  getTimeRangeStatus,
+  getRangeStatus,
 } from "../utils";
 
 export class SettingsForm extends Form {
@@ -107,18 +119,20 @@ export class SettingsForm extends Form {
               "handleSectionTypeStatusChange",
             ),
           }),
-          SelectRow("timeRange_type", {
-            title: "Time Range",
+          ToggleRow("range_type", {
+            title: "Use Time range in sections",
             subtitle:
-              "Day/Week/Month ranges may return fewer items and do not contain some information. This setting will NOT apply to 'Most Viewed'",
-            value: getTimeRangeStatus(),
-            options: RANGE,
-            minItemCount: 1,
-            maxItemCount: 1,
+              "Day/Week/Month ranges may return fewer items and do not contain some information",
+            value: getRangeStatus(),
             onValueChange: Application.Selector(
               this as SettingsForm,
-              "handleTimeRangeStatusChange",
+              "handleRangeTypeStatusChange",
             ),
+          }),
+          NavigationRow("sectionOrder", {
+            title: "Sections Order",
+            subtitle: "Sections Order",
+            form: new EditableListTestForm(),
           }),
         ],
       ),
@@ -173,9 +187,9 @@ export class SettingsForm extends Form {
     await this.updateValue(value, "content_type");
   }
 
-  async handleTimeRangeStatusChange(value: string[]): Promise<void> {
-    await this.updateValue(value, "content_range");
+  async handleRangeTypeStatusChange(value: boolean): Promise<void> {
     Application.invalidateDiscoverSections();
+    await this.updateValue(value, "range_type");
   }
 
   async handleSectionTypeStatusChange(value: string[]): Promise<void> {
@@ -218,5 +232,143 @@ export class SettingsForm extends Form {
 
   async resetFilters() {
     await updateFilters(true, this.api);
+  }
+}
+
+function getDeletedDiscoverySections() {
+  return (
+    (Application.getState("deleted_sections") as { id: string; title: string }[] | undefined) ?? []
+  );
+}
+
+async function setDiscoverySections(newValue: { id: string; title: string }[]) {
+  Application.setState(newValue, "sections");
+}
+
+async function setDeletedDiscoverySections(newValue: { id: string; title: string }[]) {
+  Application.setState(newValue, "deleted_sections");
+}
+
+export function getDiscoverySectionsOrder() {
+  return (
+    (Application.getState("sections") as { id: string; title: string }[] | undefined) ??
+    discoverySections
+  );
+}
+
+class EditableListTestForm extends Form {
+  override getSections() {
+    const onReorderSelectorId = Application.Selector(this as EditableListTestForm, "rowDidReorder");
+    const onDeletionSelectorId = Application.Selector(this as EditableListTestForm, "rowDidDelete");
+
+    return [
+      {
+        ...EditSection("edit", {
+          id: "edit",
+          header: "Section order",
+          footer: "Long press to reorder, swipe to hide",
+          items: getDiscoverySectionsOrder().map((item) => this.itemRow(item)),
+        }),
+        allowDeletion: true,
+        allowReorder: true,
+        onReorder: onReorderSelectorId,
+        onDeletion: onDeletionSelectorId,
+      } as unknown as FormSectionElement<unknown>,
+      ...(getDeletedDiscoverySections().length > 0
+        ? [new AddSectionSelect().getDeletedSections()]
+        : []),
+      Section("status", [
+        ButtonRow("reset", {
+          title: "Reset all Sections",
+          isHidden: getDeletedDiscoverySections().length == 0,
+          onSelect: Application.Selector(this as EditableListTestForm, "resetFiltersDialog"),
+        }),
+      ]),
+    ];
+  }
+  async resetFiltersDialog() {
+    throw new FormConfirmationError(
+      Application.Selector(this as EditableListTestForm, "handleLimitStatusChangeReset"),
+      "Do you want to restore all deleted sections?",
+    );
+  }
+  async handleLimitStatusChangeReset(): Promise<void> {
+    await setDiscoverySections(discoverySections);
+    await setDeletedDiscoverySections([]);
+    this.reloadForm();
+  }
+  private itemRow(item: { id: string; title: string }): FormItemElement<unknown> {
+    return LabelRow(item.id, {
+      title: item.title,
+    });
+  }
+
+  async rowDidDelete(index: number): Promise<void> {
+    const items = getDeletedDiscoverySections();
+    const sections = getDiscoverySectionsOrder();
+    const deleted = sections.splice(index, 1);
+    deleted.forEach((item) => {
+      items.push(item);
+    });
+    await setDeletedDiscoverySections(items);
+    await setDiscoverySections(sections);
+    this.reloadForm();
+  }
+
+  async rowDidReorder(sourceIndex: number, destinationIndex: number): Promise<void> {
+    const sections = getDiscoverySectionsOrder();
+    const [item] = sections.splice(sourceIndex, 1);
+    if (item) {
+      sections.splice(destinationIndex, 0, item);
+    }
+    await setDiscoverySections(sections);
+    this.reloadForm();
+    Application.invalidateDiscoverSections();
+  }
+}
+
+class AddSectionSelect {
+  onSelectLabelProxy = new Proxy(this, {
+    has(target, p) {
+      if (typeof p == "string" && p.startsWith("onSelect_")) {
+        return true;
+      } else {
+        return Object.hasOwn(target, p);
+      }
+    },
+    get(target, p) {
+      if (typeof p == "string" && p.startsWith("onSelect_")) {
+        const rowId = p.slice(9);
+        return async () => {
+          await target["onSelect"](rowId);
+        };
+      } else {
+        // @ts-ignore
+        return target[p];
+      }
+    },
+  });
+
+  deletedForms = getDeletedDiscoverySections();
+  getDeletedSections(): FormSectionElement<unknown> {
+    return Section(
+      { id: "addSectionSelect", footer: "Tap to restore" },
+      this.deletedForms.flatMap((item) =>
+        LabelRow(item.id, {
+          title: item.title,
+          // @ts-expect-error
+          onSelect: Application.Selector(this.onSelectLabelProxy, "onSelect_" + item.id),
+        }),
+      ),
+    );
+  }
+
+  async onSelect(rowId: string): Promise<void> {
+    const sections = getDiscoverySectionsOrder();
+    const selectedDeletedItems = this.deletedForms.filter((item) => item.id === rowId);
+    sections.push(selectedDeletedItems[0]);
+    await setDiscoverySections(sections);
+    await setDeletedDiscoverySections(this.deletedForms.filter((item) => item.id !== rowId));
+    this.deletedForms = getDeletedDiscoverySections();
   }
 }

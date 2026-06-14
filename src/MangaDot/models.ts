@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 /* Copyright © 2026 Inkdex */
 
-import type { Tag } from "@paperback/types";
+import { type Tag } from "@paperback/types";
 
 export const DOMAIN = "https://mangadot.net";
 
@@ -36,10 +36,6 @@ export const RANGE: Tag[] = [
   {
     id: "monthly",
     title: "Month",
-  },
-  {
-    id: "",
-    title: "Of All Times",
   },
 ];
 
@@ -140,6 +136,8 @@ export type SearchMetadata = {
   author?: string[];
   artist?: string[];
   adult?: string[];
+  range?: string;
+  sectionName?: string;
 };
 
 export type PageMetadata = {
@@ -158,3 +156,14 @@ export interface ApiRequestConfig {
   query?: Record<string, string | string[]>;
   headers?: Record<string, string>;
 }
+
+export const discoverySections = [
+  { id: "most_viewed", title: "Most Viewed" },
+  { id: "top_rated", title: "Top Rated" },
+  { id: "most_tracked", title: "Most Tracked Comics" },
+  { id: "latest_updates", title: "Latest updates" },
+  { id: "recently_added", title: "Recently Added" },
+  { id: "genres", title: "Genres" },
+  { id: "themes", title: "Themes" },
+  { id: "demographics", title: "Demographics" },
+];

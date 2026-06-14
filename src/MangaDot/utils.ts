@@ -3,7 +3,7 @@
 
 import type { Tag } from "@paperback/types";
 
-import type { SearchMetadata } from "./models";
+import { discoverySections, type SearchMetadata } from "./models";
 import type { MangaDotApi } from "./network";
 
 export function normalizeId(id: string): string {
@@ -44,6 +44,17 @@ export function getShowAdultStatus(): string[] {
 
 export function getTimeRangeStatus(): string[] {
   return (Application.getState("content_range") as string[] | undefined) ?? [""];
+}
+
+export function getRangeStatus(): boolean {
+  return (Application.getState("range_type") as boolean | undefined) ?? false;
+}
+
+export function getDiscoverySectionsOrder() {
+  return (
+    (Application.getState("sections") as { id: string; title: string }[] | undefined) ??
+    discoverySections
+  );
 }
 
 export function generateTagElement(tag: string): Tag {
