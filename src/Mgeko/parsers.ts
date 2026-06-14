@@ -7,6 +7,7 @@ import {
   type Chapter,
   type ChapterDetails,
   type DiscoverSectionItem,
+  type FeaturedCarouselItem,
   type MangaInfo,
   type SearchResultItem,
   type SourceManga,
@@ -14,6 +15,8 @@ import {
   type TagSection,
 } from "@paperback/types";
 import { type CheerioAPI } from "cheerio";
+
+import { DOMAIN, type ComicCard, type SectionType } from "./models";
 
 const formatCount = (raw: string): string => {
   const n = parseInt(raw.replace(/,/g, ""), 10);
@@ -154,38 +157,76 @@ export const parseChapterDetails = ($: CheerioAPI, chapter: Chapter): ChapterDet
   };
 };
 
-export const parseViewMore = ($: CheerioAPI): DiscoverSectionItem[] => {
-  const manga: DiscoverSectionItem[] = [];
-  const collectedIds: string[] = [];
+const parseViewMore = ($: CheerioAPI): ComicCard[] => {
+  const cards: ComicCard[] = [];
 
   for (const obj of $("article.comic-card").toArray()) {
-    const imageUrl = $("img", obj).first().attr("src") ?? "";
+    let imageUrl =
+      $("img", obj).first().attr("data-src") ?? $("img", obj).first().attr("src") ?? "";
+    if (imageUrl.startsWith("/")) imageUrl = DOMAIN + imageUrl;
+
     const title = Application.decodeHTMLEntities($("img", obj).first().attr("alt") ?? "");
     const mangaId = $("a", obj).attr("href")?.replace(/\/$/, "").split("/").pop() ?? "";
-    const ratingText = $(".comic-card__stat--rating", obj).text().trim().replace("⭐", "★");
+    const rating = $(".comic-card__stat--rating", obj)
+      .text()
+      .trim()
+      .replace(/[⭐★]/g, "")
+      .trim();
     const views =
       $(".comic-card__stat--hot span", obj)
         .map((_, el) => $(el).text().trim())
         .toArray()
         .find((t) => t) ?? "";
-    const subtitle = [ratingText, views ? `▲ ${formatCount(views)}` : ""]
-      .filter(Boolean)
-      .join(" · ");
+    const badge = $(".comic-card__badge", obj).first().text().trim();
 
-    if (!mangaId || !title || collectedIds.includes(mangaId)) continue;
-
-    manga.push({
-      type: "simpleCarouselItem",
-      mangaId,
-      title,
-      imageUrl,
-      subtitle,
-      contentRating: ContentRating.EVERYONE,
-    });
-    collectedIds.push(mangaId);
+    cards.push({ mangaId, title, imageUrl, rating, views, badge });
   }
 
-  return manga;
+  return cards;
+};
+
+const buildStatSubtitle = (rating: string, views: string): string =>
+  [rating ? `★ ${rating}` : "", views ? `▲ ${formatCount(views)}` : ""].filter(Boolean).join(" · ");
+
+export const parseSectionItem = (
+  $: CheerioAPI,
+  sectionType: SectionType,
+): DiscoverSectionItem[] => {
+  const seen = new Set<string>();
+
+  return parseViewMore($)
+    .filter(({ mangaId, title }) => {
+      if (!mangaId || !title || seen.has(mangaId)) return false;
+      seen.add(mangaId);
+      return true;
+    })
+    .map(({ mangaId, title, imageUrl, rating, views, badge }) => {
+      if (sectionType === "featuredCarouselItem") {
+        const infoItems: NonNullable<FeaturedCarouselItem["infoItems"]>[number][] = [];
+        if (rating) infoItems.push({ symbol: "star.fill", text: rating });
+        if (views) infoItems.push({ symbol: "flame.fill", text: formatCount(views) });
+        return {
+          type: sectionType,
+          mangaId,
+          title,
+          imageUrl,
+          contentRating: ContentRating.EVERYONE,
+          supertitle: badge || undefined,
+          infoItems: infoItems.length
+            ? (infoItems as FeaturedCarouselItem["infoItems"])
+            : undefined,
+        };
+      }
+
+      return {
+        type: sectionType,
+        mangaId,
+        title,
+        imageUrl,
+        contentRating: ContentRating.EVERYONE,
+        subtitle: buildStatSubtitle(rating, views),
+      };
+    });
 };
 
 export const parseGenreTags = ($: CheerioAPI): TagSection[] => {
@@ -253,34 +294,14 @@ export const parseOldSearch = ($: CheerioAPI, baseUrl: string): SearchResultItem
   return mangas;
 };
 
-export const parseSearch = ($: CheerioAPI, baseUrl: string): SearchResultItem[] => {
-  const mangas: SearchResultItem[] = [];
-  for (const obj of $("article.comic-card").toArray()) {
-    let imageUrl: string =
-      $("img", obj).first().attr("data-src") ?? $("img", obj).first().attr("src") ?? "";
-    if (imageUrl.startsWith("/")) imageUrl = baseUrl + imageUrl;
-
-    const title = Application.decodeHTMLEntities($("img", obj).first().attr("alt") ?? "");
-    const mangaId = $("a", obj).attr("href")?.replace(/\/$/, "").split("/").pop() ?? "";
-    const ratingText = $(".comic-card__stat--rating", obj).text().trim().replace("⭐", "★");
-    const views =
-      $(".comic-card__stat--hot span", obj)
-        .map((_, el) => $(el).text().trim())
-        .toArray()
-        .find((t) => t) ?? "";
-    const subtitle = [ratingText, views ? `▲ ${formatCount(views)}` : ""]
-      .filter(Boolean)
-      .join(" · ");
-
-    if (!mangaId || !title) continue;
-
-    mangas.push({
+export const parseSearch = ($: CheerioAPI): SearchResultItem[] => {
+  return parseViewMore($)
+    .filter(({ mangaId, title }) => mangaId && title)
+    .map(({ mangaId, title, imageUrl, rating, views }) => ({
       mangaId,
       title,
       imageUrl,
-      subtitle,
+      subtitle: buildStatSubtitle(rating, views),
       contentRating: ContentRating.EVERYONE,
-    });
-  }
-  return mangas;
+    }));
 };

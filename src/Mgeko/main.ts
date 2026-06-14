@@ -26,7 +26,13 @@ import {
 import * as cheerio from "cheerio";
 
 import { getSafeMode, MgekoAdvancedSearchForm, MgekoSettingsForm } from "./forms";
-import { DOMAIN, type BrowseResult, type PageMetadata, type SearchMetadata } from "./models";
+import {
+  DOMAIN,
+  type BrowseResult,
+  type PageMetadata,
+  type SearchMetadata,
+  type SectionType,
+} from "./models";
 import { MgekoInterceptor } from "./network";
 import {
   parseChapterDetails,
@@ -35,7 +41,7 @@ import {
   parseMangaDetails,
   parseOldSearch,
   parseSearch,
-  parseViewMore,
+  parseSectionItem,
 } from "./parsers";
 import type MgekoConfig from "./pbconfig";
 
@@ -66,12 +72,12 @@ export class MgekoExtension implements ExtensionImpl<typeof MgekoConfig> {
       {
         id: "popular_all_time",
         title: "Popular All Time",
-        type: DiscoverSectionType.prominentCarousel,
+        type: DiscoverSectionType.featured,
       },
       {
         id: "top_rated",
         title: "Top Rated",
-        type: DiscoverSectionType.simpleCarousel,
+        type: DiscoverSectionType.prominentCarousel,
       },
       {
         id: "latest_updates",
@@ -92,11 +98,11 @@ export class MgekoExtension implements ExtensionImpl<typeof MgekoConfig> {
   ): Promise<PagedResults<DiscoverSectionItem>> {
     switch (section.id) {
       case "popular_all_time":
-        return this.getFilteredSectionItems("popular_all_time", metadata);
+        return this.getFilteredSectionItems("popular_all_time", "featuredCarouselItem", metadata);
       case "top_rated":
-        return this.getFilteredSectionItems("rating", metadata);
+        return this.getFilteredSectionItems("rating", "prominentCarouselItem", metadata);
       case "latest_updates":
-        return this.getFilteredSectionItems("latest", metadata);
+        return this.getFilteredSectionItems("latest", "simpleCarouselItem", metadata);
       case "genres":
         return this.getGenreSectionItems();
       default:
@@ -107,7 +113,11 @@ export class MgekoExtension implements ExtensionImpl<typeof MgekoConfig> {
     }
   }
 
-  async saveCloudflareBypassCookies(cookies: Cookie[]): Promise<void> {
+  async cloudflareBypassCompleted(
+    _request: Request,
+    cookies: Cookie[],
+    _localStorage: Record<string, string>,
+  ): Promise<void> {
     for (const cookie of cookies) {
       if (
         cookie.name.startsWith("cf") ||
@@ -261,7 +271,7 @@ export class MgekoExtension implements ExtensionImpl<typeof MgekoConfig> {
         },
       });
 
-      const manga = parseSearch($, DOMAIN);
+      const manga = parseSearch($);
 
       metadata = parsedData.page < parsedData.num_pages ? { page: page + 1 } : undefined;
       return {
@@ -273,6 +283,7 @@ export class MgekoExtension implements ExtensionImpl<typeof MgekoConfig> {
 
   private async getFilteredSectionItems(
     sort: string,
+    sectionType: SectionType,
     metadata: PageMetadata | undefined,
   ): Promise<PagedResults<DiscoverSectionItem>> {
     if (metadata?.completed) return EndOfPageResults;
@@ -297,7 +308,7 @@ export class MgekoExtension implements ExtensionImpl<typeof MgekoConfig> {
         decodeEntities: false,
       },
     });
-    const manga = parseViewMore($);
+    const manga = parseSectionItem($, sectionType);
     metadata = parsedData.page < parsedData.num_pages ? { page: page + 1 } : undefined;
 
     return {
