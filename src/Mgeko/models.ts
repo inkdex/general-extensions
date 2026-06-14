@@ -21,4 +21,15 @@ export type BrowseResult = {
   num_pages: number;
 };
 
+export type ComicCard = {
+  mangaId: string;
+  title: string;
+  imageUrl: string;
+  rating: string;
+  views: string;
+  badge: string;
+};
+
+export type SectionType = "featuredCarouselItem" | "simpleCarouselItem" | "prominentCarouselItem";
+
 export const DOMAIN = "https://www.mgeko.cc";
