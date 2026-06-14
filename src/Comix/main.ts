@@ -2,6 +2,7 @@
 /* Copyright © 2026 Inkdex */
 
 import {
+  type AdvancedSearchForm,
   type Chapter,
   type ChapterDetails,
   type Cookie,
@@ -10,7 +11,7 @@ import {
   type ExtensionImpl,
   type Form,
   type PagedResults,
-  type AdvancedSearchForm,
+  type Request,
   type SearchQuery,
   type SearchResultItem,
   type SortingOption,
