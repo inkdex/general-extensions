@@ -11,12 +11,14 @@ import {
   type Request,
   type Response,
   type SearchQuery,
+  type SearchResultItem,
   type SortingOption,
   type Tag,
 } from "@paperback/types";
 
 import {
   DOMAIN,
+  RANGE,
   type ApiRequestConfig,
   type ChapterListResponse,
   type ChapterPagesResponse,
@@ -36,7 +38,6 @@ import {
   getSectionContentTypes,
   getShowAdultStatus,
   getThemesHidden,
-  getTimeRangeStatus,
 } from "./utils";
 
 export class MangaDotInterceptor extends PaperbackInterceptor {
@@ -115,6 +116,22 @@ export class MangaDotApi {
     };
   }
 
+  async getRangeSection(section: string): Promise<PagedResults<DiscoverSectionItem>> {
+    return {
+      items: RANGE.map(
+        (tag): DiscoverSectionItem => ({
+          type: "genresCarouselItem",
+          searchQuery: {
+            title: "",
+            metadata: { range: tag.id, sectionName: section },
+          },
+          name: tag.title,
+          contentRating: ContentRating.EVERYONE,
+        }),
+      ),
+    };
+  }
+
   async getGenreSection(): Promise<PagedResults<DiscoverSectionItem>> {
     return this.buildTagSection(getFilters().genre, getGenresHidden());
   }
@@ -129,11 +146,11 @@ export class MangaDotApi {
   async getSection(section: string, page: number): Promise<SearchResponse | MangaSection> {
     if (section === "most_viewed") {
       return this.getMostViewed(page);
-    } else if (getTimeRangeStatus()[0] === "") {
-      return this.getAllTimesSection(section, page);
-    } else {
-      return this.getTimeRangeSection(section);
     }
+    if (section === "latest_updates") {
+      return this.getLatestUpdateSection();
+    }
+    return this.getAllTimesSection(section, page);
   }
   async getAllTimesSection(section: string, page: number): Promise<SearchResponse> {
     const params: ApiRequestConfig = {
@@ -160,14 +177,13 @@ export class MangaDotApi {
     return this.buildApiRequest<SearchResponse>(params);
   }
 
-  async getTimeRangeSection(section: string): Promise<MangaSection> {
+  async getLatestUpdateSection(): Promise<MangaSection> {
     const params: ApiRequestConfig = {
       path: ["api", "manga", "section"],
       query: {
-        id: section,
+        id: "latest_updates",
         origin: getSectionContentTypes().join(",").replaceAll("&", ","),
         adult: getShowAdultStatus(),
-        range: getTimeRangeStatus(),
         limit: "100",
       },
     };
@@ -261,5 +277,32 @@ export class MangaDotApi {
       },
     };
     return this.buildApiRequest<SearchSuggestionsResponse>(params);
+  }
+
+  async MangaSectionRequestToSearchResponse(
+    section: string,
+    range: string,
+  ): Promise<PagedResults<SearchResultItem>> {
+    const params: ApiRequestConfig = {
+      path: ["api", "manga", "section"],
+      query: {
+        id: section,
+        origin: getSectionContentTypes().join(",").replaceAll("&", ","),
+        adult: getShowAdultStatus(),
+        range: range,
+        limit: "100",
+      },
+    };
+    const mangas = await this.buildApiRequest<MangaSection>(params);
+    return {
+      items: mangas.items.map((manga) => ({
+        mangaId: manga.id.toString(),
+        title: manga.title,
+        subtitle: `★ ${manga.avg_rating}`,
+        imageUrl: `${DOMAIN}${manga.photo}`,
+        contentRating: manga.is_blurworthy ? ContentRating.ADULT : ContentRating.EVERYONE,
+      })),
+      metadata: undefined,
+    };
   }
 }

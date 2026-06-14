@@ -14,6 +14,7 @@ import {
   type ExtensionImpl,
   type Form,
   type PagedResults,
+  type Request,
   type SearchQuery,
   type SearchResultItem,
   type SortingOption,
@@ -33,7 +34,7 @@ import {
   type SectionItemType,
 } from "./parsers";
 import type MangaDotConfig from "./pbconfig";
-import { defaultMetadata, checkFilters } from "./utils";
+import { checkFilters, defaultMetadata, getDiscoverySectionsOrder, getRangeStatus } from "./utils";
 
 export class MangaDotExtension implements ExtensionImpl<typeof MangaDotConfig> {
   api = new MangaDotApi();
@@ -82,49 +83,52 @@ export class MangaDotExtension implements ExtensionImpl<typeof MangaDotConfig> {
   }
 
   async getDiscoverSections(): Promise<DiscoverSection[]> {
-    return [
-      {
+    const allSections: Record<string, DiscoverSection> = {
+      most_viewed: {
         id: "most_viewed",
         title: "Most Viewed",
         type: DiscoverSectionType.featured,
       },
-      {
-        id: "top_rated",
-        title: "Top Rated",
-        type: DiscoverSectionType.prominentCarousel,
-      },
-      {
-        id: "most_tracked",
-        title: "Most Tracked Comics",
-        type: DiscoverSectionType.simpleCarousel,
-      },
-      {
+      latest_updates: {
         id: "latest_updates",
         title: "Latest updates",
         type: DiscoverSectionType.chapterUpdates,
       },
-      {
+      most_tracked: {
+        id: "most_tracked",
+        title: "Most Tracked Comics",
+        type: getRangeStatus() ? DiscoverSectionType.genres : DiscoverSectionType.simpleCarousel,
+      },
+      top_rated: {
+        id: "top_rated",
+        title: "Top Rated",
+        type: getRangeStatus() ? DiscoverSectionType.genres : DiscoverSectionType.prominentCarousel,
+      },
+      recently_added: {
         id: "recently_added",
         title: "Recently Added",
-        type: DiscoverSectionType.chapterUpdates,
+        type: getRangeStatus() ? DiscoverSectionType.genres : DiscoverSectionType.simpleCarousel,
       },
 
-      {
+      genres: {
         id: "genres",
         title: "Genres",
         type: DiscoverSectionType.genres,
       },
-      {
+      themes: {
         id: "themes",
         title: "Themes",
         type: DiscoverSectionType.genres,
       },
-      {
+      demographics: {
         id: "demographics",
         title: "Demographics",
         type: DiscoverSectionType.genres,
       },
-    ];
+    };
+    return getDiscoverySectionsOrder()
+      .map((key) => allSections[key.id])
+      .filter(Boolean);
   }
 
   async getDiscoverSectionItems(
@@ -142,19 +146,34 @@ export class MangaDotExtension implements ExtensionImpl<typeof MangaDotConfig> {
     if (section.id === "themes") {
       return this.api.getThemesSection();
     }
+    if (getRangeStatus()) {
+      if (section.id === "most_tracked") {
+        return this.api.getRangeSection("most_tracked");
+      }
+      if (section.id === "top_rated") {
+        return this.api.getRangeSection("top_rated");
+      }
+      if (section.id === "recently_added") {
+        return this.api.getRangeSection("recently_added");
+      }
+    }
     const page = metadata?.page ?? 1;
     const sectionElements = await this.api.getSection(section.id, page);
     const itemTypes: Record<string, SectionItemType> = {
       most_viewed: "featuredCarouselItem",
-      top_rated: "prominentCarouselItem",
-      most_tracked: "simpleCarouselItem",
-      recently_added: "chapterUpdatesCarouselItem",
       latest_updates: "chapterUpdatesCarouselItem",
+      most_tracked: "simpleCarouselItem",
+      top_rated: "prominentCarouselItem",
+      recently_added: "simpleCarouselItem",
     };
     return parseSection(sectionElements, page, itemTypes[section.id] ?? "simpleCarouselItem");
   }
 
-  async saveCloudflareBypassCookies(cookies: Cookie[]): Promise<void> {
+  async cloudflareBypassCompleted(
+    _request: Request,
+    cookies: Cookie[],
+    _localStorage: Record<string, string>,
+  ): Promise<void> {
     for (const cookie of cookies) {
       if (cookie.name == "cf_clearance") {
         this.cookieStorageInterceptor.setCookie(cookie);
@@ -177,6 +196,12 @@ export class MangaDotExtension implements ExtensionImpl<typeof MangaDotConfig> {
     const page = metadata?.page ?? 1;
     if (query.metadata === undefined) {
       query.metadata = defaultMetadata();
+    }
+    if (query.metadata.range && query.metadata.sectionName) {
+      return this.api.MangaSectionRequestToSearchResponse(
+        query.metadata.sectionName,
+        query.metadata.range,
+      );
     }
     const search = await this.api.getSearch(query, page, sortingOption);
     return parseSearch(search, metadata);
