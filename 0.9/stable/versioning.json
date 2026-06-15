@@ -1,8 +1,8 @@
 {
-  "buildTime": "2026-06-15T09:55:07.532Z",
+  "buildTime": "2026-06-15T13:02:05.301Z",
   "builtWith": {
-    "toolchain": "1.0.0-alpha.91",
-    "types": "1.0.0-alpha.91"
+    "toolchain": "1.0.0-alpha.92",
+    "types": "1.0.0-alpha.92"
   },
   "repository": {
     "name": "General Extensions (0.9)",
@@ -255,7 +255,7 @@
     {
       "name": "Mgeko",
       "description": "Extension that pulls content from mgeko.cc.",
-      "version": "1.0.0-alpha.27",
+      "version": "1.0.0-alpha.28",
       "icon": "icon.png",
       "language": "en",
       "contentRating": "SAFE",
