@@ -17,6 +17,7 @@ Paperback extensions for websites with unique, non-generic themes.
 - [MangaTaro](https://mangataro.org)
 - [Mgeko](https://mgeko.cc)
 - [PunkRecords](https://punkrecordz.com)
+- [RoyalRoad](https://www.royalroad.com)
 - [QiScans](https://qimanhwa.com)
 - [Webtoon](https://webtoons.com)
 - [WeebCentral](https://weebcentral.com)

@@ -5,8 +5,7 @@ import { type JSONObject, DiscoverSectionType } from "@paperback/types";
 
 // Constants
 
-export const RR_DOMAIN = "https://www.royalroad.com";
-export const DEFAULT_LANGUAGE_CODE = "🇬🇧";
+export const DOMAIN = "https://www.royalroad.com";
 
 // Discovery listings exposed by Royal Road. The `id` doubles as the path
 // segment used to fetch the matching `/fictions/<id>` page.
@@ -189,4 +188,17 @@ export interface FictionEntry {
     rating: string;
     chapters: string;
   };
+}
+
+export interface SearchParams {
+  title: string;
+  author?: string;
+  orderBy: string;
+  ascending?: boolean;
+  status?: string;
+  type?: string;
+  tagsAdd: string[];
+  tagsRemove: string[];
+  contentWarnings: string[];
+  page: number;
 }

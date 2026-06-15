@@ -2,9 +2,9 @@
 /* Copyright © 2026 Inkdex */
 
 import {
-  type AdvancedSearchForm,
   BasicRateLimiter,
   DiscoverSectionType,
+  type AdvancedSearchForm,
   type Form,
   type Chapter,
   type ChapterDetails,
@@ -22,6 +22,7 @@ import * as cheerio from "cheerio";
 import { RoyalRoadAdvancedSearchForm, RoyalRoadSettingsForm } from "./forms";
 import {
   DISCOVER_LISTINGS,
+  DOMAIN,
   GENRES,
   SORT_ORDERS,
   type RoyalRoadMetadata,
@@ -42,7 +43,6 @@ import {
   parseMangaDetails,
 } from "./parsers";
 import type RoyalRoadConfig from "./pbconfig";
-import { getShareUrl } from "./utils";
 
 export class RoyalRoadExtension implements ExtensionImpl<typeof RoyalRoadConfig> {
   globalRateLimiter = new BasicRateLimiter("ratelimiter", {
@@ -109,7 +109,7 @@ export class RoyalRoadExtension implements ExtensionImpl<typeof RoyalRoadConfig>
   }
 
   getMangaShareUrl(mangaId: string): string {
-    return getShareUrl(mangaId);
+    return `${DOMAIN}/fiction/${mangaId}`;
   }
 
   async getMangaDetails(mangaId: string): Promise<SourceManga> {

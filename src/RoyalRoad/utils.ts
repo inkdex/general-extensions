@@ -1,11 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 /* Copyright © 2026 Inkdex */
 
-import { RR_DOMAIN } from "./models";
-
-export function getShareUrl(mangaId: string): string {
-  return `${RR_DOMAIN}/fiction/${mangaId}`;
-}
+import { DOMAIN } from "./models";
 
 // The HTML void elements — tags that never have a closing partner. Readium's
 // XHTML parser rejects them when they are left unclosed (e.g. `<br>`), so we
@@ -66,12 +62,7 @@ export function toMangaId(href: string): string {
   return (parts[1] ?? href).replace(/^\/+/, "").replace(/\/+$/, "");
 }
 
-// Chapter hrefs are full paths; we keep them (sans leading slash) as the id.
-export function toChapterId(href: string): string {
-  return href.replace(/^\/+/, "").replace(/\/+$/, "");
-}
-
 export function formatImageUrl(url: string): string {
   if (url.startsWith("https://")) return url;
-  return url.length > 0 ? `${RR_DOMAIN}/${url}` : url;
+  return url.length > 0 ? `${DOMAIN}/${url}` : url;
 }

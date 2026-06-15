@@ -11,15 +11,8 @@ import {
 import { type CheerioAPI } from "cheerio";
 
 import { getAuthorNoteSettings } from "./forms";
-import { DEFAULT_LANGUAGE_CODE, type FictionEntry } from "./models";
-import {
-  fixVoidElements,
-  getShareUrl,
-  mapStatus,
-  toChapterId,
-  toMangaId,
-  formatImageUrl,
-} from "./utils";
+import { DOMAIN, type FictionEntry } from "./models";
+import { fixVoidElements, mapStatus, toMangaId, formatImageUrl } from "./utils";
 
 // Shared parser for the `div.fiction-list-item` cards used across every
 // discovery listing and the search results page.
@@ -83,13 +76,12 @@ export const parseMangaDetails = ($: CheerioAPI, mangaId: string): SourceManga =
     }
   }
 
-  const contentRating = () => {
-    const rating = $(".fiction-info .text-center").text().trim();
-    if (rating.includes("Sexual Content")) return ContentRating.ADULT;
-    else if (rating.includes("Graphic Violence") || rating.includes("Sensitive Content"))
-      return ContentRating.MATURE;
-    else return ContentRating.EVERYONE;
-  };
+  const rating = $(".fiction-info .text-center").text().trim();
+  let contentRating: ContentRating;
+  if (rating.includes("Sexual Content")) contentRating = ContentRating.ADULT;
+  else if (rating.includes("Graphic Violence") || rating.includes("Sensitive Content"))
+    contentRating = ContentRating.MATURE;
+  else contentRating = ContentRating.EVERYONE;
 
   return {
     mangaId: mangaId,
@@ -102,8 +94,8 @@ export const parseMangaDetails = ($: CheerioAPI, mangaId: string): SourceManga =
       tagGroups: [{ id: "genres", title: "Genres", tags: genres }],
       synopsis: synopsis,
       thumbnailUrl: image,
-      contentRating: contentRating(),
-      shareUrl: getShareUrl(mangaId),
+      contentRating: contentRating,
+      shareUrl: `${DOMAIN}/fiction/${mangaId}`,
     },
   };
 };
@@ -121,11 +113,11 @@ export const parseChapters = ($: CheerioAPI, sourceManga: SourceManga): Chapter[
     const publishDate = datetime ? new Date(datetime) : new Date();
 
     chapters.push({
-      chapterId: toChapterId(href),
+      chapterId: href.replace(/^\/+/, "").replace(/\/+$/, ""),
       title: link.text().trim(),
       chapNum: index + 1,
       publishDate,
-      langCode: DEFAULT_LANGUAGE_CODE,
+      langCode: "en",
       volume: 0,
       sourceManga,
     });

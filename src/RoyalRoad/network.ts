@@ -8,7 +8,7 @@ import {
   type Response,
 } from "@paperback/types";
 
-import { RR_DOMAIN } from "./models";
+import { DOMAIN, type SearchParams } from "./models";
 
 export class RoyalRoadInterceptor extends PaperbackInterceptor {
   override async interceptRequest(request: Request): Promise<Request> {
@@ -16,7 +16,7 @@ export class RoyalRoadInterceptor extends PaperbackInterceptor {
       ...request,
       headers: {
         ...request.headers,
-        referer: `${RR_DOMAIN}/`,
+        referer: `${DOMAIN}/`,
         "user-agent": await Application.getDefaultUserAgent(),
       },
     };
@@ -28,7 +28,7 @@ export class RoyalRoadInterceptor extends PaperbackInterceptor {
     data: ArrayBuffer,
   ): Promise<ArrayBuffer> {
     const cfMitigated = response.headers?.["cf-mitigated"];
-    if (response.status === 403 || response.status === 503 || cfMitigated === "challenge") {
+    if (cfMitigated === "challenge") {
       throw new CloudflareError({
         url: request.url,
         method: request.method ?? "GET",
@@ -42,36 +42,25 @@ export class RoyalRoadInterceptor extends PaperbackInterceptor {
   }
 }
 
-async function fetchPage(url: string): Promise<[Response, ArrayBuffer]> {
-  return await Application.scheduleRequest({ url, method: "GET" });
-}
-
 export async function fetchListingPage(
   listingId: string,
   page: number,
 ): Promise<[Response, ArrayBuffer]> {
-  return await fetchPage(`${RR_DOMAIN}/fictions/${listingId}?page=${page}`);
+  return await Application.scheduleRequest({
+    url: `${DOMAIN}/fictions/${listingId}?page=${page}`,
+    method: "GET",
+  });
 }
 
 export async function fetchMangaDetailsPage(mangaId: string): Promise<[Response, ArrayBuffer]> {
-  return await fetchPage(`${RR_DOMAIN}/fiction/${mangaId}`);
+  return await Application.scheduleRequest({
+    url: `${DOMAIN}/fiction/${mangaId}`,
+    method: "GET",
+  });
 }
 
 export async function fetchChapterPage(chapterId: string): Promise<[Response, ArrayBuffer]> {
-  return await fetchPage(`${RR_DOMAIN}/${chapterId}`);
-}
-
-export interface SearchParams {
-  title: string;
-  author?: string;
-  orderBy: string;
-  ascending?: boolean;
-  status?: string;
-  type?: string;
-  tagsAdd: string[];
-  tagsRemove: string[];
-  contentWarnings: string[];
-  page: number;
+  return await Application.scheduleRequest({ url: `${DOMAIN}/${chapterId}`, method: "GET" });
 }
 
 export async function fetchSearchPage(params: SearchParams): Promise<[Response, ArrayBuffer]> {
@@ -104,5 +93,8 @@ export async function fetchSearchPage(params: SearchParams): Promise<[Response, 
   for (const warning of params.contentWarnings) {
     qs.push(`content_warning=${encodeURIComponent(warning)}`);
   }
-  return await fetchPage(`${RR_DOMAIN}/fictions/search?${qs.join("&")}`);
+  return await Application.scheduleRequest({
+    url: `${DOMAIN}/fictions/search?${qs.join("&")}`,
+    method: "GET",
+  });
 }
