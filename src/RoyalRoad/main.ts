@@ -8,14 +8,17 @@ import {
   type Form,
   type Chapter,
   type ChapterDetails,
+  type Cookie,
   type DiscoverSection,
   type DiscoverSectionItem,
   type ExtensionImpl,
   type PagedResults,
+  type Request,
   type SearchQuery,
   type SearchResultItem,
   type SortingOption,
   type SourceManga,
+  CookieStorageInterceptor,
 } from "@paperback/types";
 import * as cheerio from "cheerio";
 
@@ -51,11 +54,32 @@ export class RoyalRoadExtension implements ExtensionImpl<typeof RoyalRoadConfig>
     ignoreImages: true,
   });
 
+  cookieStorageInterceptor = new CookieStorageInterceptor({
+    storage: "stateManager",
+  });
+
   requestManager = new RoyalRoadInterceptor("main");
 
   async initialise(): Promise<void> {
     this.globalRateLimiter.registerInterceptor();
+    this.cookieStorageInterceptor.registerInterceptor();
     this.requestManager.registerInterceptor();
+  }
+
+  async cloudflareBypassCompleted(
+    _request: Request,
+    cookies: Cookie[],
+    _localStorage: Record<string, string>,
+  ): Promise<void> {
+    for (const cookie of cookies) {
+      if (
+        cookie.name.startsWith("cf") ||
+        cookie.name.startsWith("_cf") ||
+        cookie.name.startsWith("__cf")
+      ) {
+        this.cookieStorageInterceptor.setCookie(cookie);
+      }
+    }
   }
 
   async getDiscoverSections(): Promise<DiscoverSection[]> {
