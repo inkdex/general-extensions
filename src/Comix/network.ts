@@ -62,7 +62,7 @@ export class ComixInterceptor extends PaperbackInterceptor {
         return await descrambleImage(data, scrambleParams, response.mimeType ?? "image/webp");
       } catch (error) {
         console.log(
-          `[Comix] descramble failed for ${request.url}: ${
+          `[Comix] descramble failed for ${request.url} (algo=${scrambleParams.algo} seed=${scrambleParams.seed}): ${
             error instanceof Error ? error.message : String(error)
           }`,
         );
