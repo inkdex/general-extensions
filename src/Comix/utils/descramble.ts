@@ -149,10 +149,10 @@ export async function descrambleImage(
   params: ScrambleParams,
   mimeType: string,
 ): Promise<ArrayBuffer> {
+  const { cols, rows, seed, algo } = params;
   const src = await loadImageFromBuffer(data, mimeType);
   const width = src.naturalWidth || src.width;
   const height = src.naturalHeight || src.height;
-  const { cols, rows, seed, algo } = params;
 
   const tw = (width / cols) | 0;
   const th = (height / rows) | 0;
