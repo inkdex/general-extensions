@@ -460,7 +460,7 @@ class FilterSettings extends BaseSettings {
             value: this.filter.getDefaultContentRatingSettings(),
             items: this.filter.contentRating,
             layout: "list",
-            maxItemCount: 1,
+            maxItemCount: this.filter.contentRating.length,
             minItemCount: 1,
             onValueChange: Application.Selector(
               this as FilterSettings,

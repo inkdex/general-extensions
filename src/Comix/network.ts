@@ -238,7 +238,7 @@ export class ComixApi {
       [`order[${sortBy}]`]: orderBy,
       genres_mode: mode,
       min_chap: minChapters > 0 ? minChapters.toString() : "",
-      content_rating: content,
+      content_rating: content.join(","),
     };
     if (keyword.length > 1) {
       query.keyword = keyword;
