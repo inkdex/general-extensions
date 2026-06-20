@@ -305,7 +305,7 @@ export class ComixExtension implements ExtensionImpl<typeof ComixConfig> {
     if (query.title.length > 1) {
       sortingOptions.unshift({ id: "relevance$desc" + idSuffix, label: "Best Match" });
       sortingOptions = sortingOptions.filter((sort) => {
-        return sort.id !== "views_30d$desc#empty";
+        return sort.id !== "chapter_updated_at$desc#empty";
       });
     }
     return sortingOptions;
