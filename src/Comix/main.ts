@@ -280,7 +280,7 @@ export class ComixExtension implements ExtensionImpl<typeof ComixConfig> {
   async getSortingOptions(query: SearchQuery<SearchMetadata>): Promise<SortingOption[]> {
     const idSuffix = query.title.length > 1 ? "#title" : "";
     let sortingOptions: SortingOption[] = [
-      { id: "views_30d$desc#empty", label: "Any" },
+      { id: "chapter_updated_at$desc#empty", label: "Any" },
       { id: "chapter_updated_at$asc" + idSuffix, label: "Update Date ↑" },
       { id: "chapter_updated_at$desc" + idSuffix, label: "Update Date ↓" },
       { id: "created_at$asc" + idSuffix, label: "Created Date ↑" },
