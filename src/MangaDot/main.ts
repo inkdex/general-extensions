@@ -193,6 +193,8 @@ export class MangaDotExtension implements ExtensionImpl<typeof MangaDotConfig> {
     metadata: PageMetadata | undefined,
     sortingOption: SortingOption,
   ): Promise<PagedResults<SearchResultItem>> {
+    let sorting = sortingOption;
+    sorting.id = sorting.id.split(query.title.length > 0 ? "#title" : "#empty")[0];
     const page = metadata?.page ?? 1;
     if (query.metadata === undefined) {
       query.metadata = defaultMetadata();
@@ -203,17 +205,18 @@ export class MangaDotExtension implements ExtensionImpl<typeof MangaDotConfig> {
         query.metadata.range,
       );
     }
-    const search = await this.api.getSearch(query, page, sortingOption);
+    const search = await this.api.getSearch(query, page, sorting);
     return parseSearch(search, metadata);
   }
 
-  async getSortingOptions(_query: SearchQuery<SearchMetadata>): Promise<SortingOption[]> {
-    return [
-      { id: "relevance", label: "Relevance" },
+  async getSortingOptions(query: SearchQuery<SearchMetadata>): Promise<SortingOption[]> {
+    const idSuffix = query.title.length > 0 ? "#title" : "";
+    let sortingOptions = [
+      { id: "latest$desc#empty", label: "Default" },
       { id: "latest$asc", label: "Latest ↑" },
       { id: "latest$desc", label: "Latest ↓" },
-      { id: "alphabetical$asc", label: "Z-A" },
-      { id: "alphabetical$desc", label: "A-Z" },
+      { id: "alphabetical$asc", label: "A-Z" },
+      { id: "alphabetical$desc", label: "Z-A" },
       { id: "chapters$asc", label: "Chapters ↑" },
       { id: "chapters$desc", label: "Chapters ↓" },
       { id: "views$asc", label: "Most Viewed ↑" },
@@ -223,6 +226,13 @@ export class MangaDotExtension implements ExtensionImpl<typeof MangaDotConfig> {
       { id: "rating$asc", label: "Top Rated ↑" },
       { id: "rating$desc", label: "Top Rated ↓" },
     ];
+    if (query.title.length > 0) {
+      sortingOptions.unshift({ id: "relevance$desc" + idSuffix, label: "Relevance" });
+      sortingOptions = sortingOptions.filter((sort) => {
+        return sort.id !== "latest$desc#empty";
+      });
+    }
+    return sortingOptions;
   }
 }
 

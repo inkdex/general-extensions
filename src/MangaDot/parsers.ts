@@ -103,7 +103,7 @@ export const parseChapters = (
       langCode: chapter.language,
       chapNum: chapter.chapter_number ?? 0,
       title: chapter.chapter_title,
-      version: chapter.scanlator_name,
+      version: chapter.group_name,
       volume: chapter.volume_number ?? 0,
       sortingIndex: chapter.chapter_number ?? 0,
       publishDate: getDate(chapter.date_added),
