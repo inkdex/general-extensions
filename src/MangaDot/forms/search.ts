@@ -147,7 +147,7 @@ class MangaDotAdvancedSearchForm extends AdvancedSearchForm {
   getOriginFilter(): FormItemElement<unknown>[] {
     return [
       SelectRow("origin", {
-        title: "Origin",
+        title: "Content Type",
         layout: "list",
         onValueChange: Application.Selector(this as MangaDotAdvancedSearchForm, "handleOrigin"),
         items: ORIGIN,

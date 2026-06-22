@@ -184,6 +184,16 @@ export class SettingsForm extends Form {
   }
 
   async handleTypeStatusChange(value: string[]): Promise<void> {
+    const previous = getContentTypes();
+
+    const hadAnyBefore = previous.includes("");
+    const hasAnyNow = value.includes("");
+
+    if (hadAnyBefore && value.length > 1) {
+      value = value.filter((v) => v !== "");
+    } else if (!hadAnyBefore && hasAnyNow) {
+      value = [""];
+    }
     await this.updateValue(value, "content_type");
   }
 

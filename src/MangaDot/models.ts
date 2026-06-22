@@ -120,6 +120,7 @@ export interface ChapterListResponse {
   uploader_upload_status: string | null;
   date_added: string;
   scanlator_name: string;
+  group_name: string;
 }
 
 export interface Volumes {

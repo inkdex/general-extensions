@@ -226,13 +226,21 @@ export class MangaDotApi {
     const params: ApiRequestConfig = {
       path: ["api", "search"],
       query: {
-        search: query.title,
+        ...(query.title && { search: query.title }),
         page: page.toString(),
-        genres: formattedGenres.join(","),
-        origin: (query.metadata?.origin ?? []).join(",").replaceAll("&", ","),
-        status: (query.metadata?.status ?? []).join(","),
-        author: (query.metadata?.author ?? []).join(","),
-        artist: (query.metadata?.artist ?? []).join(","),
+        ...(formattedGenres.length && { genres: formattedGenres.join(",") }),
+        ...(query.metadata?.origin?.length && {
+          origin: (query.metadata?.origin ?? []).join(",").replaceAll("&", ","),
+        }),
+        ...(query.metadata?.status?.length && {
+          status: (query.metadata?.status ?? []).join(","),
+        }),
+        ...(query.metadata?.author?.length && {
+          author: (query.metadata?.author ?? []).join(","),
+        }),
+        ...(query.metadata?.artist?.length && {
+          artist: (query.metadata?.artist ?? []).join(","),
+        }),
         sortBy: sort,
         sortOrder: order ? order : "",
         adult: query.metadata?.adult ?? getShowAdultStatus(),
