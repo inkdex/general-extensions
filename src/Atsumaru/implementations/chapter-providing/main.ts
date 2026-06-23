@@ -5,6 +5,7 @@ import type { Chapter, ChapterDetails, Request, SourceManga } from "@paperback/t
 import { URL } from "@paperback/types";
 
 import { fetchJSON, fetchText } from "../../services/network";
+import { SearchProvider } from "../search-results/main";
 import { DOMAIN } from "../shared/models";
 import type { AtsuChaptersResponse, AtsuReadChapterResponse } from "../shared/models";
 import { parseMangaPage } from "../shared/utils";
@@ -12,12 +13,36 @@ import { parseChapterList } from "./parsers";
 
 export class ChapterProvider {
   async getChapters(sourceManga: SourceManga): Promise<Chapter[]> {
-    const mangaId = sourceManga.mangaId;
+    let mangaId = sourceManga.mangaId;
+    let pageUrl = new URL(DOMAIN).addPathComponent("manga").addPathComponent(mangaId).toString();
+    let pageRequest: Request = { url: pageUrl, method: "GET" };
+    let html = await fetchText(pageRequest);
+    let mangaPage: ReturnType<typeof parseMangaPage>;
 
-    const pageUrl = new URL(DOMAIN).addPathComponent("manga").addPathComponent(mangaId).toString();
-    const pageRequest: Request = { url: pageUrl, method: "GET" };
-    const html = await fetchText(pageRequest);
-    const mangaPage = parseMangaPage(html);
+    try {
+      mangaPage = parseMangaPage(html);
+    } catch {
+      const searchResults = await new SearchProvider().getSearchResults({
+        title: sourceManga.mangaInfo.primaryTitle,
+      });
+      const currentMangaId = searchResults.items.find(
+        (item) => item.title === sourceManga.mangaInfo.primaryTitle,
+      )?.mangaId;
+
+      if (!currentMangaId) {
+        throw new Error(
+          `Could not resolve manga ID for: ${sourceManga.mangaInfo.primaryTitle}`,
+        );
+      }
+
+      mangaId = currentMangaId;
+      pageUrl = new URL(DOMAIN).addPathComponent("manga").addPathComponent(mangaId).toString();
+      pageRequest = { url: pageUrl, method: "GET" };
+      html = await fetchText(pageRequest);
+      mangaPage = parseMangaPage(html);
+    }
+
+    mangaId = mangaPage.id;
     const scanlatorMap = new Map((mangaPage?.scanlators ?? []).map((s) => [s.id, s.name]));
 
     const url = new URL(DOMAIN)
