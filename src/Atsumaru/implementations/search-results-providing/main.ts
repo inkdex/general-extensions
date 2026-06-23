@@ -16,7 +16,7 @@ import {
 } from "@paperback/types/lib/compat/0.8";
 
 import { fetchJSON } from "../../services/network";
-import { getShowAdult } from "../settings-form/main";
+import { getShowAdult } from "../settings-form-providing/main";
 import { DOMAIN } from "../shared/models";
 import type { AtsuAvailableFiltersResponse, AtsuSearchResponse } from "../shared/models";
 import { buildThumbnailUrl, getContentRating } from "../shared/utils";

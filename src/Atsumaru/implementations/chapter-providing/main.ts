@@ -5,7 +5,7 @@ import type { Chapter, ChapterDetails, Request, SourceManga } from "@paperback/t
 import { URL } from "@paperback/types";
 
 import { fetchJSON, fetchText } from "../../services/network";
-import { SearchProvider } from "../search-results/main";
+import { SearchProvider } from "../search-results-providing/main";
 import { DOMAIN } from "../shared/models";
 import type { AtsuChaptersResponse, AtsuReadChapterResponse } from "../shared/models";
 import { parseMangaPage } from "../shared/utils";
@@ -30,9 +30,7 @@ export class ChapterProvider {
       )?.mangaId;
 
       if (!currentMangaId) {
-        throw new Error(
-          `Could not resolve manga ID for: ${sourceManga.mangaInfo.primaryTitle}`,
-        );
+        throw new Error(`Could not resolve manga ID for: ${sourceManga.mangaInfo.primaryTitle}`);
       }
 
       mangaId = currentMangaId;
