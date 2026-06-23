@@ -7,8 +7,8 @@ import { DiscoverSectionType } from "@paperback/types";
 import type { AtsuHomePageResponse } from "../shared/models";
 import { buildThumbnailUrl, getContentRating } from "../shared/utils";
 
-export function parseDiscoverSections(json: AtsuHomePageResponse): DiscoverSection[] {
-  const sections = json.homePage.sections;
+export function parseDiscoverSections(data: AtsuHomePageResponse): DiscoverSection[] {
+  const sections = data.homePage.sections;
 
   // filter for carousel sections only and map
   return sections
@@ -21,10 +21,10 @@ export function parseDiscoverSections(json: AtsuHomePageResponse): DiscoverSecti
 }
 
 export function parseDiscoverItems(
-  json: AtsuHomePageResponse,
+  data: AtsuHomePageResponse,
   sectionId: string,
 ): DiscoverSectionItem[] {
-  const sections = json.homePage.sections;
+  const sections = data.homePage.sections;
 
   // find the section matching the sectionId
   const section = sections.find((s) => s.key === sectionId);
