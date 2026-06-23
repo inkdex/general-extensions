@@ -3,7 +3,7 @@
 
 import { ContentRating } from "@paperback/types";
 
-import { getShowAdult } from "../settings-form/main";
+import { getShowAdult } from "../settings-form-providing/main";
 import { DOMAIN } from "./models";
 import type { AtsuMangaPageResponse, AtsuSearchDocument } from "./models";
 

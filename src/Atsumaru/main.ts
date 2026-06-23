@@ -5,10 +5,10 @@ import type { Cookie, Extension, MangaProviding } from "@paperback/types";
 import { BasicRateLimiter, CookieStorageInterceptor } from "@paperback/types";
 
 import { ChapterProvider } from "./implementations/chapter-providing/main";
-import { DiscoverProvider } from "./implementations/discover-section/main";
-import { MangaProvider } from "./implementations/manga/main";
-import { SearchProvider } from "./implementations/search-results/main";
-import { SettingsFormProvider } from "./implementations/settings-form/main";
+import { DiscoverProvider } from "./implementations/discover-section-providing/main";
+import { MangaProvider } from "./implementations/manga-details-providing/main";
+import { SearchProvider } from "./implementations/search-results-providing/main";
+import { SettingsFormProvider } from "./implementations/settings-form-providing/main";
 import { applyMixins } from "./implementations/shared/utils";
 import { AtsuInterceptor } from "./services/network";
 
