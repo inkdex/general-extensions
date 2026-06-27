@@ -41,6 +41,8 @@ function decodeScrambleHash(hash: string | undefined): number {
   switch (hash?.trim()) {
     case "03632":
       return 58414;
+    case "02900":
+      return 117532;
     default:
       return 0;
   }
