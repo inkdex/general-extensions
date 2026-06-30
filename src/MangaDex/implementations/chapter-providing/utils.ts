@@ -7,8 +7,8 @@ import { paperbackToMangaDexRatings } from "../shared/parsers";
 import type { PrecomputedQuery } from "../shared/utils";
 import { relevanceScore } from "../shared/utils";
 
-// Prefers the raw rating. The Paperback enum lumps erotica and
-// pornographic into ADULT and would miss a flip between them.
+// Prefers the raw MangaDex rating. Paperback's enum lumps erotica and
+// pornographic together as ADULT, so it would miss a switch between the two.
 export function isRatingAllowed(
   storedMdRating: string | undefined,
   mangaPbRating: ContentRating,
@@ -18,8 +18,8 @@ export function isRatingAllowed(
   return (paperbackToMangaDexRatings[mangaPbRating] ?? []).some((r) => enabledRatings.includes(r));
 }
 
-// Cache shared across chapter rows so repeat group names skip the
-// retokenize and rescore. Caller short circuits on empty queries.
+// Cache shared across chapter rows so a repeated group name skips tokenizing
+// and scoring again. The caller skips this entirely when there are no queries.
 export function isGroupNameBlocked(
   name: string,
   blockedGroupQueries: PrecomputedQuery[],

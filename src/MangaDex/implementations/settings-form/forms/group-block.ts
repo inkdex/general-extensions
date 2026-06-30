@@ -52,8 +52,8 @@ export class GroupBlockForm extends Form {
     const showNoResults =
       this.hasSearched && !hasSearchResults && !this.isLoading && this.searchTerm.trim().length > 0;
     const isAtMaxGroups = blockedGroupIds.length >= MAX_BLOCKED_GROUPS;
-    // Idle (or mid-pagination): result UI and pagination buttons stay live so
-    // taps never land on a dead row. Single source for every isHidden below.
+    // Idle (or mid-pagination): the result UI and pagination buttons stay live so
+    // taps never land on a dead row. This one value drives every isHidden below.
     const canPaginate = !this.isLoading || this.isPaginationLoading;
     const showResults = this.hasSearched && hasSearchResults && canPaginate;
 
@@ -138,7 +138,7 @@ export class GroupBlockForm extends Form {
 
           LabelRow("no_results", {
             title: "No results found",
-            isHidden: !(this.hasSearched && showNoResults),
+            isHidden: !showNoResults,
           }),
 
           LabelRow("loading", {
@@ -220,7 +220,7 @@ export class GroupBlockForm extends Form {
     const remainingSlots = Math.max(0, MAX_BLOCKED_GROUPS - Object.keys(updated).length);
     const groupsToProcess = value.slice(0, remainingSlots);
 
-    // Single save per handler invocation.
+    // Save once per handler call.
     for (const groupId of groupsToProcess) {
       const group = this.searchResults.find((g) => g.id === groupId);
       if (group) {
@@ -258,7 +258,7 @@ export class GroupBlockForm extends Form {
   }
 
   private async flushPendingSearch(): Promise<void> {
-    // Defer mid pagination. Page handlers reflush via their finally and avoid races.
+    // Wait if pagination is running. The page handlers flush again in their finally, avoiding races.
     if (this.isLoading) {
       this.searchPending = true;
       return;
@@ -359,7 +359,7 @@ export class GroupBlockForm extends Form {
     } catch (error) {
       this.searchResults = [];
       this.totalResultsCount = 0;
-      console.log(`Error searching groups: ${String(error)}`);
+      console.log(`[MangaDex] Error searching groups: ${String(error)}`);
     } finally {
       this.isLoading = false;
       this.isPaginationLoading = false;

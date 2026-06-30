@@ -10,7 +10,7 @@ import {
 } from "@paperback/types";
 
 import { MDLanguages } from "../../shared/languages";
-import { getLanguagePriority, setLanguagePriority, getLanguages } from "../../shared/state";
+import { getLanguagePriority, getLanguages, setLanguagePriority } from "../../shared/state";
 import { bindMoveHandlers, buildReorderableRows, swapItems } from "./reorderable";
 
 export class LanguagePriorityForm extends Form {

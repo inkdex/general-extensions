@@ -7,7 +7,7 @@ import { MANGADEX_API } from "./models";
 
 // URL builders return URL objects so callers can chain .setQueryItem (e.g. search tag modes).
 
-// An empty array would otherwise serialize as a noisy "key[]=" with no value.
+// An empty array would otherwise show up as a noisy "key[]=" with no value.
 function setIfNonEmpty(url: URL, key: string, values: readonly string[] | undefined): void {
   if (values && values.length > 0) {
     url.setQueryItem(key, values as string[]);
@@ -93,7 +93,8 @@ export interface MangaFeedUrlOptions {
   ratings: readonly string[];
   languages: readonly string[];
   publishAtSince: string | undefined;
-  // Triggers all three include* params (isUnavailable, pages=0, externalUrl).
+  // Adds DMCA-removed / withheld chapters. External and empty-page chapters already
+  // come back by default, the chapter loop labels them "[Unavailable]".
   includeUnavailable?: boolean;
 }
 
@@ -123,9 +124,10 @@ export function buildMangaFeedUrl(opts: MangaFeedUrlOptions): URL {
     url.setQueryItem("publishAtSince", opts.publishAtSince);
   }
   if (opts.includeUnavailable) {
+    // includeUnavailable is additive (adds withheld chapters). Do NOT also set
+    // includeEmptyPages / includeExternalUrl: on /feed those are exclusive filters
+    // that return ONLY that chapter type, which empties a normal manga's feed.
     url.setQueryItem("includeUnavailable", "1");
-    url.setQueryItem("includeEmptyPages", "1");
-    url.setQueryItem("includeExternalUrl", "1");
   }
   return url;
 }
@@ -134,13 +136,15 @@ export function buildMangaFeedUrl(opts: MangaFeedUrlOptions): URL {
 
 export function buildMangaAggregateUrl(
   mangaId: string,
-  translatedLanguages?: readonly string[],
+  translatedLanguages: readonly string[],
+  contentRating: readonly string[],
 ): URL {
   const url = new URL(MANGADEX_API)
     .addPathComponent("manga")
     .addPathComponent(mangaId)
     .addPathComponent("aggregate");
   setIfNonEmpty(url, "translatedLanguage[]", translatedLanguages);
+  setIfNonEmpty(url, "contentRating[]", contentRating);
   return url;
 }
 
@@ -159,22 +163,15 @@ export function buildMangaStatusWriteUrl(mangaId: string): URL {
 
 // /chapter (batch by id)
 
-export interface ChapterBatchUrlOptions {
-  chapterIds: readonly string[];
-  languages: readonly string[];
-  ratings: readonly string[];
-  // Omitted sends "0" to exclude chapters scheduled but not yet released.
-  includeFutureUpdates?: boolean;
-}
-
-export function buildChapterBatchUrl(opts: ChapterBatchUrlOptions): URL {
+export function buildChapterBatchUrl(
+  chapterIds: readonly string[],
+  ratings: readonly string[],
+): URL {
   return new URL(MANGADEX_API)
     .addPathComponent("chapter")
-    .setQueryItem("ids[]", opts.chapterIds as string[])
-    .setQueryItem("limit", opts.chapterIds.length.toString())
-    .setQueryItem("translatedLanguage[]", opts.languages as string[])
-    .setQueryItem("contentRating[]", opts.ratings as string[])
-    .setQueryItem("includeFutureUpdates", opts.includeFutureUpdates ? "1" : "0");
+    .setQueryItem("ids[]", chapterIds as string[])
+    .setQueryItem("limit", chapterIds.length.toString())
+    .setQueryItem("contentRating[]", ratings as string[]);
 }
 
 // /chapter (latest by language, used by Latest Updates and uploader browse)

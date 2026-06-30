@@ -18,7 +18,7 @@ import {
 import { DEMOGRAPHICS, ORIGINAL_LANGUAGES, PUBLICATION_STATUSES } from "../shared/lookups";
 
 export interface MangaDexSearchMetadata extends JSONObject {
-  // Single element string[] to match SelectSection's binding.
+  // A one-element string[] to match SelectSection's binding.
   includeOperator?: string[];
   excludeOperator?: string[];
   tagsByGroup?: Record<string, Record<string, "included" | "excluded">>;

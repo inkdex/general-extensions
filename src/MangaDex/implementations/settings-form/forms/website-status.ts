@@ -10,8 +10,78 @@ const STATUS_CACHE_TTL_MS = 60 * 1000;
 let cachedStatusContent: string[] | null = null;
 let cachedStatusFetchedAt = 0;
 
+const LOCAL_TIME_OPTIONS: Intl.DateTimeFormatOptions = {
+  year: "numeric",
+  month: "short",
+  day: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+  hour12: true,
+  timeZoneName: "short",
+};
+
+const MONTH_INDEX: Record<string, number> = {
+  jan: 0,
+  feb: 1,
+  mar: 2,
+  apr: 3,
+  may: 4,
+  jun: 5,
+  jul: 6,
+  aug: 7,
+  sep: 8,
+  oct: 9,
+  nov: 10,
+  dec: 11,
+};
+
+// <br><br> -> blank line (paragraph break), <br> -> newline.
+const wrapText = (text: string): string[] =>
+  text
+    .replace(/<br\s*\/?>\s*<br\s*\/?>/gi, "\n\n")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .split("\n")
+    .map((paragraph) => paragraph.trim());
+
+const formatTimeSince = (diffSec: number): string => {
+  const min = Math.floor(diffSec / 60);
+  const hour = Math.floor(min / 60);
+  if (hour > 0) return `${hour} ${hour === 1 ? "hour" : "hours"} ago`;
+  if (min > 0) return `${min} ${min === 1 ? "minute" : "minutes"} ago`;
+  const sec = Math.max(0, diffSec);
+  return `${sec} ${sec === 1 ? "second" : "seconds"} ago`;
+};
+
+const parseUtc = (datePart: string, timePart: string): Date => {
+  const d = datePart.match(/([A-Za-z]+)\s+(\d{1,2}),\s+(\d{4})/);
+  const t = timePart.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+  if (d && t) {
+    const month = MONTH_INDEX[d[1].slice(0, 3).toLowerCase()];
+    if (month !== undefined) {
+      return new Date(
+        Date.UTC(Number(d[3]), month, Number(d[2]), Number(t[1]), Number(t[2]), Number(t[3] ?? 0)),
+      );
+    }
+  }
+  return new Date(`${datePart} ${timePart} UTC`);
+};
+
+const convertToLocalTime = (utcTimestamp: string): string => {
+  if (!utcTimestamp.includes("UTC")) return utcTimestamp;
+  try {
+    const dateParts = utcTimestamp.replace(" UTC", "").split(" - ");
+    if (dateParts.length !== 2) return utcTimestamp;
+    const date = parseUtc(dateParts[0], dateParts[1]);
+    if (isNaN(date.getTime())) return utcTimestamp;
+    const diffSec = Math.floor((Date.now() - date.getTime()) / 1000);
+    return `${date.toLocaleString(undefined, LOCAL_TIME_OPTIONS)} (${formatTimeSince(diffSec)})`;
+  } catch {
+    return utcTimestamp;
+  }
+};
+
 export class WebsiteStatusForm extends Form {
-  private statusData: { loading: boolean; content: string[] };
+  private statusData: { content: string[] };
   // Only the most recent fetch writes, so a slow load cannot break a refresh.
   private fetchToken = 0;
 
@@ -19,16 +89,14 @@ export class WebsiteStatusForm extends Form {
     super();
     if (cachedStatusContent && Date.now() - cachedStatusFetchedAt < STATUS_CACHE_TTL_MS) {
       this.statusData = {
-        loading: false,
         content: cachedStatusContent,
       };
       return;
     }
     this.statusData = {
-      loading: true,
       content: ["Loading..."],
     };
-    void this.fetchStatusInfo();
+    this.fetchStatusInfo().catch(() => {});
   }
 
   override getSections(): FormSectionElement<unknown>[] {
@@ -53,7 +121,6 @@ export class WebsiteStatusForm extends Form {
     // fetchStatusInfo bumps fetchToken itself, which is what invalidates
     // older fetches.
     this.statusData = {
-      loading: true,
       content: ["Loading..."],
     };
     this.reloadForm();
@@ -65,7 +132,7 @@ export class WebsiteStatusForm extends Form {
     const isCurrent = (): boolean => this.fetchToken === token;
     const showError = (message: string): void => {
       if (!isCurrent()) return;
-      this.statusData = { loading: false, content: [message] };
+      this.statusData = { content: [message] };
       this.reloadForm();
     };
 
@@ -97,83 +164,6 @@ export class WebsiteStatusForm extends Form {
       }
 
       const content: string[] = [];
-
-      // <br><br> -> blank line (paragraph break), <br> -> newline.
-      const wrapText = (text: string): string[] =>
-        text
-          .replace(/<br\s*\/?>\s*<br\s*\/?>/gi, "\n\n")
-          .replace(/<br\s*\/?>/gi, "\n")
-          .split("\n")
-          .map((paragraph) => paragraph.trim());
-
-      const formatTimeSince = (diffSec: number): string => {
-        const min = Math.floor(diffSec / 60);
-        const hour = Math.floor(min / 60);
-        if (hour > 0) return `${hour} ${hour === 1 ? "hour" : "hours"} ago`;
-        if (min > 0) return `${min} ${min === 1 ? "minute" : "minutes"} ago`;
-        const sec = Math.max(0, diffSec);
-        return `${sec} ${sec === 1 ? "second" : "seconds"} ago`;
-      };
-
-      const LOCAL_TIME_OPTIONS: Intl.DateTimeFormatOptions = {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-        hour: "numeric",
-        minute: "2-digit",
-        hour12: true,
-        timeZoneName: "short",
-      };
-
-      const MONTH_INDEX: Record<string, number> = {
-        jan: 0,
-        feb: 1,
-        mar: 2,
-        apr: 3,
-        may: 4,
-        jun: 5,
-        jul: 6,
-        aug: 7,
-        sep: 8,
-        oct: 9,
-        nov: 10,
-        dec: 11,
-      };
-
-      const parseUtc = (datePart: string, timePart: string): Date => {
-        const d = datePart.match(/([A-Za-z]+)\s+(\d{1,2}),\s+(\d{4})/);
-        const t = timePart.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?/);
-        if (d && t) {
-          const month = MONTH_INDEX[d[1].slice(0, 3).toLowerCase()];
-          if (month !== undefined) {
-            return new Date(
-              Date.UTC(
-                Number(d[3]),
-                month,
-                Number(d[2]),
-                Number(t[1]),
-                Number(t[2]),
-                Number(t[3] ?? 0),
-              ),
-            );
-          }
-        }
-        return new Date(`${datePart} ${timePart} UTC`);
-      };
-
-      const convertToLocalTime = (utcTimestamp: string): string => {
-        if (!utcTimestamp.includes("UTC")) return utcTimestamp;
-        try {
-          const dateParts = utcTimestamp.replace(" UTC", "").split(" - ");
-          if (dateParts.length !== 2) return utcTimestamp;
-          const date = parseUtc(dateParts[0], dateParts[1]);
-          if (isNaN(date.getTime())) return utcTimestamp;
-          const diffSec = Math.floor((Date.now() - date.getTime()) / 1000);
-          return `${date.toLocaleString(undefined, LOCAL_TIME_OPTIONS)} (${formatTimeSince(diffSec)})`;
-        } catch {
-          return utcTimestamp;
-        }
-      };
 
       const renderUpdate = (update: AnyNode, appendSeparator: boolean): void => {
         const $update = $(update);
@@ -266,13 +256,11 @@ export class WebsiteStatusForm extends Form {
       cachedStatusContent = finalContent;
       cachedStatusFetchedAt = Date.now();
       this.statusData = {
-        loading: false,
         content: finalContent,
       };
     } catch {
       if (!isCurrent()) return;
       this.statusData = {
-        loading: false,
         content: ["Error fetching status"],
       };
     }

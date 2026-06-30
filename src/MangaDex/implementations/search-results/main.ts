@@ -49,7 +49,7 @@ import {
   buildMangaListUrl,
   buildStatisticsBatchUrl,
 } from "../shared/urls";
-import { MANGA_PAGE_LIMIT, computeNextMetadata, reorderById } from "../shared/utils";
+import { MANGA_PAGE_LIMIT, MAX_SEEN_IDS, computeNextMetadata, reorderById } from "../shared/utils";
 import { MangaDexAdvancedSearchForm, type MangaDexSearchMetadata } from "./forms";
 
 type TagFilters = {
@@ -60,7 +60,7 @@ type TagFilters = {
 
 // ===== Input parsers =====
 
-// Fans out any code with extraCodes (zh fans to zh + zh-hk).
+// Expands any code with extraCodes (zh expands to zh + zh-hk).
 function expandOriginalLanguages(selected: readonly string[]): string[] {
   if (!selected || selected.length === 0) return [];
   const out: string[] = [];
@@ -140,7 +140,6 @@ function resolveSortOrder(
 async function enrichAndParseMangaResults(
   mangaItems: MangaItem[],
   ratings: string[],
-  languages: string[],
   queryTitle: string | undefined,
 ): Promise<SearchResultItem[]> {
   if (mangaItems.length === 0) return [];
@@ -151,7 +150,7 @@ async function enrichAndParseMangaResults(
     .filter((id): id is string => !!id);
   const wantChapterDetails = (getShowVolume() || getShowChapter()) && chapterIds.length > 0;
 
-  // Decorations fail open so a stats outage never blanks the page.
+  // The rating and chapter extras fail quietly, so a stats outage never blanks the page.
   const ratingPromise: Promise<StatisticsResponse | undefined> = wantRating
     ? fetchJSON<StatisticsResponse>({
         url: buildStatisticsBatchUrl(mangaItems.map((m) => m.id)).toString(),
@@ -161,11 +160,7 @@ async function enrichAndParseMangaResults(
 
   const chaptersPromise: Promise<ChapterResponse | undefined> = wantChapterDetails
     ? fetchJSON<ChapterResponse>({
-        url: buildChapterBatchUrl({
-          chapterIds,
-          languages,
-          ratings,
-        }).toString(),
+        url: buildChapterBatchUrl(chapterIds, ratings).toString(),
         method: "GET",
       }).catch(() => undefined)
     : Promise.resolve(undefined);
@@ -207,7 +202,6 @@ async function fetchAndEnrichOrderedMangaIds(
   return enrichAndParseMangaResults(
     reorderById(mangaResponse.data, orderedIds),
     ratings,
-    languages,
     undefined,
   );
 }
@@ -238,6 +232,9 @@ async function searchByUploader(
   languages: string[],
 ): Promise<PagedResults<SearchResultItem>> {
   let offset = metadata?.offset ?? 0;
+  const seen = new Set<string>(metadata?.emittedIds ?? []);
+  const withSeen = (m: Metadata | undefined): Metadata | undefined =>
+    m ? { ...m, emittedIds: Array.from(seen).slice(-MAX_SEEN_IDS) } : m;
 
   for (let attempt = 0; attempt < UPLOADER_FETCH_PAGE_CAP; attempt++) {
     const chaptersResponse = await fetchJSON<ChapterResponse>({
@@ -265,20 +262,22 @@ async function searchByUploader(
       MANGA_PAGE_LIMIT,
     );
     if (chapters.length === 0) {
-      return { items: [], metadata: nextMetadata };
+      return { items: [], metadata: withSeen(nextMetadata) };
     }
 
     const { ids: orderedMangaIds } = collectUniqueMangaIdsFromChapters(chapters);
+    const newIds = orderedMangaIds.filter((id) => !seen.has(id));
+    for (const id of newIds) seen.add(id);
 
-    const items = await fetchAndEnrichOrderedMangaIds(orderedMangaIds, ratings, languages);
+    const items = await fetchAndEnrichOrderedMangaIds(newIds, ratings, languages);
     if (items.length > 0 || nextMetadata === undefined) {
-      return { items, metadata: nextMetadata };
+      return { items, metadata: withSeen(nextMetadata) };
     }
 
     offset = nextMetadata.offset ?? offset + MANGA_PAGE_LIMIT;
   }
 
-  return { items: [], metadata: { offset } };
+  return { items: [], metadata: withSeen({ offset }) };
 }
 
 const LIST_FETCH_PAGE_CAP = 3;
@@ -401,7 +400,7 @@ export async function getSearchResults(
   const { orderKey, orderValue } = resolveSortOrder(sortingOption, isTitleSearch);
 
   // Exact ID lookups skip form filters, but the global rating and
-  // language gates still apply.
+  // language filters still apply.
   const isExactIdLookup = !!searchByIdsValue;
   const hasAvailableChapters = isExactIdLookup ? undefined : (meta?.hasAvailableChapters ?? true);
   const demographics = isExactIdLookup ? [] : (meta?.demographics ?? []);
@@ -457,7 +456,6 @@ export async function getSearchResults(
   const items = await enrichAndParseMangaResults(
     json.data,
     ratings,
-    languages,
     localRelevanceSort ? searchTitleValue : undefined,
   );
 

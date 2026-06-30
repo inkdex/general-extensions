@@ -50,14 +50,23 @@ export async function commitManagedCollectionChanges(
     }
   };
 
-  // Promise.all aborts the whole changeset on any failure.
-  const additionRequests = (changeset.additions ?? []).map((a) =>
-    postStatus(a.mangaId, changeset.collection.id, "add"),
-  );
-  const deletionRequests = (changeset.deletions ?? []).map((d) =>
-    postStatus(d.mangaId, null, "remove"),
-  );
-  await Promise.all([...additionRequests, ...deletionRequests]);
+  // Use allSettled so one failed write is reported on its own, without
+  // hiding the writes that already succeeded on the server.
+  const requests = [
+    ...(changeset.additions ?? []).map((a) =>
+      postStatus(a.mangaId, changeset.collection.id, "add"),
+    ),
+    ...(changeset.deletions ?? []).map((d) => postStatus(d.mangaId, null, "remove")),
+  ];
+  const results = await Promise.allSettled(requests);
+  const failures = results
+    .filter((r): r is PromiseRejectedResult => r.status === "rejected")
+    .map((r) => (r.reason instanceof Error ? r.reason.message : String(r.reason)));
+  if (failures.length > 0) {
+    throw new Error(
+      `MangaDex collection update failed for ${failures.length} of ${requests.length}: ${failures.join("; ")}`,
+    );
+  }
 }
 
 export async function getSourceMangaInManagedCollection(
@@ -67,24 +76,24 @@ export async function getSourceMangaInManagedCollection(
     throw new Error("You need to be logged in");
   }
 
-  const statusjson = await fetchJSON<MangaStatusResponse>({
+  const statusJson = await fetchJSON<MangaStatusResponse>({
     url: buildMangaStatusListUrl().toString(),
     method: "GET",
   });
 
   if (
-    !statusjson.statuses ||
-    typeof statusjson.statuses !== "object" ||
-    Array.isArray(statusjson.statuses)
+    !statusJson.statuses ||
+    typeof statusJson.statuses !== "object" ||
+    Array.isArray(statusJson.statuses)
   ) {
     throw new Error("MangaDex returned no status data");
   }
 
-  const ids = Object.keys(statusjson.statuses).filter(
-    (x) => statusjson.statuses[x] === managedCollection.id,
+  const ids = Object.keys(statusJson.statuses).filter(
+    (x) => statusJson.statuses[x] === managedCollection.id,
   );
 
-  // Fail on any batch error rather than render a silently partial collection,
+  // Fail on any batch error instead of showing an incomplete collection,
   // which could make the user think kept titles were removed. The host retries.
   const responses = await Promise.all(
     chunk(ids, MANGA_PAGE_LIMIT).map((batch) =>
