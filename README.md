@@ -12,6 +12,7 @@ Paperback extensions for websites with unique, non-generic themes.
 - [MangaDot](https://mangadot.net)
 - [MangaFire](https://mangafire.to)
 - [MangaFox](https://fanfox.net)
+- [Mangago](https://mangago.me)
 - [MangaKatana](https://mangakatana.com)
 - [Mangapill](https://mangapill.com)
 - [MangaPlus](https://mangaplus.shueisha.co.jp)
