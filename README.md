@@ -16,6 +16,7 @@ Paperback extensions for websites with unique, non-generic themes.
 - [MangaPlus](https://mangaplus.shueisha.co.jp)
 - [MangaTaro](https://mangataro.org)
 - [Mgeko](https://mgeko.cc)
+- [OniSaga](https://onisaga.com)
 - [PunkRecords](https://punkrecordz.com)
 - [RoyalRoad](https://www.royalroad.com)
 - [QiScans](https://qimanhwa.com)
