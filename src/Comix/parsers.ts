@@ -139,7 +139,7 @@ function toContentRating(content: string): ContentRating {
 
 function parseRelativeDate(value: string): Date {
   const now = new Date();
-  const match = value.match(/^(\d+)\s*(s|m|h|d|w|mo|mos|y)s?(\s+ago)?$/i);
+  const match = value.match(/^(\d+)\s*(mo|yr|[smhdwy])s?(\s+ago)?$/i);
   if (!match) {
     return now;
   }
@@ -161,9 +161,9 @@ function parseRelativeDate(value: string): Date {
       now.setDate(now.getDate() - amount * 7);
       break;
     case "mo":
-    case "mos":
       now.setMonth(now.getMonth() - amount);
       break;
+    case "yr":
     case "y":
       now.setFullYear(now.getFullYear() - amount);
       break;
