@@ -5,6 +5,7 @@ import { type CookieStorageInterceptor } from "@paperback/types";
 import * as cheerio from "cheerio";
 
 import { type ChapterItem, type ResultManga, DOMAIN } from "../models";
+import { fetchText } from "../network";
 
 // Loads a Comix page in a WebView and lets the site's own JS run end-to-end:
 // the bundle signs API requests and decrypts `{e:"blob"}` responses internally,
@@ -20,8 +21,7 @@ async function runProxiedWebView<T>(
 ): Promise<T> {
   const cookies = cookieInterceptor.cookiesForUrl(`${DOMAIN}/`);
   const userAgent = await Application.getDefaultUserAgent();
-  const [, buffer] = await Application.scheduleRequest({ url: pageUrl, method: "GET" });
-  const $ = cheerio.load(Application.arrayBufferToUTF8String(buffer));
+  const $ = cheerio.load(await fetchText(pageUrl));
 
   $("head").prepend(`<script>${bootstrap}</script>`);
 

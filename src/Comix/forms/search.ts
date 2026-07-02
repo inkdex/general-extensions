@@ -13,46 +13,37 @@ import {
 } from "@paperback/types";
 
 import type { SearchMetadata, TagMap } from "../models";
-import type { ComixFilter } from "../utils/filter";
+import {
+  contentRatings,
+  contentTypes,
+  filters,
+  getContentRating,
+  publicationStatuses,
+} from "../utils/filters";
 
 export class ComixAdvancedSearchForm extends AdvancedSearchForm {
-  private searchMetadata: SearchMetadata;
-  private mode?: string[];
-  constructor(
-    searchQuery: SearchQuery<SearchMetadata>,
-    private filter: ComixFilter,
-  ) {
+  private metadata: SearchMetadata;
+  private mode: string[];
+
+  constructor(searchQuery: SearchQuery<SearchMetadata>) {
     super();
-    if (searchQuery.metadata !== undefined) {
-      this.searchMetadata = searchQuery.metadata;
-    } else {
-      this.searchMetadata = {
-        genres: {},
-        themes: {},
-        types: {},
-        demographic: {},
-        status: {},
-        formats: {},
-        mode: [],
-      };
-    }
-    this.mode = this.searchMetadata.mode ? this.searchMetadata.mode : ["and"];
+    this.metadata = searchQuery.metadata ?? {};
+    this.mode = this.metadata.mode ?? ["and"];
   }
 
   override getSearchQueryMetadata(): SearchMetadata {
-    if (this.mode) {
-      this.searchMetadata.mode = this.mode;
-    }
-    return this.searchMetadata;
+    this.metadata.mode = this.mode;
+    return this.metadata;
   }
+
   override getSections(): FormSectionElement<unknown>[] {
     return [
       Section("genres", [
         TriStateSelectRow("genres", {
           title: "Genres",
           layout: "list",
-          value: this.searchMetadata.genres ?? {},
-          items: this.filter.genres.map((x) => ({ id: x.id, title: x.value })),
+          value: this.metadata.genres ?? {},
+          items: filters.genres,
           allowExclusion: true,
           allowEmptySelection: true,
           onValueChange: Application.Selector(
@@ -65,10 +56,10 @@ export class ComixAdvancedSearchForm extends AdvancedSearchForm {
         TriStateSelectRow("demographic", {
           title: "Demographic",
           layout: "list",
-          value: this.searchMetadata.demographic ?? {},
-          allowEmptySelection: true,
+          value: this.metadata.demographic ?? {},
+          items: filters.demographic,
           allowExclusion: true,
-          items: this.filter.demographic.map((x) => ({ id: x.id, title: x.value })),
+          allowEmptySelection: true,
           onValueChange: Application.Selector(this as ComixAdvancedSearchForm, "handleDemogChange"),
         }),
       ]),
@@ -76,10 +67,10 @@ export class ComixAdvancedSearchForm extends AdvancedSearchForm {
         TriStateSelectRow("status", {
           title: "Status",
           layout: "list",
-          value: this.searchMetadata.status ?? {},
-          allowEmptySelection: true,
+          value: this.metadata.status ?? {},
+          items: publicationStatuses,
           allowExclusion: false,
-          items: this.filter.publication_status.map((x) => ({ id: x.id, title: x.value })),
+          allowEmptySelection: true,
           onValueChange: Application.Selector(
             this as ComixAdvancedSearchForm,
             "handleStatusChange",
@@ -90,10 +81,10 @@ export class ComixAdvancedSearchForm extends AdvancedSearchForm {
         TriStateSelectRow("types", {
           title: "Types",
           layout: "list",
-          value: this.searchMetadata.types ?? {},
-          allowEmptySelection: true,
+          value: this.metadata.types ?? {},
+          items: contentTypes,
           allowExclusion: false,
-          items: this.filter.contentType.map((x) => ({ id: x.id, title: x.value })),
+          allowEmptySelection: true,
           onValueChange: Application.Selector(this as ComixAdvancedSearchForm, "handleTypesChange"),
         }),
       ]),
@@ -101,10 +92,10 @@ export class ComixAdvancedSearchForm extends AdvancedSearchForm {
         TriStateSelectRow("formats", {
           title: "Formats",
           layout: "list",
-          value: this.searchMetadata.formats ?? {},
-          allowEmptySelection: true,
+          value: this.metadata.formats ?? {},
+          items: filters.formats,
           allowExclusion: false,
-          items: this.filter.formats.map((x) => ({ id: x.id, title: x.value })),
+          allowEmptySelection: true,
           onValueChange: Application.Selector(
             this as ComixAdvancedSearchForm,
             "handleFormatsChange",
@@ -114,7 +105,7 @@ export class ComixAdvancedSearchForm extends AdvancedSearchForm {
       SelectSection(this, {
         id: "mode",
         layout: "flow",
-        value: this.mode ?? ["and"],
+        value: this.mode,
         items: [
           { id: "and", title: "AND" },
           { id: "or", title: "OR" },
@@ -125,7 +116,7 @@ export class ComixAdvancedSearchForm extends AdvancedSearchForm {
       Section("chapter_min", [
         StepperRow("chapter_min", {
           title: "Minimum Chapters",
-          value: this.searchMetadata.minChap ?? 0,
+          value: this.metadata.minChap ?? 0,
           minValue: 0,
           maxValue: 10000,
           stepValue: 1,
@@ -136,11 +127,11 @@ export class ComixAdvancedSearchForm extends AdvancedSearchForm {
       Section("content_rating", [
         SelectRow("content_rating", {
           title: "Content Rating",
-          value: this.searchMetadata.contentRating ?? this.filter.getDefaultContentRatingSettings(),
-          items: this.filter.contentRating,
+          value: this.metadata.contentRating ?? getContentRating(),
+          items: contentRatings,
           layout: "list",
-          maxItemCount: this.filter.contentRating.length,
           minItemCount: 1,
+          maxItemCount: contentRatings.length,
           onValueChange: Application.Selector(
             this as ComixAdvancedSearchForm,
             "handleContentRating",
@@ -151,24 +142,24 @@ export class ComixAdvancedSearchForm extends AdvancedSearchForm {
   }
 
   async handleGenresChange(value: TagMap): Promise<void> {
-    this.searchMetadata.genres = value;
+    this.metadata.genres = value;
   }
   async handleDemogChange(value: TagMap): Promise<void> {
-    this.searchMetadata.demographic = value;
+    this.metadata.demographic = value;
   }
   async handleStatusChange(value: TagMap): Promise<void> {
-    this.searchMetadata.status = value;
+    this.metadata.status = value;
   }
   async handleTypesChange(value: TagMap): Promise<void> {
-    this.searchMetadata.types = value;
+    this.metadata.types = value;
   }
   async handleFormatsChange(value: TagMap): Promise<void> {
-    this.searchMetadata.formats = value;
+    this.metadata.formats = value;
   }
   async handleMinChapters(value: number): Promise<void> {
-    this.searchMetadata.minChap = value;
+    this.metadata.minChap = value;
   }
   async handleContentRating(value: string[]): Promise<void> {
-    this.searchMetadata.contentRating = value;
+    this.metadata.contentRating = value;
   }
 }

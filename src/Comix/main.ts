@@ -2,6 +2,10 @@
 /* Copyright © 2026 Inkdex */
 
 import {
+  BasicRateLimiter,
+  ContentRating,
+  CookieStorageInterceptor,
+  DiscoverSectionType,
   type AdvancedSearchForm,
   type Chapter,
   type ChapterDetails,
@@ -16,85 +20,52 @@ import {
   type SearchResultItem,
   type SortingOption,
   type SourceManga,
-  BasicRateLimiter,
-  CookieStorageInterceptor,
-  DiscoverSectionType,
 } from "@paperback/types";
 
 import { ComixAdvancedSearchForm } from "./forms/search";
-import { getDiscoverySectionsOrder, MainSettings } from "./forms/settings";
-import type { Filters, Metadata, OptionItem, SearchMetadata } from "./models";
-import { ComixInterceptor, ComixApi } from "./network";
-import { ComixParser } from "./parsers";
+import { ComixSettingsForm, getDiscoverySectionsOrder } from "./forms/settings";
+import {
+  DOMAIN,
+  type ApiResponse,
+  type ChapterPages,
+  type Metadata,
+  type SearchMetadata,
+} from "./models";
+import { browseUrl, ComixInterceptor, fetchText } from "./network";
+import { parseChapterDetails, parseChapters, parseMangaDetails, parseMangaList } from "./parsers";
 import type ComixConfig from "./pbconfig";
-import { ComixFilter } from "./utils/filter";
-import { buildFilter, getDefaultMetadata } from "./utils/helpers";
+import {
+  defaultSearchMetadata,
+  ensureFilters,
+  filters,
+  getContentRating,
+  getHiddenDemographics,
+  getHiddenGenres,
+  getShowOnlyTypes,
+  getYear,
+  horizontalChapterSections,
+  horizontalRecentSection,
+  horizontalTrendingSections,
+  pickTags,
+  useYearFilter,
+} from "./utils/filters";
+import { browseViaWebView, chapterListViaWebView, pageListViaWebView } from "./utils/webView";
 
-export class ComixExtension implements ExtensionImpl<typeof ComixConfig> {
-  globalRateLimiter = new BasicRateLimiter("rateLimiter", {
+class ComixExtension implements ExtensionImpl<typeof ComixConfig> {
+  private globalRateLimiter = new BasicRateLimiter("rateLimiter", {
     numberOfRequests: 5,
     bufferInterval: 1,
     ignoreImages: true,
   });
-
-  mainInterceptor = new ComixInterceptor("main");
-  cookieStorageInterceptor = new CookieStorageInterceptor({
+  private mainInterceptor = new ComixInterceptor("main");
+  private cookieStorageInterceptor = new CookieStorageInterceptor({
     storage: "stateManager",
   });
-
-  parser = new ComixParser();
-  filter = new ComixFilter();
-  api = new ComixApi(this.filter);
 
   async initialise(): Promise<void> {
     this.globalRateLimiter.registerInterceptor();
     this.cookieStorageInterceptor.registerInterceptor();
     this.mainInterceptor.registerInterceptor();
-  }
-
-  private async checkFilters(): Promise<void> {
-    if (
-      this.filter.demographic.length === 0 ||
-      this.filter.formats.length === 0 ||
-      this.filter.themes.length === 0 ||
-      this.filter.genres.length === 0
-    ) {
-      await this.updateFilters(true);
-    }
-  }
-
-  private async updateFilters(force: boolean): Promise<void> {
-    const lastFilterFetch = Number(Application.getState("last-filter-fetch") ?? 0);
-    const cached = lastFilterFetch + 172800 > new Date().valueOf() / 1000;
-    if (cached && !force) {
-      const keys = ["genre", "demographic", "format"] as const;
-      const values = keys.map((k) => Application.getState(`${k}`) as string | undefined);
-      const [genres, demographic, formats] = values;
-      if (genres === undefined || demographic === undefined || formats === undefined) {
-        await this.updateFilters(true);
-        return;
-      }
-      this.filter.setGenreFilter(JSON.parse(genres) as OptionItem[]);
-      this.filter.setDemographicFilter(JSON.parse(demographic) as OptionItem[]);
-      this.filter.setFormatsFilter(JSON.parse(formats) as OptionItem[]);
-      await this.checkFilters();
-    } else {
-      this.filter.setGenreFilter(
-        this.parser.parseFilterUpdate(await this.api.getFiltersApi("genre")),
-      );
-      this.filter.setDemographicFilter(
-        this.parser.parseFilterUpdate(await this.api.getFiltersApi("demographic")),
-      );
-      this.filter.setFormatsFilter(
-        this.parser.parseFilterUpdate(await this.api.getFiltersApi("format")),
-      );
-      Application.setState(String(new Date().valueOf() / 1000), "last-filter-fetch");
-    }
-  }
-
-  async getSettingsForm(): Promise<Form> {
-    await this.checkFilters();
-    return new MainSettings(this.filter, () => this.updateFilters(true));
   }
 
   async cloudflareBypassCompleted(_request: Request, cookies: Cookie[]): Promise<void> {
@@ -105,13 +76,17 @@ export class ComixExtension implements ExtensionImpl<typeof ComixConfig> {
     }
   }
 
+  async getSettingsForm(): Promise<Form> {
+    await ensureFilters();
+    return new ComixSettingsForm();
+  }
+
   async getDiscoverSections(): Promise<DiscoverSection[]> {
-    const allSections: Record<string, DiscoverSection> = {
-      popular: {
-        id: "popular",
-        title: "Popular",
-        type: DiscoverSectionType.featured,
-      },
+    const chapterType = (horizontal: boolean) =>
+      horizontal ? DiscoverSectionType.simpleCarousel : DiscoverSectionType.chapterUpdates;
+    const yearSuffix = useYearFilter() ? ` of ${getYear()}` : "";
+    const sections: Record<string, DiscoverSection> = {
+      popular: { id: "popular", title: "Popular", type: DiscoverSectionType.featured },
       follow: {
         id: "follow",
         title: "Most Follows New Comics",
@@ -120,42 +95,28 @@ export class ComixExtension implements ExtensionImpl<typeof ComixConfig> {
       recent: {
         id: "recent",
         title: "Recently Added",
-        type: this.filter.getRecentSectionDiffType()
-          ? DiscoverSectionType.simpleCarousel
-          : DiscoverSectionType.chapterUpdates,
+        type: chapterType(horizontalRecentSection()),
       },
       trending_manga: {
         id: "trending_manga",
-        title: `Trending Manga${this.filter.getSectionTimesType() ? " of " + this.filter.getYearSettings() : ""}`,
-        type: this.filter.getTrendingSectionDiffType()
-          ? DiscoverSectionType.simpleCarousel
-          : DiscoverSectionType.chapterUpdates,
+        title: `Trending Manga${yearSuffix}`,
+        type: chapterType(horizontalTrendingSections()),
       },
       trending_wt: {
         id: "trending_wt",
-        title: `Trending WebToons${this.filter.getSectionTimesType() ? " of " + this.filter.getYearSettings() : ""}`,
-        type: this.filter.getTrendingSectionDiffType()
-          ? DiscoverSectionType.simpleCarousel
-          : DiscoverSectionType.chapterUpdates,
+        title: `Trending WebToons${yearSuffix}`,
+        type: chapterType(horizontalTrendingSections()),
       },
-      completed: {
-        id: "completed",
-        title: "Completed",
-        type: DiscoverSectionType.simpleCarousel,
-      },
+      completed: { id: "completed", title: "Completed", type: DiscoverSectionType.simpleCarousel },
       updatesHot: {
         id: "updatesHot",
         title: "Latest Updates (HOT)",
-        type: this.filter.getChapterSectionDiffType()
-          ? DiscoverSectionType.simpleCarousel
-          : DiscoverSectionType.chapterUpdates,
+        type: chapterType(horizontalChapterSections()),
       },
       updatesNew: {
         id: "updatesNew",
         title: "Latest Updates (NEW)",
-        type: this.filter.getChapterSectionDiffType()
-          ? DiscoverSectionType.simpleCarousel
-          : DiscoverSectionType.chapterUpdates,
+        type: chapterType(horizontalChapterSections()),
       },
       genresSection: {
         id: "genresSection",
@@ -164,65 +125,81 @@ export class ComixExtension implements ExtensionImpl<typeof ComixConfig> {
       },
     };
     return getDiscoverySectionsOrder()
-      .map((key) => allSections[key.id])
-      .filter(Boolean);
+      .map((section) => sections[section.id])
+      .filter((section) => section !== undefined);
+  }
+
+  // `/api/v1/manga/top` (trending/follows + days window) is now 403 and has no
+  // `/browse` HTML equivalent, so popular/follow map to the closest browse orderings.
+  private browseQuery(sectionId: string, page: number) {
+    const hidden = [...getHiddenGenres(), ...getHiddenDemographics()];
+    const types = getShowOnlyTypes();
+    const common = {
+      page: page.toString(),
+      ...(hidden.length > 0 && { "genres_ex[]": hidden }),
+      ...(types.length > 0 && { "types[]": types }),
+    };
+    const trending = {
+      "order[views_30d]": "desc",
+      ...(useYearFilter() && { "release_year[from]": getYear().toString() }),
+    };
+    const sections: Record<string, Record<string, string | string[]>> = {
+      popular: { "order[score]": "desc" },
+      follow: { "order[follows_total]": "desc" },
+      recent: { "order[created_at]": "desc" },
+      completed: { "order[chapter_updated_at]": "desc", "statuses[]": "finished" },
+      updatesHot: { "order[chapter_updated_at]": "desc", scope: "hot" },
+      updatesNew: { "order[chapter_updated_at]": "desc" },
+      trending_manga: { ...trending, "types[]": "manga" },
+      trending_wt: { ...trending, "types[]": ["manhwa", "manhua"] },
+    };
+    const section = sections[sectionId];
+    return section && { ...common, ...section };
   }
 
   async getDiscoverSectionItems(
     section: DiscoverSection,
-    metadata: Metadata,
+    metadata: Metadata | undefined,
   ): Promise<PagedResults<DiscoverSectionItem>> {
-    const page = metadata?.page ?? 1;
-    const fetchSimple = async (id: string) =>
-      this.parser.parseSectionSimple(
-        page,
-        await this.api.getJsonMangaApi(id, page, this.cookieStorageInterceptor),
-      );
-    const fetchChapter = async (id: string) =>
-      this.parser.parseSectionChapter(
-        page,
-        await this.api.getJsonMangaApi(id, page, this.cookieStorageInterceptor),
-      );
-    switch (section.id) {
-      case "popular":
-      case "follow":
-        return this.parser.parseSection(
-          section.id,
-          await this.api.getJsonMangaTopApi(section.id, this.cookieStorageInterceptor),
-        );
-      case "recent":
-        return this.filter.getRecentSectionDiffType()
-          ? fetchSimple("recent")
-          : fetchChapter("recent");
-      case "trending_manga":
-        return this.filter.getTrendingSectionDiffType()
-          ? fetchSimple("trending_manga")
-          : fetchChapter("trending_manga");
-      case "trending_wt":
-        return this.filter.getTrendingSectionDiffType()
-          ? fetchSimple("trending_wt")
-          : fetchChapter("trending_wt");
-      case "completed":
-        return fetchSimple("completed");
-      case "updatesNew":
-        return this.filter.getChapterSectionDiffType()
-          ? fetchSimple("updatesNew")
-          : fetchChapter("updatesNew");
-      case "updatesHot":
-        return this.filter.getChapterSectionDiffType()
-          ? fetchSimple("updatesHot")
-          : fetchChapter("updatesHot");
-      case "genresSection":
-        await this.updateFilters(true);
-        return this.parser.parseGenreSection(
-          metadata,
-          this.filter.genres,
-          this.filter.getHiddenGenresSettings(),
-          (genreId) => getDefaultMetadata(this.filter, genreId),
-        );
-      default:
-        return { items: [] };
+    if (section.id === "genresSection") {
+      await ensureFilters();
+      const hidden = getHiddenGenres();
+      return {
+        items: filters.genres
+          .filter((genre) => !hidden.includes(genre.id))
+          .map((genre) => ({
+            type: "genresCarouselItem",
+            name: genre.title,
+            searchQuery: { title: "", metadata: defaultSearchMetadata(genre.id) },
+            contentRating: genre.title === "Adult" ? ContentRating.ADULT : ContentRating.EVERYONE,
+          })),
+      };
     }
+    const page = metadata?.page ?? 1;
+    const query = this.browseQuery(section.id, page);
+    if (!query) return { items: [] };
+    const result = await browseViaWebView(browseUrl(query), this.cookieStorageInterceptor);
+    const items = parseMangaList(result).map((item): DiscoverSectionItem => {
+      const { publishDate, subtitle, metadata: _, ...base } = item;
+      switch (section.type) {
+        case DiscoverSectionType.featured:
+          return { type: "featuredCarouselItem", ...base };
+        case DiscoverSectionType.prominentCarousel:
+          return { type: "prominentCarouselItem", ...base, subtitle };
+        case DiscoverSectionType.chapterUpdates:
+          return {
+            type: "chapterUpdatesCarouselItem",
+            ...base,
+            chapterId: base.mangaId,
+            subtitle,
+            publishDate,
+          };
+        default:
+          return { type: "simpleCarouselItem", ...base, subtitle };
+      }
+    });
+    const hasNext = result.meta?.hasNext ?? items.length > 0;
+    return { items, metadata: hasNext ? { page: page + 1 } : undefined };
   }
 
   async getSearchResults(
@@ -230,57 +207,50 @@ export class ComixExtension implements ExtensionImpl<typeof ComixConfig> {
     metadata: Metadata | undefined,
     sortingOption: SortingOption,
   ): Promise<PagedResults<SearchResultItem>> {
-    let sorting = sortingOption;
-    if (searchQuery.metadata === undefined) {
-      searchQuery.metadata = getDefaultMetadata(this.filter);
-    }
-    sorting.id = sorting.id.split(searchQuery.title.length > 1 ? "#title" : "#empty")[0];
+    const meta = searchQuery.metadata ?? defaultSearchMetadata();
     const page = metadata?.page ?? 1;
-    const genres = searchQuery.metadata?.genres ?? {};
-    const formats = searchQuery.metadata?.formats ?? {};
-    const demographic = searchQuery.metadata?.demographic ?? {};
-    const status = searchQuery.metadata?.status ?? {};
-    const types = searchQuery.metadata?.types ?? {};
-    const mode = searchQuery.metadata?.mode ?? ["and"];
-    const content =
-      searchQuery.metadata?.contentRating ?? this.filter.getDefaultContentRatingSettings();
-    const minChapters = searchQuery.metadata?.minChap ?? 0;
-    const [sortBy, orderBy] = sorting.id.split("$");
-    const filters: Filters[] = [
-      ...buildFilter(false, "genres_in[]", genres, formats),
-      ...buildFilter(true, "genres_ex[]", genres, formats),
-      ...buildFilter(false, "types[]", types),
-      ...buildFilter(false, "demographics[]", demographic),
-      ...buildFilter(false, "statuses[]", status),
-    ];
-    const search = await this.api.getJsonSearchApi(
-      searchQuery.title,
-      page,
-      filters,
-      mode,
-      minChapters,
-      sortBy,
-      orderBy,
-      content,
-      this.cookieStorageInterceptor,
-    );
-    return this.parser.parseSearchResults(page, search);
+    const [sortBy, orderBy] = sortingOption.id.split("#")[0].split("$");
+    const query: Record<string, string | string[]> = {
+      page: page.toString(),
+      [`order[${sortBy}]`]: orderBy,
+      genres_mode: meta.mode ?? ["and"],
+      content_rating: (meta.contentRating ?? getContentRating()).join(","),
+    };
+    if (meta.minChap) {
+      query.min_chap = meta.minChap.toString();
+    }
+    if (searchQuery.title.length > 1) {
+      query.keyword = searchQuery.title;
+    }
+    const tagQueries = {
+      "genres_in[]": pickTags("included", meta.genres, meta.formats),
+      "genres_ex[]": pickTags("excluded", meta.genres, meta.formats),
+      "types[]": pickTags("included", meta.types),
+      "demographics[]": pickTags("included", meta.demographic),
+      "statuses[]": pickTags("included", meta.status),
+    };
+    for (const [key, values] of Object.entries(tagQueries)) {
+      if (values.length > 0) query[key] = values;
+    }
+    const result = await browseViaWebView(browseUrl(query), this.cookieStorageInterceptor);
+    const items = parseMangaList(result).map(({ publishDate: _, ...item }) => item);
+    const hasNext = result.meta?.hasNext ?? items.length > 0;
+    return { items, metadata: hasNext ? { page: page + 1 } : undefined };
   }
 
   async getAdvancedSearchForm(
     searchQuery: SearchQuery<SearchMetadata>,
   ): Promise<AdvancedSearchForm> {
-    await this.checkFilters();
-    if (searchQuery.metadata === undefined) {
-      searchQuery.metadata = getDefaultMetadata(this.filter);
-    }
-    return new ComixAdvancedSearchForm(searchQuery, this.filter);
+    await ensureFilters();
+    searchQuery.metadata ??= defaultSearchMetadata();
+    return new ComixAdvancedSearchForm(searchQuery);
   }
 
+  // Ids carry a #title/#empty suffix so a remembered selection from the other
+  // mode never matches; getSearchResults strips everything after "#".
   async getSortingOptions(query: SearchQuery<SearchMetadata>): Promise<SortingOption[]> {
     const idSuffix = query.title.length > 1 ? "#title" : "";
-    let sortingOptions: SortingOption[] = [
-      { id: "chapter_updated_at$desc#empty", label: "Any" },
+    const sortingOptions: SortingOption[] = [
       { id: "chapter_updated_at$asc" + idSuffix, label: "Update Date ↑" },
       { id: "chapter_updated_at$desc" + idSuffix, label: "Update Date ↓" },
       { id: "created_at$asc" + idSuffix, label: "Created Date ↑" },
@@ -292,7 +262,7 @@ export class ComixExtension implements ExtensionImpl<typeof ComixConfig> {
       { id: "score$asc" + idSuffix, label: "Average Score ↑" },
       { id: "score$desc" + idSuffix, label: "Average Score ↓" },
       { id: "views_total$asc" + idSuffix, label: "Total Views ↑" },
-      { id: "views_totals$desc" + idSuffix, label: "Total Views ↓" },
+      { id: "views_total$desc" + idSuffix, label: "Total Views ↓" },
       { id: "follows_total$asc" + idSuffix, label: "Most Follows ↑" },
       { id: "follows_total$desc" + idSuffix, label: "Most Follows ↓" },
       { id: "views_7d$asc" + idSuffix, label: "Most Views 7 Days ↑" },
@@ -304,29 +274,30 @@ export class ComixExtension implements ExtensionImpl<typeof ComixConfig> {
     ];
     if (query.title.length > 1) {
       sortingOptions.unshift({ id: "relevance$desc" + idSuffix, label: "Best Match" });
-      sortingOptions = sortingOptions.filter((sort) => {
-        return sort.id !== "chapter_updated_at$desc#empty";
-      });
+    } else {
+      sortingOptions.unshift({ id: "chapter_updated_at$desc#empty", label: "Any" });
     }
     return sortingOptions;
   }
 
+  // Details still server-render their data into `<script id="initial-data">`, so
+  // fetch the HTML and let the parser extract it (the JSON API is now 403).
   async getMangaDetails(mangaId: string): Promise<SourceManga> {
-    const html = await this.api.getMangaDetailsHtml(mangaId);
-    return this.parser.parseMangaDetails(mangaId, html);
+    return parseMangaDetails(mangaId, await fetchText(`${DOMAIN}/title/${mangaId}`));
   }
 
   async getChapters(sourceManga: SourceManga): Promise<Chapter[]> {
-    const items = await this.api.getJsonChapterApi(
-      sourceManga.mangaId,
-      this.cookieStorageInterceptor,
-    );
-    return this.parser.parseChapters(sourceManga, items);
+    const items = await chapterListViaWebView(sourceManga.mangaId, this.cookieStorageInterceptor);
+    return parseChapters(sourceManga, items);
   }
 
   async getChapterDetails(chapter: Chapter): Promise<ChapterDetails> {
-    const pages = await this.api.getJsonChapPagesApi(chapter, this.cookieStorageInterceptor);
-    return this.parser.parseChapterDetails(chapter.chapterId, pages);
+    const url = chapter.additionalInfo?.url;
+    if (typeof url !== "string" || !url) {
+      throw new Error(`Comix: missing page url for chapter ${chapter.chapterId}`);
+    }
+    const payload = await pageListViaWebView(url, this.cookieStorageInterceptor);
+    return parseChapterDetails(chapter.chapterId, JSON.parse(payload) as ApiResponse<ChapterPages>);
   }
 }
 

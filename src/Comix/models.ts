@@ -1,94 +1,57 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 /* Copyright © 2026 Inkdex */
 
-import type { JSONObject } from "@paperback/types";
+import type { SearchResultItem } from "@paperback/types";
+
 export const DOMAIN = "https://comix.to";
 export const NO_IMAGE = `${DOMAIN}/images/no-poster.png`;
 
-type FilterValue = "included" | "excluded";
-export type TagMap = Record<string, FilterValue>;
+export type SectionEntry = { id: string; title: string };
 
-export interface ApiRequestConfig {
-  path: string | string[];
-  query?: Record<string, string | string[]>;
-}
+export const DISCOVERY_SECTIONS: SectionEntry[] = [
+  { id: "popular", title: "Popular" },
+  { id: "follow", title: "Most Follows New Comics" },
+  { id: "recent", title: "Recent Comics" },
+  { id: "trending_manga", title: "Trending Manga" },
+  { id: "trending_wt", title: "Trending WebToons" },
+  { id: "updatesHot", title: "Latest Updates HOT" },
+  { id: "updatesNew", title: "Latest Updates NEW" },
+  { id: "completed", title: "Completed" },
+  { id: "genresSection", title: "Best of Genres" },
+];
+
+export type TagMap = Record<string, "included" | "excluded">;
 
 export interface ApiResponse<T> {
   status: string;
   result: T;
 }
 
-export interface Filters {
-  type: string;
-  filters: string[];
-}
-
-export interface ListMeta {
-  total: number;
-  perPage: number;
-  page: number;
-  lastPage: number;
-  from: number;
-  to: number;
-  hasNext: boolean;
-  hasPrev: boolean;
-}
-
 export interface ResultManga {
   items: MangaItem[];
-  meta?: ListMeta;
-}
-
-export interface ChapterPages {
-  mangaId: number;
-  pages: { baseUrl: string; items: { url: string }[] };
+  meta?: { hasNext: boolean };
 }
 
 export interface MangaItem {
-  id: number;
   hid: string;
   title: string;
   altTitles: string[];
   synopsis: string;
-  poster: Poster | null;
-  originalLanguage: string;
+  poster: { medium?: string; large?: string } | null;
   status: string;
   latestChapter: number;
+  finalChapter: number;
   chapterUpdatedAtFormatted: string;
-  createdAtFormatted: string;
-  updatedAtFormatted: string;
   ratedAvg: number;
   contentRating: string;
-  type: string;
-  hasChapters: boolean;
-  finalChapter: number;
-  finalVolume: number;
-  startDate: string;
-  endDate: string;
-  year: number;
-  rank: number;
-  followsTotal: number;
-  ratedCount: number;
-  synopsisHtml: string;
   url: string;
-  uploadUrl: string;
-  editUrl: string;
   authors?: { title: string }[];
   artists?: { title: string }[];
-  genres: Terms[];
-  formats: Terms[];
-  demographics: Terms[];
+  genres: { id: number; title: string }[];
+  demographics: { id: number; title: string }[];
 }
 
-export interface Terms {
-  id: number;
-  title: string;
-}
-
-export interface Poster {
-  medium?: string;
-  large?: string;
-}
+export type MangaListItem = SearchResultItem & { publishDate: Date };
 
 export interface ChapterItem {
   id: number;
@@ -104,21 +67,21 @@ export interface ChapterItem {
   group?: { name: string } | null;
 }
 
-export interface Metadata extends JSONObject {
-  page: number;
+export interface ChapterPages {
+  mangaId: number;
+  pages: { baseUrl: string; items: { url: string }[] };
 }
 
-export interface Filter {
-  id: number;
-  label: string;
-}
-
-export type OptionItem = {
-  value: string;
+export interface OptionItem {
   id: string;
+  title: string;
+}
+
+export type Metadata = {
+  page: number;
 };
 
-export interface SearchMetadata extends JSONObject {
+export type SearchMetadata = {
   genres?: TagMap;
   formats?: TagMap;
   types?: TagMap;
@@ -127,4 +90,4 @@ export interface SearchMetadata extends JSONObject {
   mode?: string[];
   minChap?: number;
   contentRating?: string[];
-}
+};
