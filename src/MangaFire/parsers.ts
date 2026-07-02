@@ -5,6 +5,7 @@ import {
   ContentRating,
   type Chapter,
   type ChapterDetails,
+  type FeaturedCarouselItem,
   type SourceManga,
   type TagSection,
 } from "@paperback/types";
@@ -97,6 +98,46 @@ export const parseMangaList = (
       subtitle: chapterMatch ? `Ch. ${chapterMatch[1]}` : undefined,
       chapterId: stripOrigin(chapterLink.attr("href") ?? ""),
       contentRating: ContentRating.EVERYONE, // Site does not provide content rating
+    });
+  });
+
+  return items;
+};
+
+export const parseTrendingSection = ($: CheerioAPI): FeaturedCarouselItem[] => {
+  const items: FeaturedCarouselItem[] = [];
+
+  $(".swiper.trending .swiper-slide").each((_, element) => {
+    const slide = $(element);
+    const infoLink = slide.find(".info .above a.unit");
+    const title = infoLink.text().trim();
+    const mangaId = infoLink.attr("href")?.replace("/manga/", "") ?? "";
+    if (!title || !mangaId) return;
+
+    const status = slide.find(".info .above span").text().trim();
+    const chapterMatch = slide
+      .find(".info .below p")
+      .text()
+      .match(/Chap (\d+(?:\.\d+)?)/);
+    const genres = slide
+      .find(".info .below div a")
+      .toArray()
+      .map((el) => $(el).text().trim());
+
+    const infoItems = [
+      ...(chapterMatch ? [{ symbol: "book.fill", text: `Ch. ${chapterMatch[1]}` }] : []),
+      ...(status ? [{ symbol: "clock.fill", text: status }] : []),
+    ];
+
+    items.push({
+      type: "featuredCarouselItem",
+      mangaId,
+      title,
+      imageUrl: slide.find(".poster img").attr("src") ?? "",
+      supertitle: genres.join(" • "),
+      summary: slide.find(".info .below span").text().trim(),
+      infoItems: infoItems.length ? (infoItems as FeaturedCarouselItem["infoItems"]) : undefined,
+      contentRating: ContentRating.EVERYONE,
     });
   });
 

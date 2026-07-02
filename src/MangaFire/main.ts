@@ -43,6 +43,7 @@ import {
   parseMangaDetails,
   parseMangaList,
   parseSearchDetails,
+  parseTrendingSection,
 } from "./parsers";
 import type MangaFireConfig from "./pbconfig";
 import { cacheGet, cacheSet } from "./utils/cache";
@@ -115,12 +116,16 @@ class MangaFireExtension implements ExtensionImpl<typeof MangaFireConfig> {
     metadata: PageMetadata | undefined,
   ): Promise<PagedResults<DiscoverSectionItem>> {
     switch (section.id) {
+      // First load shows the home-page trending heroes; "View More" pages continue
+      // through the most-viewed filter, deduped via collectedIds.
       case "popular_section":
-        return this.getMangaListSection(
-          metadata,
-          this.filterUrl("most_viewed"),
-          "featuredCarouselItem",
-        );
+        return metadata
+          ? this.getMangaListSection(
+              metadata,
+              this.filterUrl("most_viewed"),
+              "featuredCarouselItem",
+            )
+          : this.getTrendingSection();
       case "updated_section":
         return this.getMangaListSection(
           metadata,
@@ -142,6 +147,16 @@ class MangaFireExtension implements ExtensionImpl<typeof MangaFireConfig> {
       default:
         return { items: [] };
     }
+  }
+
+  private async getTrendingSection(): Promise<PagedResults<DiscoverSectionItem>> {
+    const $ = await this.fetchCheerio({ url: `${DOMAIN}/home`, method: "GET" });
+    const items = parseTrendingSection($);
+
+    return {
+      items,
+      metadata: { page: 1, collectedIds: items.map((item) => item.mangaId) },
+    };
   }
 
   private filterUrl(sort: string): URL {
