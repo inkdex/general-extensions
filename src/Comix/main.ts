@@ -180,10 +180,10 @@ class ComixExtension implements ExtensionImpl<typeof ComixConfig> {
     if (!query) return { items: [] };
     const result = await browseViaWebView(browseUrl(query), this.cookieStorageInterceptor);
     const items = parseMangaList(result).map((item): DiscoverSectionItem => {
-      const { publishDate, subtitle, metadata: _, ...base } = item;
+      const { publishDate, subtitle, supertitle, summary, infoItems, metadata: _, ...base } = item;
       switch (section.type) {
         case DiscoverSectionType.featured:
-          return { type: "featuredCarouselItem", ...base };
+          return { type: "featuredCarouselItem", ...base, supertitle, summary, infoItems };
         case DiscoverSectionType.prominentCarousel:
           return { type: "prominentCarouselItem", ...base, subtitle };
         case DiscoverSectionType.chapterUpdates:

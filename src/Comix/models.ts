@@ -38,11 +38,14 @@ export interface MangaItem {
   altTitles: string[];
   synopsis: string;
   poster: { medium?: string; large?: string } | null;
+  type: string;
+  year: number;
   status: string;
   latestChapter: number;
   finalChapter: number;
   chapterUpdatedAtFormatted: string;
   ratedAvg: number;
+  followsTotal: number;
   contentRating: string;
   url: string;
   authors?: { title: string }[];
@@ -51,7 +54,13 @@ export interface MangaItem {
   demographics: { id: number; title: string }[];
 }
 
-export type MangaListItem = SearchResultItem & { publishDate: Date };
+// Extras beyond SearchResultItem feed FeaturedCarouselItem; other item types strip them
+export type MangaListItem = SearchResultItem & {
+  publishDate: Date;
+  supertitle: string;
+  summary: string;
+  infoItems: [{ symbol: string; text: string }, { symbol: string; text: string }];
+};
 
 export interface ChapterItem {
   id: number;

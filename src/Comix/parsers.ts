@@ -56,7 +56,16 @@ export const parseMangaList = (result: ResultManga): MangaListItem[] =>
     subtitle: `Chapter ${item.latestChapter || item.finalChapter}`,
     contentRating: toContentRating(item.contentRating),
     publishDate: parseRelativeDate(item.chapterUpdatedAtFormatted),
+    supertitle: [item.type.toUpperCase(), item.year].filter(Boolean).join(" · "),
+    summary: item.synopsis,
+    infoItems: [
+      { symbol: "star.fill", text: item.ratedAvg.toFixed(1) },
+      { symbol: "heart.fill", text: formatCount(item.followsTotal) },
+    ],
   }));
+
+const formatCount = (n: number): string =>
+  n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1000 ? `${(n / 1000).toFixed(1)}K` : n.toString();
 
 export function parseMangaDetails(mangaId: string, html: string): SourceManga {
   const manga = extractDetailManga(html);
