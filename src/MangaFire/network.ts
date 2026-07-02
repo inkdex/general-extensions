@@ -8,7 +8,7 @@ import {
   type Response,
 } from "@paperback/types";
 
-import { getBrokenCdnPrefixes } from "./forms";
+import { getBrokenCdnPrefixes } from "./forms/settings";
 import { CDN_HOST_REGEX, CDN_PREFIXES, DOMAIN } from "./models";
 
 export class MangaFireInterceptor extends PaperbackInterceptor {

@@ -1,6 +1,8 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 /* Copyright © 2026 Inkdex */
 
+import { type SearchResultItem } from "@paperback/types";
+
 export const DOMAIN = "https://mangafire.to";
 
 // Chapter images come from `{prefix}.mfcdn{1,2,3}.xyz`. All prefixes serve byte-identical content
@@ -26,6 +28,8 @@ export const LANGUAGES = [
 ];
 
 export type PageMetadata = { page?: number; collectedIds?: string[] };
+
+export type MangaListItem = SearchResultItem & { chapterId: string };
 
 export interface Result {
   status: number;
@@ -59,9 +63,5 @@ export type SearchMetadata = {
   length?: string;
 };
 
-// Represents each image entry in the "images" array
-// Each entry is an array where:
-// - index 0 is a string (image URL)
-// - index 1 is a number (possibly an identifier or category)
-// - index 2 is a number (possibly a flag or status indicator)
+// [imageUrl, unknown id, unknown flag] — only the URL is used
 export type ImageData = [string, number, number];
