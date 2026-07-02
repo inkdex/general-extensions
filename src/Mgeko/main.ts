@@ -232,14 +232,14 @@ export class MgekoExtension implements ExtensionImpl<typeof MgekoConfig> {
         .map(([key]) => key)
         .join(",");
 
-      urlBuilder.setQueryItem("genre_included", genreIncluded);
+      urlBuilder.setQueryItem("include_genres", genreIncluded);
 
       const genreExcluded = Object.entries(genres)
         .filter(([, value]) => value === "excluded")
         .map(([key]) => key)
         .join(",");
 
-      urlBuilder.setQueryItem("genre_excluded", genreExcluded);
+      urlBuilder.setQueryItem("exclude_genres", genreExcluded);
 
       const status = searchMeta.status ?? "";
       if (status) urlBuilder.setQueryItem("status", status);
