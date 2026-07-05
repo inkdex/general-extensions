@@ -4,6 +4,7 @@ Paperback extensions for websites with unique, non-generic themes.
 
 ## Available Extensions
 
+- [AllManga](https://allmanga.to)
 - [Atsumaru](https://atsu.moe)
 - [Comix](https://comix.to)
 - [FlameComics](https://flamecomics.com/)
