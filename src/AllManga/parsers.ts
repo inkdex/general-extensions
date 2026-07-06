@@ -11,6 +11,7 @@ import {
 
 import {
   DEFAULT_IMAGE_SERVER,
+  DOMAIN,
   genreId,
   IMAGE_CDN,
   THUMBNAIL_CDN,
@@ -140,9 +141,17 @@ export function parseMangaDetails(mangaId: string, detail: MangaDetail): SourceM
       status: parseStatus(detail.status),
       contentRating,
       tagGroups: tags.length > 0 ? [{ id: "genres", title: "Genres", tags }] : [],
-      shareUrl: `https://allmanga.to/manga/${mangaId}`,
+      shareUrl: `${DOMAIN}/manga/${mangaId}`,
     },
   };
+}
+
+// notes are typically "[S3] Ep. 99 - Prove It"; strip the season/episode tag
+// and keep the remainder only if it looks like a real title, not bare digits.
+function chapterTitleFrom(notes: string): string {
+  const withoutSeasonTag = notes.replace(/^\[[^\]]*\]\s*/, "");
+  const title = withoutSeasonTag.replace(/^ep\.?\s*\d+(?:\.\d+)?\s*-?\s*/i, "").trim();
+  return /[a-z]/i.test(title) ? title : "";
 }
 
 export function parseChapters(sourceManga: SourceManga, data: ChaptersData): Chapter[] {
@@ -156,7 +165,7 @@ export function parseChapters(sourceManga: SourceManga, data: ChaptersData): Cha
   const chapters = sub.map((num) => {
     const info = infoByNum.get(num);
     const notes = info?.notes?.trim() ?? "";
-    const title = notes && !/\d/.test(notes) ? Application.decodeHTMLEntities(notes) : "";
+    const title = notes ? Application.decodeHTMLEntities(chapterTitleFrom(notes)) : "";
     const rawDate = info?.uploadDates?.sub;
     const publishDate = rawDate ? new Date(rawDate) : undefined;
 

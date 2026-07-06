@@ -4,7 +4,6 @@
 import {
   CloudflareError,
   PaperbackInterceptor,
-  URL,
   type Request,
   type Response,
 } from "@paperback/types";
@@ -14,9 +13,12 @@ import { API_URL, DOMAIN, type GraphQLResponse } from "./models";
 export class AllMangaInterceptor extends PaperbackInterceptor {
   override async interceptRequest(request: Request): Promise<Request> {
     const isApi = request.url.startsWith(API_URL);
+    const isDocument = !isApi && request.url.startsWith(DOMAIN);
     const accept = isApi
       ? "application/json, text/plain, */*"
-      : "image/avif,image/webp,image/apng,image/png,image/svg+xml,*/*;q=0.8";
+      : isDocument
+        ? "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8"
+        : "image/avif,image/webp,image/apng,image/png,image/svg+xml,*/*;q=0.8";
 
     return {
       ...request,
@@ -49,29 +51,16 @@ export class AllMangaInterceptor extends PaperbackInterceptor {
 export default async function makeRequest<ResponseType>(
   query: string,
   variables: Record<string, unknown>,
-  method: "POST" | "GET" = "POST",
 ): Promise<ResponseType> {
-  const request: Request =
-    method === "POST"
-      ? {
-          url: API_URL,
-          method: method,
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-          body: JSON.stringify({
-            query: query,
-            variables: variables,
-          }),
-        }
-      : {
-          url: new URL(API_URL)
-            .setQueryItem("query", query)
-            .setQueryItem("variables", JSON.stringify(variables))
-            .toString(),
-          method: method,
-        };
+  const request: Request = {
+    url: API_URL,
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify({ query, variables }),
+  };
 
   const [, buffer] = await Application.scheduleRequest(request);
   const data = Application.arrayBufferToUTF8String(buffer);

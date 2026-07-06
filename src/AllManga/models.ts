@@ -4,6 +4,7 @@
 import { type SortingOption } from "@paperback/types";
 
 export const DOMAIN = "https://allmanga.to";
+export const MIRROR_HOSTS = ["allmanga.to", "mkissa.to"];
 export const API_URL = "https://api.allanime.day/api";
 
 export const THUMBNAIL_CDN = "https://wp.youtube-anime.com/aln.youtube-anime.com/";
@@ -60,7 +61,7 @@ export const SEARCH_QUERY = `query($search: SearchInput, $size: Int, $page: Int,
 
 export const LATEST_QUERY = `query($search: SearchInput, $size: Int, $page: Int, $translationType: VaildTranslationTypeMangaEnumType, $countryOrigin: VaildCountryOriginEnumType) {
   mangas(search: $search, limit: $size, page: $page, translationType: $translationType, countryOrigin: $countryOrigin) {
-    edges { _id name thumbnail englishName availableChapters lastChapterDate }
+    edges { _id name thumbnail englishName availableChapters availableChaptersDetail lastChapterDate }
   }
 }`;
 
@@ -71,12 +72,6 @@ export const DETAILS_QUERY = `query($id: String!) {
 export const CHAPTERS_QUERY = `query($id: String!, $showId: String!) {
   manga(_id: $id) { _id name availableChaptersDetail }
   episodeInfos(showId: $showId, episodeNumStart: 0, episodeNumEnd: 9999) { episodeIdNum notes uploadDates }
-}`;
-
-export const PAGES_QUERY = `query($mangaId: String!, $translationType: VaildTranslationTypeMangaEnumType!, $chapterString: String!) {
-  chapterPages(mangaId: $mangaId, translationType: $translationType, chapterString: $chapterString) {
-    edges { pictureUrlHead pictureUrls }
-  }
 }`;
 
 export interface GraphQLResponse<T> {
@@ -101,6 +96,7 @@ export interface MangaCard {
   nativeName?: string | null;
   score?: number | null;
   availableChapters?: { sub?: number | null } | null;
+  availableChaptersDetail?: AvailableChaptersDetail | null;
   lastChapterDate?: { sub?: DateParts | null } | null;
 }
 

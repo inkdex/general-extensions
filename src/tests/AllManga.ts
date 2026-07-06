@@ -7,9 +7,7 @@ import { TestSuite, registerDefaultTests } from "./suite.js";
 export async function runTests(logger: TestLogger) {
   const suite = new TestSuite("AllManga tests", logger);
 
-  registerDefaultTests(suite, AllManga, sourceInfo, {
-    chapterProviding: false,
-  });
+  registerDefaultTests(suite, AllManga, sourceInfo);
 
   await suite.run();
 }

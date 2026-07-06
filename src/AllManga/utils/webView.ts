@@ -6,11 +6,7 @@ import * as cheerio from "cheerio";
 
 import { DOMAIN, type PagesData } from "../models";
 
-// Loads the chapter reader page in a WebView and lets the site's own JS fetch
-// the pages. A Proxy on JSON.parse captures the `chapterPages` payload the
-// moment the site parses it — the same technique the reader itself uses — so
-// pages resolve even when the direct GraphQL query is unavailable, all without
-// any Android-only APIs.
+// Proxies JSON.parse to capture chapterPages once the reader page decodes it.
 const BOOTSTRAP = `
   (function () {
     var doneResolve;
@@ -63,8 +59,7 @@ export async function pageListViaWebView(
   return parseWebViewPayload(raw.result);
 }
 
-// The captured string is the JSON the reader parsed; `chapterPages` may sit at
-// the top level or under a GraphQL `data` envelope.
+// chapterPages may be top-level or nested under a GraphQL `data` envelope.
 function parseWebViewPayload(payload: string): PagesData | undefined {
   let parsed: unknown;
   try {

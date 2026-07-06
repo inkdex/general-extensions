@@ -3,6 +3,7 @@
 
 import {
   BasicRateLimiter,
+  CloudflareError,
   CookieStorageInterceptor,
   DiscoverSectionType,
   type AdvancedSearchForm,
@@ -36,7 +37,7 @@ import {
   GENRE_OPTIONS,
   LATEST_QUERY,
   LIMIT,
-  PAGES_QUERY,
+  MIRROR_HOSTS,
   POPULAR_QUERY,
   RANDOM_QUERY,
   SEARCH_QUERY,
@@ -51,7 +52,6 @@ import {
   type DetailsData,
   type MangaCard,
   type PageMetadata,
-  type PagesData,
   type PopularData,
   type RandomData,
   type SearchData,
@@ -247,19 +247,22 @@ export class AllMangaExtension implements ExtensionImpl<typeof AllMangaConfig> {
       translationType: "sub",
       countryOrigin: "ALL",
     });
-    const items: DiscoverSectionItem[] = data.mangas.edges.map((card) => {
-      const chapters = card.availableChapters?.sub;
-      return {
-        type: "chapterUpdatesCarouselItem",
-        mangaId: card._id,
-        chapterId: chapters != null ? String(chapters) : "",
-        title: Application.decodeHTMLEntities(card.englishName || card.name),
-        imageUrl: parseThumbnailUrl(card.thumbnail),
-        subtitle: chapters != null ? `Chapter ${chapters}` : "",
-        publishDate: dateFromParts(card.lastChapterDate?.sub),
-        contentRating,
-      };
-    });
+    const items: DiscoverSectionItem[] = data.mangas.edges
+      .map((card): DiscoverSectionItem | undefined => {
+        const latestChapter = card.availableChaptersDetail?.sub?.[0];
+        if (!latestChapter) return undefined;
+        return {
+          type: "chapterUpdatesCarouselItem",
+          mangaId: card._id,
+          chapterId: latestChapter,
+          title: Application.decodeHTMLEntities(card.englishName || card.name),
+          imageUrl: parseThumbnailUrl(card.thumbnail),
+          subtitle: `Chapter ${latestChapter}`,
+          publishDate: dateFromParts(card.lastChapterDate?.sub),
+          contentRating,
+        };
+      })
+      .filter((item): item is DiscoverSectionItem => item != null);
     const hasNext = data.mangas.edges.length === LIMIT;
     return { items, metadata: hasNext ? { page: page + 1 } : undefined };
   }
@@ -296,7 +299,10 @@ export class AllMangaExtension implements ExtensionImpl<typeof AllMangaConfig> {
     query: string,
   ): Promise<PagedResults<SearchResultItem> | undefined> {
     let id: string | undefined;
-    const urlMatch = query.match(/^https?:\/\/[^/]*(?:allmanga\.to|mkissa\.to)\/manga\/([^/?#]+)/i);
+    const mirrorHostsPattern = MIRROR_HOSTS.map((host) => host.replace(/\./g, "\\.")).join("|");
+    const urlMatch = query.match(
+      new RegExp(`^https?:\\/\\/[^/]*(?:${mirrorHostsPattern})\\/manga\\/([^/?#]+)`, "i"),
+    );
     if (urlMatch) {
       id = decodeURIComponent(urlMatch[1]);
     } else if (query.toLowerCase().startsWith("id:")) {
@@ -317,7 +323,8 @@ export class AllMangaExtension implements ExtensionImpl<typeof AllMangaConfig> {
         ],
         metadata: undefined,
       };
-    } catch {
+    } catch (error) {
+      if (error instanceof CloudflareError) throw error;
       return undefined;
     }
   }
@@ -328,19 +335,29 @@ export class AllMangaExtension implements ExtensionImpl<typeof AllMangaConfig> {
     sortId: string | undefined,
     page: number,
   ): Promise<SearchData> {
-    const included = Object.entries(meta?.genres ?? {})
-      .filter(([, state]) => state === "included")
-      .map(([id]) => GENRE_NAME_BY_ID[id] ?? id);
-    const excluded = Object.entries(meta?.genres ?? {})
-      .filter(([, state]) => state === "excluded")
-      .map(([id]) => GENRE_NAME_BY_ID[id] ?? id);
+    const ids = (state: "included" | "excluded") =>
+      Object.entries(meta?.genres ?? {})
+        .filter(([, s]) => s === state)
+        .map(([id]) => id);
+    // Ids from the fixed GENRE_OPTIONS list go to `genres`; ids from a
+    // manga's own detail tags (not in that list) go to `tags` instead.
+    const toNames = (id: string) => GENRE_NAME_BY_ID[id] ?? id.replace(/_/g, " ");
+    const isGenre = (id: string) => id in GENRE_NAME_BY_ID;
+    const includedIds = ids("included");
+    const excludedIds = ids("excluded");
+    const includedGenres = includedIds.filter(isGenre).map(toNames);
+    const excludedGenres = excludedIds.filter(isGenre).map(toNames);
+    const includedTags = includedIds.filter((id) => !isGenre(id)).map(toNames);
+    const excludedTags = excludedIds.filter((id) => !isGenre(id)).map(toNames);
 
     return makeRequest<SearchData>(SEARCH_QUERY, {
       search: {
         query: title.length > 0 ? title : null,
         sortBy: sortId ? sortId : null,
-        genres: included.length > 0 ? included : null,
-        excludeGenres: excluded.length > 0 ? excluded : null,
+        genres: includedGenres.length > 0 ? includedGenres : null,
+        excludeGenres: excludedGenres.length > 0 ? excludedGenres : null,
+        tags: includedTags.length > 0 ? includedTags : null,
+        excludeTags: excludedTags.length > 0 ? excludedTags : null,
         isManga: true,
         allowAdult: getShowAdult(),
         allowUnknown: false,
@@ -369,22 +386,14 @@ export class AllMangaExtension implements ExtensionImpl<typeof AllMangaConfig> {
   async getChapterDetails(chapter: Chapter): Promise<ChapterDetails> {
     const mangaId = chapter.sourceManga.mangaId;
     const quality = getImageQuality();
-    const variables = {
+
+    // chapterPages has no working direct-query path; only WebView can serve real pages.
+    const data = await pageListViaWebView(
       mangaId,
-      translationType: "sub",
-      chapterString: chapter.chapterId,
-    };
-
-    let pages = parsePageUrls(await makeRequest<PagesData>(PAGES_QUERY, variables, "GET"), quality);
-
-    if (pages.length === 0) {
-      const data = await pageListViaWebView(
-        mangaId,
-        chapter.chapterId,
-        this.cookieStorageInterceptor,
-      );
-      if (data) pages = parsePageUrls(data, quality);
-    }
+      chapter.chapterId,
+      this.cookieStorageInterceptor,
+    );
+    const pages = data ? parsePageUrls(data, quality) : [];
 
     if (pages.length === 0) {
       throw new Error(`No pages found for chapter ${chapter.chapterId}.`);
