@@ -3,80 +3,71 @@
 
 import {
   AdvancedSearchForm,
+  InputRow,
   Section,
   SelectRow,
   ToggleRow,
   TriStateSelectRow,
   type SearchQuery,
-  type Tag,
 } from "@paperback/types";
 
-import { type SearchDetails, type SearchMetadata, type SearchOption } from "../models";
-
-const toTags = (options: SearchOption[]): Tag[] =>
-  options.map((option) => ({ id: option.id, title: option.label }));
+import { DEMOGRAPHICS, GENRES, STATUSES, THEMES, TYPES, type SearchMetadata } from "../models";
 
 export class MangaFireAdvancedSearchForm extends AdvancedSearchForm {
   private genres: Record<string, "included" | "excluded">;
   private genreMode: boolean;
-  private type: string;
-  private status: string;
-  private language: string;
-  private year: string;
-  private length: string;
+  private types: string[];
+  private themes: string[];
+  private demographics: string[];
+  private statuses: string[];
+  private yearFrom: string;
+  private yearTo: string;
+  private minChapters: string;
 
-  constructor(
-    searchQuery: SearchQuery<SearchMetadata>,
-    private searchDetails: SearchDetails,
-  ) {
+  constructor(searchQuery: SearchQuery<SearchMetadata>) {
     super();
 
     const meta = searchQuery.metadata ?? {};
     this.genres = { ...meta.genres };
     this.genreMode = meta.genreMode ?? true;
-    this.type = meta.type ?? "";
-    this.status = meta.status ?? "";
-    this.language = meta.language ?? "";
-    this.year = meta.year ?? "";
-    this.length = meta.length ?? "";
+    this.types = meta.types ?? [];
+    this.themes = meta.themes ?? [];
+    this.demographics = meta.demographics ?? [];
+    this.statuses = meta.statuses ?? [];
+    this.yearFrom = meta.yearFrom ?? "";
+    this.yearTo = meta.yearTo ?? "";
+    this.minChapters = meta.minChapters ?? "";
   }
 
   override getSections() {
     const selects = [
       {
-        id: "type",
+        id: "types",
         title: "Type",
-        options: this.searchDetails.types,
-        value: this.type,
-        handler: "handleTypeChange",
+        options: TYPES,
+        value: this.types,
+        handler: "handleTypesChange",
       },
       {
-        id: "status",
+        id: "themes",
+        title: "Themes",
+        options: THEMES,
+        value: this.themes,
+        handler: "handleThemesChange",
+      },
+      {
+        id: "demographics",
+        title: "Demographic",
+        options: DEMOGRAPHICS,
+        value: this.demographics,
+        handler: "handleDemographicsChange",
+      },
+      {
+        id: "statuses",
         title: "Status",
-        options: this.searchDetails.status,
-        value: this.status,
-        handler: "handleStatusChange",
-      },
-      {
-        id: "language",
-        title: "Language",
-        options: this.searchDetails.languages,
-        value: this.language,
-        handler: "handleLanguageChange",
-      },
-      {
-        id: "year",
-        title: "Year",
-        options: this.searchDetails.years,
-        value: this.year,
-        handler: "handleYearChange",
-      },
-      {
-        id: "length",
-        title: "Length",
-        options: this.searchDetails.lengths,
-        value: this.length,
-        handler: "handleLengthChange",
+        options: STATUSES,
+        value: this.statuses,
+        handler: "handleStatusesChange",
       },
     ] as const;
 
@@ -86,7 +77,7 @@ export class MangaFireAdvancedSearchForm extends AdvancedSearchForm {
           title: "Genres",
           layout: "flow",
           value: this.genres,
-          items: toTags(this.searchDetails.genres),
+          items: GENRES,
           allowExclusion: true,
           allowEmptySelection: true,
           onValueChange: Application.Selector(
@@ -108,14 +99,40 @@ export class MangaFireAdvancedSearchForm extends AdvancedSearchForm {
         Section(id, [
           SelectRow(id, {
             title,
-            value: value ? [value] : [],
-            options: toTags(options),
+            value,
+            options,
             minItemCount: 0,
-            maxItemCount: 1,
+            maxItemCount: options.length,
             onValueChange: Application.Selector(this as MangaFireAdvancedSearchForm, handler),
           }),
         ]),
       ),
+      Section("other", [
+        InputRow("year_from", {
+          title: "Release Year (From)",
+          value: this.yearFrom,
+          onValueChange: Application.Selector(
+            this as MangaFireAdvancedSearchForm,
+            "handleYearFromChange",
+          ),
+        }),
+        InputRow("year_to", {
+          title: "Release Year (To)",
+          value: this.yearTo,
+          onValueChange: Application.Selector(
+            this as MangaFireAdvancedSearchForm,
+            "handleYearToChange",
+          ),
+        }),
+        InputRow("min_chapters", {
+          title: "Minimum Chapters",
+          value: this.minChapters,
+          onValueChange: Application.Selector(
+            this as MangaFireAdvancedSearchForm,
+            "handleMinChaptersChange",
+          ),
+        }),
+      ]),
     ];
   }
 
@@ -127,35 +144,45 @@ export class MangaFireAdvancedSearchForm extends AdvancedSearchForm {
     this.genreMode = value;
   }
 
-  async handleTypeChange(value: string[]): Promise<void> {
-    this.type = value[0] ?? "";
+  async handleTypesChange(value: string[]): Promise<void> {
+    this.types = value;
   }
 
-  async handleStatusChange(value: string[]): Promise<void> {
-    this.status = value[0] ?? "";
+  async handleThemesChange(value: string[]): Promise<void> {
+    this.themes = value;
   }
 
-  async handleLanguageChange(value: string[]): Promise<void> {
-    this.language = value[0] ?? "";
+  async handleDemographicsChange(value: string[]): Promise<void> {
+    this.demographics = value;
   }
 
-  async handleYearChange(value: string[]): Promise<void> {
-    this.year = value[0] ?? "";
+  async handleStatusesChange(value: string[]): Promise<void> {
+    this.statuses = value;
   }
 
-  async handleLengthChange(value: string[]): Promise<void> {
-    this.length = value[0] ?? "";
+  async handleYearFromChange(value: string): Promise<void> {
+    this.yearFrom = value;
+  }
+
+  async handleYearToChange(value: string): Promise<void> {
+    this.yearTo = value;
+  }
+
+  async handleMinChaptersChange(value: string): Promise<void> {
+    this.minChapters = value;
   }
 
   override getSearchQueryMetadata(): SearchMetadata {
     const result: SearchMetadata = {};
     if (Object.keys(this.genres).length > 0) result.genres = this.genres;
-    if (this.genreMode) result.genreMode = this.genreMode;
-    if (this.type) result.type = this.type;
-    if (this.status) result.status = this.status;
-    if (this.language) result.language = this.language;
-    if (this.year) result.year = this.year;
-    if (this.length) result.length = this.length;
+    if (!this.genreMode) result.genreMode = this.genreMode;
+    if (this.types.length > 0) result.types = this.types;
+    if (this.themes.length > 0) result.themes = this.themes;
+    if (this.demographics.length > 0) result.demographics = this.demographics;
+    if (this.statuses.length > 0) result.statuses = this.statuses;
+    if (this.yearFrom.trim()) result.yearFrom = this.yearFrom.trim();
+    if (this.yearTo.trim()) result.yearTo = this.yearTo.trim();
+    if (this.minChapters.trim()) result.minChapters = this.minChapters.trim();
     return result;
   }
 }

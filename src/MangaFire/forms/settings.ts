@@ -3,15 +3,7 @@
 
 import { ButtonRow, Form, LabelRow, Section, SelectRow } from "@paperback/types";
 
-import {
-  BROKEN_CDN_PREFIXES_KEY,
-  CDN_PREFIXES,
-  LANGUAGES,
-  SEARCH_DETAILS_CACHE_KEY,
-  VRF_CHAPTER_CACHE_KEY,
-  VRF_SEARCH_CACHE_KEY,
-} from "../models";
-import { cacheClear } from "../utils/cache";
+import { BROKEN_CDN_PREFIXES_KEY, CDN_PREFIXES, LANGUAGES } from "../models";
 
 export function getLanguages(): string[] {
   return (
@@ -73,22 +65,6 @@ export class MangaFireSettingsForm extends Form {
           }),
         ],
       ),
-      Section(
-        {
-          id: "cache",
-          footer: "Clear cached data if search filters appear stale or the source returns errors.",
-        },
-        [
-          ButtonRow("clearSearchFilterCache", {
-            title: "Clear Search Filter Cache",
-            onSelect: Application.Selector(this as MangaFireSettingsForm, "clearSearchFilterCache"),
-          }),
-          ButtonRow("clearVrfCache", {
-            title: "Clear VRF Cache",
-            onSelect: Application.Selector(this as MangaFireSettingsForm, "clearVrfCache"),
-          }),
-        ],
-      ),
     ];
   }
 
@@ -119,14 +95,5 @@ export class MangaFireSettingsForm extends Form {
     this.brokenCdnPrefixes = broken;
     this.isTestingCdns = false;
     this.reloadForm();
-  }
-
-  async clearSearchFilterCache(): Promise<void> {
-    cacheClear(SEARCH_DETAILS_CACHE_KEY);
-  }
-
-  async clearVrfCache(): Promise<void> {
-    cacheClear(VRF_CHAPTER_CACHE_KEY);
-    cacheClear(VRF_SEARCH_CACHE_KEY);
   }
 }

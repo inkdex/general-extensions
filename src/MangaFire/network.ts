@@ -55,3 +55,28 @@ export class MangaFireInterceptor extends PaperbackInterceptor {
     return data;
   }
 }
+
+export async function fetchApi<T>(url: string): Promise<T> {
+  const [response, buffer] = await Application.scheduleRequest({
+    url,
+    method: "GET",
+    headers: { accept: "application/json" },
+  });
+  const data = Application.arrayBufferToUTF8String(buffer);
+
+  let json: unknown;
+  try {
+    json = JSON.parse(data);
+  } catch (error) {
+    throw new Error(`Failed to parse JSON from ${url} (HTTP ${response.status})`, {
+      cause: error,
+    });
+  }
+
+  if (response.status >= 400) {
+    const message = (json as { message?: string }).message ?? `HTTP ${response.status}`;
+    throw new Error(`MangaFire API error: ${message}`);
+  }
+
+  return json as T;
+}
