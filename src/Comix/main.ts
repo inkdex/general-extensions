@@ -68,7 +68,11 @@ class ComixExtension implements ExtensionImpl<typeof ComixConfig> {
     this.mainInterceptor.registerInterceptor();
   }
 
-  async cloudflareBypassCompleted(_request: Request, cookies: Cookie[]): Promise<void> {
+  async cloudflareBypassCompleted(
+    _request: Request,
+    cookies: Cookie[],
+    _localStorage: Record<string, string>,
+  ): Promise<void> {
     for (const cookie of cookies) {
       if (cookie.name == "cf_clearance") {
         this.cookieStorageInterceptor.setCookie(cookie);

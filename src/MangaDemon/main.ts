@@ -12,6 +12,7 @@ import {
   type DiscoverSectionItem,
   type ExtensionImpl,
   type PagedResults,
+  type Request,
   type SearchQuery,
   type SearchResultItem,
   type SortingOption,
@@ -631,7 +632,11 @@ class MangaDemonExtension implements ExtensionImpl<typeof MangaDemonConfig> {
     }
   }
 
-  async saveCloudflareBypassCookies(cookies: Cookie[]): Promise<void> {
+  async cloudflareBypassCompleted(
+    _request: Request,
+    cookies: Cookie[],
+    _localStorage: Record<string, string>,
+  ): Promise<void> {
     for (const cookie of cookies) {
       if (
         cookie.name.startsWith("cf") ||

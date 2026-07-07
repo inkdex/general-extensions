@@ -32,7 +32,11 @@ export class AtsumaruExtension implements Omit<Extension, keyof MangaProviding> 
     this.atsuInterceptor.registerInterceptor();
   }
 
-  async saveCloudflareBypassCookies(cookies: Cookie[]): Promise<void> {
+  async cloudflareBypassCompleted(
+    _request: Request,
+    cookies: Cookie[],
+    _localStorage: Record<string, string>,
+  ): Promise<void> {
     for (const cookie of cookies) {
       if (
         cookie.name.startsWith("cf") ||
@@ -42,10 +46,6 @@ export class AtsumaruExtension implements Omit<Extension, keyof MangaProviding> 
         this.cookieStorageInterceptor.setCookie(cookie);
       }
     }
-  }
-
-  async bypassCloudflareRequest(request: Request): Promise<Request> {
-    return request;
   }
 }
 
