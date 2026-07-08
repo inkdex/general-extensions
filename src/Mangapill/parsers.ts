@@ -12,16 +12,15 @@ import {
   type TagSection,
 } from "@paperback/types";
 import { type CheerioAPI } from "cheerio";
-import { decodeHTML } from "entities";
 
 import { formatTagId } from "./helpers";
 import { DOMAIN } from "./models";
 import pbconfig from "./pbconfig";
 
 export const parseMangaDetails = async ($: CheerioAPI, mangaId: string): Promise<SourceManga> => {
-  const title = decodeHTML($("h1").first().text().trim());
+  const title = Application.decodeHTMLEntities($("h1").first().text().trim());
   const image = $(".lazy").attr("data-src") ?? "";
-  const description = decodeHTML($(".text-sm.text--secondary").text().trim());
+  const description = Application.decodeHTMLEntities($(".text-sm.text--secondary").text().trim());
   const parsedStatus = $('label:contains("Status")').siblings().first().text().trim();
   let status: string;
   switch (parsedStatus) {
@@ -143,9 +142,9 @@ export const parseRecentSection = async ($: CheerioAPI): Promise<DiscoverSection
 
     recentSectionArray.push({
       imageUrl,
-      title: decodeHTML(title),
+      title: Application.decodeHTMLEntities(title),
       mangaId: id,
-      subtitle: decodeHTML(subtitle),
+      subtitle: Application.decodeHTMLEntities(subtitle),
       chapterId,
       type: "chapterUpdatesCarouselItem",
       contentRating: pbconfig.contentRating,
@@ -164,8 +163,8 @@ export const parseTrendingSection = async ($: CheerioAPI): Promise<DiscoverSecti
     const subtitle = $(".font-black", trendingObj).text().trim() ?? "";
     hotSectionArray.push({
       imageUrl,
-      title: decodeHTML(title),
-      subtitle: decodeHTML(subtitle),
+      title: Application.decodeHTMLEntities(title),
+      subtitle: Application.decodeHTMLEntities(subtitle),
       mangaId: id,
       type: "simpleCarouselItem",
       contentRating: pbconfig.contentRating,
@@ -184,9 +183,9 @@ export const parseSearch = async ($: CheerioAPI): Promise<SearchResultItem[]> =>
     const subtitle = $(".text-secondary", item).text().trim() ?? "";
     itemArray.push({
       imageUrl: image,
-      title: decodeHTML(title),
+      title: Application.decodeHTMLEntities(title),
       mangaId: id,
-      subtitle: decodeHTML(subtitle),
+      subtitle: Application.decodeHTMLEntities(subtitle),
       contentRating: pbconfig.contentRating,
     });
   }

@@ -12,7 +12,6 @@ import {
 } from "@paperback/types";
 import { type CheerioAPI } from "cheerio";
 import { type Element } from "domhandler";
-import { decodeHTML } from "entities";
 
 import { formatTagId, getRating, getShareUrl } from "./helpers";
 import {
@@ -26,7 +25,7 @@ const officialTranslationSvgStroke = "#d8b4fe";
 export const parseMangaDetails = async ($: CheerioAPI, mangaId: string): Promise<SourceManga> => {
   const title = $("h1").first().text().trim();
   const image = $("picture > img").attr("src") ?? "";
-  const description = decodeHTML($(".whitespace-pre-wrap").text().trim());
+  const description = Application.decodeHTMLEntities($(".whitespace-pre-wrap").text().trim());
   const authors: string[] = [];
   for (const authorObj of $('strong:contains("Author")').siblings("span").toArray()) {
     const author = $("a", authorObj).text().trim();
@@ -177,7 +176,7 @@ export const parseRecommendedSection = async ($: CheerioAPI): Promise<DiscoverSe
       "";
     recommendedSectionArray.push({
       imageUrl,
-      title: decodeHTML(title),
+      title: Application.decodeHTMLEntities(title),
       mangaId: id,
       type: "featuredCarouselItem",
     });
@@ -212,9 +211,9 @@ const parseRecentObject = (recentObj: Element, $: CheerioAPI): DiscoverSectionIt
   const subtitle = $("span", recentObj).last().text().trim() ?? "";
   return {
     imageUrl,
-    title: decodeHTML(title),
+    title: Application.decodeHTMLEntities(title),
     mangaId: id,
-    subtitle: decodeHTML(subtitle),
+    subtitle: Application.decodeHTMLEntities(subtitle),
     chapterId: chapterId,
     type: "chapterUpdatesCarouselItem",
   };
@@ -230,8 +229,8 @@ export const parseHotSection = async ($: CheerioAPI): Promise<DiscoverSectionIte
     const subtitle = $("span", hotObj).last().text().trim() ?? "";
     hotSectionArray.push({
       imageUrl,
-      title: decodeHTML(title),
-      subtitle: decodeHTML(subtitle),
+      title: Application.decodeHTMLEntities(title),
+      subtitle: Application.decodeHTMLEntities(subtitle),
       mangaId: id,
       type: "simpleCarouselItem",
     });
@@ -249,7 +248,7 @@ export const parseSearch = async ($: CheerioAPI): Promise<SearchResultItem[]> =>
     const image = $("img", item).attr("src") ?? $("img", item).attr("data-src") ?? "";
     itemArray.push({
       imageUrl: image,
-      title: decodeHTML(title),
+      title: Application.decodeHTMLEntities(title),
       mangaId: id,
       subtitle: "",
     });
