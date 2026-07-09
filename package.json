@@ -25,10 +25,10 @@
     "cheerio": "^1.2.0",
     "fastest-levenshtein": "^1.0.16",
     "husky": "^9.1.7",
-    "oxfmt": "^0.57.0",
-    "oxlint": "^1.72.0",
+    "oxfmt": "^0.58.0",
+    "oxlint": "^1.73.0",
     "oxlint-tsgolint": "^0.24.0",
     "stemmer": "^2.0.1",
-    "typescript": "^6.0.3"
+    "typescript": "^7.0.2"
   }
 }
