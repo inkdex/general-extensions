@@ -33,7 +33,10 @@ export const parseMangaList = (items: TitleItem[]): MangaListItem[] =>
   }));
 
 const posterUrl = (item: TitleItem): string =>
-  item.poster?.large ?? item.poster?.medium ?? item.poster?.small ?? "";
+  item.poster?.large ??
+  item.poster?.medium ??
+  item.poster?.small ??
+  "https://placehold.co/300x420/14161c/6b7080/png/?text=No+Poster";
 
 export const parseMangaDetails = (details: TitleDetails, mangaId: string): SourceManga => {
   const genres = details.genres ?? [];
