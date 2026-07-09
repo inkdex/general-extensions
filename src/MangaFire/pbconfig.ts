@@ -6,7 +6,7 @@ import { ContentRating, SourceIntents, type ExtensionInfo } from "@paperback/typ
 export default {
   name: "MangaFire",
   description: "Extension that pulls content from mangafire.to.",
-  version: "1.0.0-alpha.17",
+  version: "1.0.0-alpha.18",
   icon: "icon.png",
   language: "multi",
   contentRating: ContentRating.MATURE,

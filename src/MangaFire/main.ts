@@ -52,8 +52,8 @@ class MangaFireExtension implements ExtensionImpl<typeof MangaFireConfig> {
     storage: "stateManager",
   });
   private globalRateLimiter = new BasicRateLimiter("rateLimiter", {
-    numberOfRequests: 10,
-    bufferInterval: 1,
+    numberOfRequests: 20,
+    bufferInterval: 5,
     ignoreImages: true,
   });
 
