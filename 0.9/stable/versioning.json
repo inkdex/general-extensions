@@ -1,5 +1,5 @@
 {
-  "buildTime": "2026-07-09T01:00:27.852Z",
+  "buildTime": "2026-07-09T07:19:57.592Z",
   "builtWith": {
     "toolchain": "1.0.0-alpha.92",
     "types": "1.0.0-alpha.92"
@@ -329,7 +329,7 @@
     {
       "name": "Mangapill",
       "description": "Extension that pulls content from mangapill.com.",
-      "version": "1.0.0-alpha.11",
+      "version": "1.0.0-alpha.12",
       "icon": "icon.png",
       "language": "en",
       "contentRating": "SAFE",
@@ -483,7 +483,7 @@
     {
       "name": "WeebCentral",
       "description": "Extension that pulls content from weebcentral.com.",
-      "version": "1.0.0-alpha.22",
+      "version": "1.0.0-alpha.23",
       "icon": "icon.png",
       "language": "en",
       "contentRating": "SAFE",
