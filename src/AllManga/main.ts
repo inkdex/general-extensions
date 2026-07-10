@@ -4,6 +4,7 @@
 import {
   BasicRateLimiter,
   CloudflareError,
+  ContentRating,
   CookieStorageInterceptor,
   DiscoverSectionType,
   type AdvancedSearchForm,
@@ -22,13 +23,8 @@ import {
   type SourceManga,
 } from "@paperback/types";
 
-import {
-  AllMangaAdvancedSearchForm,
-  AllMangaSettingsForm,
-  contentRatingForAdult,
-  getImageQuality,
-  getShowAdult,
-} from "./forms";
+import { AllMangaAdvancedSearchForm } from "./forms/search";
+import { AllMangaSettingsForm, getImageQuality, getShowAdult } from "./forms/settings";
 import {
   CHAPTERS_QUERY,
   DETAILS_QUERY,
@@ -57,7 +53,7 @@ import {
   type SearchData,
   type SearchMetadata,
 } from "./models";
-import makeRequest, { AllMangaInterceptor } from "./network";
+import makeRequest, { AllMangaInterceptor, fetchChapterPagesViaApi } from "./network";
 import {
   dateFromParts,
   formatCount,
@@ -65,7 +61,6 @@ import {
   parseMangaDetails,
   parsePageUrls,
   parseThumbnailUrl,
-  toSearchResultItem,
 } from "./parsers";
 import type AllMangaConfig from "./pbconfig";
 import { pageListViaWebView } from "./utils/webView";
@@ -149,7 +144,7 @@ export class AllMangaExtension implements ExtensionImpl<typeof AllMangaConfig> {
     section: DiscoverSection,
     metadata: PageMetadata | undefined,
   ): Promise<PagedResults<DiscoverSectionItem>> {
-    const contentRating = contentRatingForAdult();
+    const contentRating = getShowAdult() ? ContentRating.ADULT : ContentRating.MATURE;
 
     if (section.id === SECTION_GENRES) {
       const items: DiscoverSectionItem[] = GENRE_OPTIONS.map((genre) => ({
@@ -288,8 +283,13 @@ export class AllMangaExtension implements ExtensionImpl<typeof AllMangaConfig> {
     const page = metadata?.page ?? 1;
     const data = await this.runSearch(title, query.metadata, sortingOption?.id, page);
 
-    const contentRating = contentRatingForAdult();
-    const items = data.mangas.edges.map((card) => toSearchResultItem(card, contentRating));
+    const contentRating = getShowAdult() ? ContentRating.ADULT : ContentRating.MATURE;
+    const items = data.mangas.edges.map((card) => ({
+      mangaId: card._id,
+      title: Application.decodeHTMLEntities(card.englishName || card.name),
+      imageUrl: parseThumbnailUrl(card.thumbnail),
+      contentRating,
+    }));
     const hasNext = data.mangas.edges.length === LIMIT;
 
     return { items, metadata: hasNext ? { page: page + 1 } : undefined };
@@ -339,8 +339,7 @@ export class AllMangaExtension implements ExtensionImpl<typeof AllMangaConfig> {
       Object.entries(meta?.genres ?? {})
         .filter(([, s]) => s === state)
         .map(([id]) => id);
-    // Ids from the fixed GENRE_OPTIONS list go to `genres`; ids from a
-    // manga's own detail tags (not in that list) go to `tags` instead.
+    // Fixed option ids map to genres; detail-only ids map to tags
     const toNames = (id: string) => GENRE_NAME_BY_ID[id] ?? id.replace(/_/g, " ");
     const isGenre = (id: string) => id in GENRE_NAME_BY_ID;
     const includedIds = ids("included");
@@ -387,12 +386,10 @@ export class AllMangaExtension implements ExtensionImpl<typeof AllMangaConfig> {
     const mangaId = chapter.sourceManga.mangaId;
     const quality = getImageQuality();
 
-    // chapterPages has no working direct-query path; only WebView can serve real pages.
-    const data = await pageListViaWebView(
-      mangaId,
-      chapter.chapterId,
-      this.cookieStorageInterceptor,
-    );
+    let data = await pageListViaWebView(mangaId, chapter.chapterId, this.cookieStorageInterceptor);
+    if (!data?.chapterPages?.edges?.length) {
+      data = await fetchChapterPagesViaApi(mangaId, chapter.chapterId);
+    }
     const pages = data ? parsePageUrls(data, quality) : [];
 
     if (pages.length === 0) {

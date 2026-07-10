@@ -3,8 +3,8 @@
 
 import { type SortingOption } from "@paperback/types";
 
-export const DOMAIN = "https://allmanga.to";
-export const MIRROR_HOSTS = ["allmanga.to", "mkissa.to"];
+export const DOMAIN = "https://mkissa.to";
+export const MIRROR_HOSTS = ["mkissa.to", "allmanga.to"];
 export const API_URL = "https://api.allanime.day/api";
 
 export const THUMBNAIL_CDN = "https://wp.youtube-anime.com/aln.youtube-anime.com/";
@@ -72,6 +72,14 @@ export const DETAILS_QUERY = `query($id: String!) {
 export const CHAPTERS_QUERY = `query($id: String!, $showId: String!) {
   manga(_id: $id) { _id name availableChaptersDetail }
   episodeInfos(showId: $showId, episodeNumStart: 0, episodeNumEnd: 9999) { episodeIdNum notes uploadDates }
+}`;
+
+// `manga` must be selected or chapterPages resolves to null.
+export const PAGES_QUERY = `query($mangaId: String!, $translationType: VaildTranslationTypeMangaEnumType!, $chapterString: String!, $limit: Int!, $offset: Int) {
+  chapterPages(mangaId: $mangaId, translationType: $translationType, chapterString: $chapterString, limit: $limit, offset: $offset) {
+    edges { pictureUrlHead pictureUrls }
+    manga { _id countryOfOrigin }
+  }
 }`;
 
 export interface GraphQLResponse<T> {
@@ -162,6 +170,12 @@ export interface ChapterPageEdge {
 
 export interface PagesData {
   chapterPages?: { edges: ChapterPageEdge[] } | null;
+}
+
+export interface SigningBootstrap {
+  epoch: number;
+  partB: string;
+  switchAt: number;
 }
 
 export const SORTING_OPTIONS: SortingOption[] = [

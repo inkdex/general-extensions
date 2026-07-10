@@ -1,13 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 /* Copyright © 2026 Inkdex */
 
-import {
-  ContentRating,
-  type Chapter,
-  type SearchResultItem,
-  type SourceManga,
-  type Tag,
-} from "@paperback/types";
+import { ContentRating, type Chapter, type SourceManga, type Tag } from "@paperback/types";
 
 import {
   DEFAULT_IMAGE_SERVER,
@@ -18,7 +12,6 @@ import {
   type ChaptersData,
   type DateParts,
   type EpisodeInfo,
-  type MangaCard,
   type MangaDetail,
   type PagesData,
   type PictureUrl,
@@ -90,18 +83,6 @@ function applyImageQuality(url: string, quality: string): string {
   return `${IMAGE_CDN}/${match[1]}?w=${quality}`;
 }
 
-export function toSearchResultItem(
-  card: MangaCard,
-  contentRating: ContentRating,
-): SearchResultItem {
-  return {
-    mangaId: card._id,
-    title: Application.decodeHTMLEntities(card.englishName || card.name),
-    imageUrl: parseThumbnailUrl(card.thumbnail),
-    contentRating,
-  };
-}
-
 export function parseMangaDetails(mangaId: string, detail: MangaDetail): SourceManga {
   const primaryTitle = Application.decodeHTMLEntities(detail.englishName || detail.name);
 
@@ -146,8 +127,7 @@ export function parseMangaDetails(mangaId: string, detail: MangaDetail): SourceM
   };
 }
 
-// notes are typically "[S3] Ep. 99 - Prove It"; strip the season/episode tag
-// and keep the remainder only if it looks like a real title, not bare digits.
+// Keep only non-trivial chapter-note titles
 function chapterTitleFrom(notes: string): string {
   const withoutSeasonTag = notes.replace(/^\[[^\]]*\]\s*/, "");
   const title = withoutSeasonTag.replace(/^ep\.?\s*\d+(?:\.\d+)?\s*-?\s*/i, "").trim();
