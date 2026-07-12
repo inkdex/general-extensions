@@ -51,7 +51,7 @@ export class WebtoonExtention extends WebtoonInfra implements ExtensionImpl<type
     return this.ExecApiRequest(
       {
         url: `${MOBILE_URL}/api/v1/${segment}/${titleId}/episodes`,
-        params: { pageSize: 99999 },
+        params: { pageSize: 99999, readingLanguageCode: sourceManga.mangaId.split("/")[0] ?? "en" },
         headers: { referer: MOBILE_URL },
       },
       (dto: WebtoonChaptersListDto) => this.parseChaptersList(dto, sourceManga),
