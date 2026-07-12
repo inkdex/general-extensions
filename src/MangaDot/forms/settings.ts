@@ -15,7 +15,7 @@ import {
   ToggleRow,
 } from "@paperback/types";
 
-import { discoverySections, ORIGIN } from "../models";
+import { ADULT_FILTER, discoverySections, ORIGIN } from "../models";
 import type { MangaDotApi } from "../network";
 import {
   getContentTypes,
@@ -28,6 +28,8 @@ import {
   getDemographicHidden,
   getMoreHidden,
   getRangeStatus,
+  getMultipageStatus,
+  getEnglishOnly,
 } from "../utils";
 
 export class SettingsForm extends Form {
@@ -129,6 +131,15 @@ export class SettingsForm extends Form {
               "handleRangeTypeStatusChange",
             ),
           }),
+          ToggleRow("multipage_section", {
+            title: "Use Multipage on Latest Update",
+            subtitle: "Using multipage might have different results from the website homepage",
+            value: getMultipageStatus(),
+            onValueChange: Application.Selector(
+              this as SettingsForm,
+              "handleMultipageStatusChange",
+            ),
+          }),
           NavigationRow("sectionOrder", {
             title: "Sections Order",
             subtitle: "Sections Order",
@@ -145,16 +156,30 @@ export class SettingsForm extends Form {
           SelectRow("toggle_adult", {
             title: "Show Adult results",
             value: getShowAdultStatus(),
-            options: [
-              { id: "0", title: "No" },
-              { id: "1", title: "Yes" },
-              { id: "both", title: "Both" },
-            ],
+            options: ADULT_FILTER,
             minItemCount: 1,
             maxItemCount: 1,
             onValueChange: Application.Selector(
               this as SettingsForm,
               "handleShowAdultStatusChange",
+            ),
+          }),
+        ],
+      ),
+      Section(
+        {
+          id: "chapter_settings",
+          footer: "Chapters Settings",
+        },
+        [
+          ToggleRow("en_only", {
+            title: "Show English only chapters",
+            value: getEnglishOnly(),
+            subtitle:
+              "Fetch only English chapters. Will need a `Reload Chapters` to update the existing one",
+            onValueChange: Application.Selector(
+              this as SettingsForm,
+              "handleEnglishOnlyStatusChange",
             ),
           }),
         ],
@@ -183,6 +208,10 @@ export class SettingsForm extends Form {
     await this.updateValue(value, "show_adult_content");
   }
 
+  async handleEnglishOnlyStatusChange(value: boolean): Promise<void> {
+    await this.updateValue(value, "english_only_content");
+  }
+
   async handleTypeStatusChange(value: string[]): Promise<void> {
     const previous = getContentTypes();
 
@@ -200,6 +229,11 @@ export class SettingsForm extends Form {
   async handleRangeTypeStatusChange(value: boolean): Promise<void> {
     Application.invalidateDiscoverSections();
     await this.updateValue(value, "range_type");
+  }
+
+  async handleMultipageStatusChange(value: boolean): Promise<void> {
+    Application.invalidateDiscoverSections();
+    await this.updateValue(value, "multipage_section");
   }
 
   async handleSectionTypeStatusChange(value: string[]): Promise<void> {
@@ -252,6 +286,7 @@ function getDeletedDiscoverySections() {
 }
 
 async function setDiscoverySections(newValue: { id: string; title: string }[]) {
+  Application.invalidateDiscoverSections();
   Application.setState(newValue, "sections");
 }
 

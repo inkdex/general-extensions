@@ -38,6 +38,10 @@ export function getMoreHidden() {
   return (Application.getState("hidden_more") as string[] | undefined) ?? [];
 }
 
+export function getEnglishOnly() {
+  return (Application.getState("english_only_content") as boolean | undefined) ?? false;
+}
+
 export function getShowAdultStatus(): string[] {
   return (Application.getState("show_adult_content") as string[] | undefined) ?? ["0"];
 }
@@ -48,6 +52,10 @@ export function getTimeRangeStatus(): string[] {
 
 export function getRangeStatus(): boolean {
   return (Application.getState("range_type") as boolean | undefined) ?? false;
+}
+
+export function getMultipageStatus(): boolean {
+  return (Application.getState("multipage_section") as boolean | undefined) ?? false;
 }
 
 export function getDiscoverySectionsOrder() {

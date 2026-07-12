@@ -62,6 +62,21 @@ export const ORIGIN: Tag[] = [
   },
 ];
 
+export const ADULT_FILTER = [
+  {
+    id: "0",
+    title: "No",
+  },
+  {
+    id: "1",
+    title: "Yes",
+  },
+  {
+    id: "both",
+    title: "Both",
+  },
+];
+
 export interface MangaData extends MangaSectionItem {
   genres: string[];
   date_added: string;

@@ -34,7 +34,7 @@ function parseStringArray(value: string[] | string | null): string[] {
   try {
     return JSON.parse(value);
   } catch {
-    return [];
+    return [value];
   }
 }
 
@@ -203,7 +203,9 @@ export const parseSection = (
         return {
           ...base,
           type,
-          subtitle: `★ ${item.avg_rating}`,
+          subtitle: isMangaData
+            ? getArrayAuthor(item as MangaData)
+            : `Ch. ${item.chapter_count} | ★ ${item.avg_rating}`,
           chapterId: item.chapter_count.toString(),
           publishDate: getDate(item.last_chapter_date),
         };
@@ -211,7 +213,9 @@ export const parseSection = (
         return {
           ...base,
           type,
-          supertitle: isMangaData ? getArrayAuthor(item as MangaData) : `★ ${item.avg_rating}`,
+          supertitle: isMangaData
+            ? getArrayAuthor(item as MangaData)
+            : `Ch. ${item.chapter_count} | ★ ${item.avg_rating}`,
           summary: isMangaData ? (item as MangaData).description : "",
           infoItems: itemInfoElements,
         };
@@ -219,13 +223,17 @@ export const parseSection = (
         return {
           ...base,
           type,
-          subtitle: isMangaData ? getArrayAuthor(item as MangaData) : `★ ${item.avg_rating}`,
+          subtitle: isMangaData
+            ? getArrayAuthor(item as MangaData)
+            : `Ch. ${item.chapter_count} | ★ ${item.avg_rating}`,
         };
       default:
         return {
           ...base,
           type: "simpleCarouselItem",
-          subtitle: isMangaData ? getArrayAuthor(item as MangaData) : `★ ${item.avg_rating}`,
+          subtitle: isMangaData
+            ? getArrayAuthor(item as MangaData)
+            : `Ch. ${item.chapter_count} | ★ ${item.avg_rating}`,
         };
     }
   });

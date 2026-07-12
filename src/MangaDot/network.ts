@@ -33,8 +33,10 @@ import {
   defaultMetadata,
   deNormalizeId,
   getDemographicHidden,
+  getEnglishOnly,
   getFilters,
   getGenresHidden,
+  getMultipageStatus,
   getSectionContentTypes,
   getShowAdultStatus,
   getThemesHidden,
@@ -148,7 +150,7 @@ export class MangaDotApi {
       return this.getMostViewed(page);
     }
     if (section === "latest_updates") {
-      return this.getLatestUpdateSection();
+      return this.getLatestUpdateSection(page);
     }
     return this.getAllTimesSection(section, page);
   }
@@ -169,6 +171,7 @@ export class MangaDotApi {
       path: ["api", "search"],
       query: {
         page: page.toString(),
+        origin: getSectionContentTypes().join(",").replaceAll("&", ","),
         sortBy: "views",
         sortOrder: "desc",
         adult: getShowAdultStatus(),
@@ -177,17 +180,29 @@ export class MangaDotApi {
     return this.buildApiRequest<SearchResponse>(params);
   }
 
-  async getLatestUpdateSection(): Promise<MangaSection> {
-    const params: ApiRequestConfig = {
-      path: ["api", "manga", "section"],
-      query: {
-        id: "latest_updates",
-        origin: getSectionContentTypes().join(",").replaceAll("&", ","),
-        adult: getShowAdultStatus(),
-        limit: "100",
-      },
-    };
-    return this.buildApiRequest<MangaSection>(params);
+  async getLatestUpdateSection(page: number): Promise<MangaSection | SearchResponse> {
+    if (getMultipageStatus()) {
+      const params: ApiRequestConfig = {
+        path: ["api", "manga", "section", "latest-updates"],
+        query: {
+          origin: getSectionContentTypes().join(",").replaceAll("&", ","),
+          adult: getShowAdultStatus(),
+          page: page.toString(),
+        },
+      };
+      return this.buildApiRequest<SearchResponse>(params);
+    } else {
+      const params: ApiRequestConfig = {
+        path: ["api", "manga", "section"],
+        query: {
+          id: "latest_updates",
+          origin: getSectionContentTypes().join(",").replaceAll("&", ","),
+          adult: getShowAdultStatus(),
+          limit: "100",
+        },
+      };
+      return this.buildApiRequest<MangaSection>(params);
+    }
   }
 
   async getMangaData(mangaId: string) {
@@ -200,6 +215,7 @@ export class MangaDotApi {
   async getChapterList(mangaId: string) {
     const params: ApiRequestConfig = {
       path: ["api", "manga", mangaId, "chapters", "list"],
+      query: getEnglishOnly() ? { lang: "en" } : {},
     };
     return this.buildApiRequest<ChapterListResponse[]>(params);
   }
@@ -306,7 +322,7 @@ export class MangaDotApi {
       items: mangas.items.map((manga) => ({
         mangaId: manga.id.toString(),
         title: manga.title,
-        subtitle: `★ ${manga.avg_rating}`,
+        subtitle: `Ch. ${manga.chapter_count} | ★ ${manga.avg_rating}`,
         imageUrl: `${DOMAIN}${manga.photo}`,
         contentRating: manga.is_blurworthy ? ContentRating.ADULT : ContentRating.EVERYONE,
       })),

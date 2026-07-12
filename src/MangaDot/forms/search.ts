@@ -17,7 +17,7 @@ import {
 } from "@paperback/types";
 
 import { MangaDot } from "../main";
-import { ORIGIN, STATUS, type SearchMetadata } from "../models";
+import { ADULT_FILTER, ORIGIN, STATUS, type SearchMetadata } from "../models";
 import {
   defaultMetadata,
   deNormalizeId,
@@ -51,11 +51,7 @@ class MangaDotAdvancedSearchForm extends AdvancedSearchForm {
         SelectRow("adultToggle", {
           title: "Show Adult results",
           value: this.searchMetadata.adult ?? getShowAdultStatus(),
-          options: [
-            { id: "0", title: "No" },
-            { id: "1", title: "Yes" },
-            { id: "both", title: "Both" },
-          ],
+          options: ADULT_FILTER,
           minItemCount: 1,
           maxItemCount: 1,
           onValueChange: Application.Selector(this as MangaDotAdvancedSearchForm, "handleAdult"),
