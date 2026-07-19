@@ -19,7 +19,7 @@ export class QiScansExtension implements Omit<Extension, keyof MangaProviding> {
     storage: "stateManager",
   });
   globalRateLimiter = new BasicRateLimiter("rateLimiter", {
-    numberOfRequests: 10,
+    numberOfRequests: 1,
     bufferInterval: 1,
     ignoreImages: true,
   });
