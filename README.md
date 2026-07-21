@@ -8,6 +8,7 @@ Paperback extensions for websites with unique, non-generic themes.
 - [Atsumaru](https://atsu.moe)
 - [Comix](https://comix.to)
 - [FlameComics](https://flamecomics.com/)
+- [HiveToons](https://hivetoons.org)
 - [LNori](https://lnori.com)
 - [MangaDemon](https://demonicscans.org)
 - [MangaDex](https://mangadex.org)
