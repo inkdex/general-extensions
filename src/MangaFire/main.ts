@@ -26,7 +26,8 @@ import {
 import { MangaFireAdvancedSearchForm } from "./forms/search";
 import { getLanguages, MangaFireSettingsForm } from "./forms/settings";
 import {
-  API_URL,
+  CHAPTER_PAGE_LIMIT,
+  DOMAIN,
   GENRES,
   SORTS,
   THEMES,
@@ -42,9 +43,7 @@ import {
 import { fetchApi, MangaFireInterceptor } from "./network";
 import { parseChapters, parseHid, parseMangaDetails, parseMangaList } from "./parsers";
 import type MangaFireConfig from "./pbconfig";
-
-const PAGE_LIMIT = 50;
-const CHAPTER_PAGE_LIMIT = 200;
+import { getVrfUrl } from "./utils/webView";
 
 class MangaFireExtension implements ExtensionImpl<typeof MangaFireConfig> {
   private requestManager = new MangaFireInterceptor("requestManager");
@@ -52,7 +51,7 @@ class MangaFireExtension implements ExtensionImpl<typeof MangaFireConfig> {
     storage: "stateManager",
   });
   private globalRateLimiter = new BasicRateLimiter("rateLimiter", {
-    numberOfRequests: 20,
+    numberOfRequests: 15,
     bufferInterval: 5,
     ignoreImages: true,
   });
@@ -136,13 +135,19 @@ class MangaFireExtension implements ExtensionImpl<typeof MangaFireConfig> {
     itemType: "featuredCarouselItem" | "simpleCarouselItem",
   ): Promise<PagedResults<DiscoverSectionItem>> {
     const page = metadata?.page ?? 1;
-    const url = new URL(API_URL)
-      .addPathComponent("titles")
-      .setQueryItem(`order[${orderKey}]`, "desc")
-      .setQueryItem("page", page.toString())
-      .setQueryItem("limit", PAGE_LIMIT.toString());
 
-    const data = await fetchApi<ApiList<TitleItem>>(url.toString());
+    const triggerUrl = new URL(DOMAIN)
+      .addPathComponent("browse")
+      .setQueryItem("sort", `${orderKey}:desc`)
+      .setQueryItem("page", page.toString())
+      .toString();
+
+    const apiUrl = await getVrfUrl({
+      triggerUrl,
+      matcher: "/api/titles\\?",
+      cookieInterceptor: this.cookieStorageInterceptor,
+    });
+    const data = await fetchApi<ApiList<TitleItem>>(apiUrl);
 
     const items = parseMangaList(data.items).map(
       ({ subtitle, updatedAt, rank, metadata: _, ...item }): DiscoverSectionItem =>
@@ -209,10 +214,7 @@ class MangaFireExtension implements ExtensionImpl<typeof MangaFireConfig> {
     sortingOption?: SortingOption,
   ): Promise<PagedResults<SearchResultItem>> {
     const page = metadata?.page ?? 1;
-    const url = new URL(API_URL)
-      .addPathComponent("titles")
-      .setQueryItem("page", page.toString())
-      .setQueryItem("limit", PAGE_LIMIT.toString());
+    const url = new URL(DOMAIN).addPathComponent("browse").setQueryItem("page", page.toString());
 
     if (query.title.trim()) url.setQueryItem("keyword", query.title.trim());
 
@@ -225,7 +227,6 @@ class MangaFireExtension implements ExtensionImpl<typeof MangaFireConfig> {
     }
     if (genresIn.length > 0) url.setQueryItem("genres_in[]", genresIn);
     if (genresEx.length > 0) url.setQueryItem("genres_ex[]", genresEx);
-    // "and" is the API default
     if (genresIn.length > 0 && !(meta.genreMode ?? true)) url.setQueryItem("genres_mode", "or");
 
     const arrayFilters = {
@@ -248,9 +249,14 @@ class MangaFireExtension implements ExtensionImpl<typeof MangaFireConfig> {
     }
 
     const [orderKey, direction] = (sortingOption?.id ?? "relevance:desc").split(":");
-    url.setQueryItem(`order[${orderKey}]`, direction);
+    url.setQueryItem("sort", `${orderKey}:${direction}`);
 
-    const data = await fetchApi<ApiList<TitleItem>>(url.toString());
+    const apiUrl = await getVrfUrl({
+      triggerUrl: url.toString(),
+      matcher: "/api/titles\\?",
+      cookieInterceptor: this.cookieStorageInterceptor,
+    });
+    const data = await fetchApi<ApiList<TitleItem>>(apiUrl);
 
     return {
       items: parseMangaList(data.items),
@@ -259,32 +265,56 @@ class MangaFireExtension implements ExtensionImpl<typeof MangaFireConfig> {
   }
 
   async getMangaDetails(mangaId: string): Promise<SourceManga> {
-    const data = await fetchApi<{ data: TitleDetails }>(
-      new URL(API_URL).addPathComponent("titles").addPathComponent(parseHid(mangaId)).toString(),
-    );
+    const hid = parseHid(mangaId);
+    const triggerUrl = new URL(DOMAIN)
+      .addPathComponent("manga")
+      .addPathComponent(mangaId)
+      .setQueryItem("type", "details")
+      .toString();
+
+    const apiUrl = await getVrfUrl({
+      triggerUrl,
+      matcher: `/api/titles/${hid}`,
+      cookieInterceptor: this.cookieStorageInterceptor,
+      apiPath: `/titles/${hid}`,
+    });
+
+    const data = await fetchApi<{ data: TitleDetails }>(apiUrl);
 
     return parseMangaDetails(data.data, mangaId);
   }
 
   async getChapters(sourceManga: SourceManga): Promise<Chapter[]> {
     const chapters: Chapter[] = [];
+    const hid = parseHid(sourceManga.mangaId);
 
     for (const langCode of getLanguages()) {
       let page = 1;
       let lastPage = 1;
 
       do {
-        const url = new URL(API_URL)
-          .addPathComponent("titles")
-          .addPathComponent(parseHid(sourceManga.mangaId))
-          .addPathComponent("chapters")
-          .setQueryItem("language", langCode)
-          .setQueryItem("sort", "number")
-          .setQueryItem("order", "desc")
+        const triggerUrl = new URL(DOMAIN)
+          .addPathComponent("manga")
+          .addPathComponent(sourceManga.mangaId)
+          .setQueryItem("lang", langCode)
           .setQueryItem("page", page.toString())
-          .setQueryItem("limit", CHAPTER_PAGE_LIMIT.toString());
+          .toString();
 
-        const data = await fetchApi<ApiList<ChapterItem>>(url.toString());
+        const apiUrl = await getVrfUrl({
+          triggerUrl,
+          matcher: `/api/titles/${hid}/chapters`,
+          cookieInterceptor: this.cookieStorageInterceptor,
+          apiPath: `/titles/${hid}/chapters`,
+          apiParams: {
+            language: langCode,
+            sort: "number",
+            order: "desc",
+            page,
+            limit: CHAPTER_PAGE_LIMIT,
+          },
+        });
+
+        const data = await fetchApi<ApiList<ChapterItem>>(apiUrl);
         chapters.push(...parseChapters(data.items, sourceManga, langCode));
 
         lastPage = data.meta?.lastPage ?? 1;
@@ -296,9 +326,21 @@ class MangaFireExtension implements ExtensionImpl<typeof MangaFireConfig> {
   }
 
   async getChapterDetails(chapter: Chapter): Promise<ChapterDetails> {
-    const data = await fetchApi<{ data: ChapterPages }>(
-      new URL(API_URL).addPathComponent("chapters").addPathComponent(chapter.chapterId).toString(),
-    );
+    const triggerUrl = new URL(DOMAIN)
+      .addPathComponent("read")
+      .addPathComponent(chapter.sourceManga.mangaId)
+      .addPathComponent(chapter.langCode)
+      .addPathComponent(`chapter-${chapter.chapNum}`)
+      .toString();
+
+    const apiUrl = await getVrfUrl({
+      triggerUrl,
+      matcher: `/api/chapters/${chapter.chapterId}`,
+      cookieInterceptor: this.cookieStorageInterceptor,
+      apiPath: `/chapters/${chapter.chapterId}`,
+    });
+
+    const data = await fetchApi<{ data: ChapterPages }>(apiUrl);
 
     return {
       mangaId: chapter.sourceManga.mangaId,

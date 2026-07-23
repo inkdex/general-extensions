@@ -4,7 +4,7 @@
 import type { SortingOption, Tag } from "@paperback/types";
 
 export const DOMAIN = "https://mangafire.to";
-export const API_URL = `${DOMAIN}/api`;
+export const CHAPTER_PAGE_LIMIT = 200;
 
 // Chapter images come from `{prefix}.mfcdn{1,2,3}.xyz`. All prefixes serve byte-identical content
 // for a given path — the API pins one per session, but the host can be swapped freely on failure.
