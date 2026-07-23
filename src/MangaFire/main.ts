@@ -51,7 +51,7 @@ class MangaFireExtension implements ExtensionImpl<typeof MangaFireConfig> {
     storage: "stateManager",
   });
   private globalRateLimiter = new BasicRateLimiter("rateLimiter", {
-    numberOfRequests: 15,
+    numberOfRequests: 20,
     bufferInterval: 5,
     ignoreImages: true,
   });
@@ -146,6 +146,7 @@ class MangaFireExtension implements ExtensionImpl<typeof MangaFireConfig> {
       triggerUrl,
       matcher: "/api/titles\\?",
       cookieInterceptor: this.cookieStorageInterceptor,
+      rateLimiter: this.globalRateLimiter,
     });
     const data = await fetchApi<ApiList<TitleItem>>(apiUrl);
 
@@ -255,6 +256,7 @@ class MangaFireExtension implements ExtensionImpl<typeof MangaFireConfig> {
       triggerUrl: url.toString(),
       matcher: "/api/titles\\?",
       cookieInterceptor: this.cookieStorageInterceptor,
+      rateLimiter: this.globalRateLimiter,
     });
     const data = await fetchApi<ApiList<TitleItem>>(apiUrl);
 
@@ -276,6 +278,7 @@ class MangaFireExtension implements ExtensionImpl<typeof MangaFireConfig> {
       triggerUrl,
       matcher: `/api/titles/${hid}`,
       cookieInterceptor: this.cookieStorageInterceptor,
+      rateLimiter: this.globalRateLimiter,
       apiPath: `/titles/${hid}`,
     });
 
@@ -304,6 +307,7 @@ class MangaFireExtension implements ExtensionImpl<typeof MangaFireConfig> {
           triggerUrl,
           matcher: `/api/titles/${hid}/chapters`,
           cookieInterceptor: this.cookieStorageInterceptor,
+          rateLimiter: this.globalRateLimiter,
           apiPath: `/titles/${hid}/chapters`,
           apiParams: {
             language: langCode,
@@ -337,6 +341,7 @@ class MangaFireExtension implements ExtensionImpl<typeof MangaFireConfig> {
       triggerUrl,
       matcher: `/api/chapters/${chapter.chapterId}`,
       cookieInterceptor: this.cookieStorageInterceptor,
+      rateLimiter: this.globalRateLimiter,
       apiPath: `/chapters/${chapter.chapterId}`,
     });
 

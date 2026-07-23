@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 /* Copyright © 2026 Inkdex */
 
-import { type CookieStorageInterceptor } from "@paperback/types";
+import { type BasicRateLimiter, type CookieStorageInterceptor } from "@paperback/types";
 
 import { getLanguages } from "../forms/settings";
 import { CHAPTER_PAGE_LIMIT, DOMAIN } from "../models";
@@ -13,6 +13,7 @@ interface CaptureOptions {
   triggerUrl: string;
   matcher: string;
   cookieInterceptor: CookieStorageInterceptor;
+  rateLimiter?: BasicRateLimiter;
   apiPath?: string;
   apiParams?: Record<string, unknown>;
 }
@@ -38,22 +39,34 @@ function cacheCapturedUrl(url: string, targetMangaId?: string): void {
   }
 }
 
-export async function getVrfUrl(opts: CaptureOptions): Promise<string> {
-  const { triggerUrl, matcher, cookieInterceptor, apiPath, apiParams } = opts;
+let cachedHomeHtml: string | null = null;
 
-  const cached = cacheGet(VRF_CACHE_KEY, triggerUrl);
-  if (cached) return cached;
+async function getHomeHtml(): Promise<string> {
+  if (cachedHomeHtml) return cachedHomeHtml;
 
-  const pageUrl = triggerUrl.startsWith("http") ? triggerUrl : `${DOMAIN}/home`;
+  const pageUrl = `${DOMAIN}/home`;
   const [response, buffer] = await Application.scheduleRequest({ url: pageUrl, method: "GET" });
   if (response.status >= 400) {
     throw new Error(`Failed to fetch ${pageUrl}: HTTP ${response.status}`);
   }
 
-  const html = Application.arrayBufferToUTF8String(buffer).replace(
+  cachedHomeHtml = Application.arrayBufferToUTF8String(buffer).replace(
     /(["'])\/\/([a-zA-Z0-9.-]+)/g,
     "$1https://$2",
   );
+  return cachedHomeHtml;
+}
+
+export async function getVrfUrl(opts: CaptureOptions): Promise<string> {
+  const { triggerUrl, matcher, cookieInterceptor, rateLimiter, apiPath, apiParams } = opts;
+
+  const cached = cacheGet(VRF_CACHE_KEY, triggerUrl);
+  if (cached) {
+    return cached;
+  }
+
+  const pageUrl = triggerUrl.startsWith("http") ? triggerUrl : `${DOMAIN}/home`;
+  const html = await getHomeHtml();
 
   const targetMangaId = triggerUrl.match(/\/manga\/([^/?]+)/)?.[1];
   const selectedLanguages = getLanguages();
@@ -133,7 +146,8 @@ export async function getVrfUrl(opts: CaptureOptions): Promise<string> {
                   });
                 }
               }
-            } catch (e) {}
+            } catch (e) {
+            }
           } else if (attempts > 100) {
             clearInterval(interval);
           }
@@ -141,15 +155,31 @@ export async function getVrfUrl(opts: CaptureOptions): Promise<string> {
       }
 
       const originalOpen = XMLHttpRequest.prototype.open;
+      const originalSend = XMLHttpRequest.prototype.send;
+
       XMLHttpRequest.prototype.open = function (method, url) {
         checkUrl(url);
+        if (typeof url === "string" && url.includes("/api/")) {
+          this._blocked = true;
+        }
         return originalOpen.apply(this, arguments);
+      };
+
+      XMLHttpRequest.prototype.send = function () {
+        if (this._blocked) {
+          return;
+        }
+        return originalSend.apply(this, arguments);
       };
 
       if (window.fetch) {
         const originalFetch = window.fetch;
         window.fetch = function (input, init) {
-          checkUrl(typeof input === "string" ? input : input?.url);
+          const urlStr = typeof input === "string" ? input : input?.url;
+          checkUrl(urlStr);
+          if (typeof urlStr === "string" && urlStr.includes("/api/")) {
+            return Promise.resolve(new Response(JSON.stringify({})));
+          }
           return originalFetch.apply(this, arguments);
         };
       }
@@ -161,6 +191,10 @@ export async function getVrfUrl(opts: CaptureOptions): Promise<string> {
     ? html.replace("<head>", `<head>${scriptTag}`)
     : `${scriptTag}${html}`;
 
+  if (rateLimiter) {
+    await rateLimiter.interceptRequest({ url: pageUrl, method: "GET" });
+  }
+
   const result = await Application.executeInWebView({
     source: {
       html: fullHtml,
@@ -171,7 +205,6 @@ export async function getVrfUrl(opts: CaptureOptions): Promise<string> {
     },
     inject: "return window.__vrfCapture;",
     storage: { cookies: cookieInterceptor.cookiesForUrl(pageUrl) },
-    captureConsoleLog: false,
   });
 
   const rawResult = result.result;
