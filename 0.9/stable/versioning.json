@@ -1,5 +1,5 @@
 {
-  "buildTime": "2026-07-23T16:01:42.758Z",
+  "buildTime": "2026-07-24T06:32:58.090Z",
   "builtWith": {
     "toolchain": "1.0.0-alpha.92",
     "types": "1.0.0-alpha.92"
@@ -98,6 +98,29 @@
         }
       ],
       "id": "FlameComics"
+    },
+    {
+      "name": "HiveToons",
+      "description": "Extension that pulls content from hivetoons.org.",
+      "version": "1.0.0-alpha.1",
+      "icon": "icon.png",
+      "language": "en",
+      "contentRating": "MATURE",
+      "capabilities": [
+        1,
+        16,
+        4,
+        64,
+        32
+      ],
+      "badges": [],
+      "developers": [
+        {
+          "name": "Popmango",
+          "github": "https://github.com/PoppingMangoSources"
+        }
+      ],
+      "id": "HiveToons"
     },
     {
       "name": "LNori",
