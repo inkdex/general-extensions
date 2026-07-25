@@ -211,6 +211,9 @@ const chapterNumber = (chapter: HiveToonsChapter): number => {
     : parseFloat(String(chapter.number)) || 0;
 };
 
+const chapterIsLocked = (chapter: HiveToonsChapter): boolean =>
+  chapter.isLocked === true || chapter.isPermanentlyLocked === true || (chapter.price ?? 0) > 0;
+
 export const parseChapterList = (
   chapters: HiveToonsChapter[],
   sourceManga: SourceManga,
@@ -218,8 +221,7 @@ export const parseChapterList = (
 ): Chapter[] => {
   const visible = chapters.filter((chapter) => {
     if (chapter.chapterStatus && chapter.chapterStatus !== "PUBLIC") return false;
-    const isLocked = chapter.isLocked === true || chapter.isPermanentlyLocked === true;
-    return !isLocked || showLocked;
+    return !chapterIsLocked(chapter) || showLocked;
   });
 
   const sorted = [...visible].sort((a, b) => {
@@ -230,7 +232,7 @@ export const parseChapterList = (
 
   return sorted.map((chapter, index) => {
     const realTitle = chapter.title?.trim() ?? "";
-    const title = chapter.isAccessible === true ? realTitle : `🔒 ${realTitle}`.trim();
+    const title = chapterIsLocked(chapter) ? `🔒 ${realTitle}`.trim() : realTitle;
 
     return {
       chapterId: chapter.id.toString(),
