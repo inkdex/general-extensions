@@ -1,22 +1,13 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 /* Copyright © 2026 Inkdex */
 
-import { type BasicRateLimiter, type CookieStorageInterceptor } from "@paperback/types";
+import { URL, type CookieStorageInterceptor } from "@paperback/types";
 
 import { getLanguages } from "../forms/settings";
 import { CHAPTER_PAGE_LIMIT, DOMAIN } from "../models";
 import { cacheGet, cacheSet } from "./cache";
 
 const VRF_CACHE_KEY = "mangafire_vrf_cache";
-
-interface CaptureOptions {
-  triggerUrl: string;
-  matcher: string;
-  cookieInterceptor: CookieStorageInterceptor;
-  rateLimiter?: BasicRateLimiter;
-  apiPath?: string;
-  apiParams?: Record<string, unknown>;
-}
 
 const toFullUrl = (url: string) =>
   url.startsWith("http") ? url : `${DOMAIN}${url.startsWith("/") ? "" : "/"}${url}`;
@@ -57,13 +48,23 @@ async function getHomeHtml(): Promise<string> {
   return cachedHomeHtml;
 }
 
-export async function getVrfUrl(opts: CaptureOptions): Promise<string> {
-  const { triggerUrl, matcher, cookieInterceptor, rateLimiter, apiPath, apiParams } = opts;
-
+export async function getVrfUrl({
+  triggerUrl,
+  cookieInterceptor,
+  apiPath,
+  apiParams,
+}: {
+  triggerUrl: string;
+  cookieInterceptor: CookieStorageInterceptor;
+  apiPath?: string;
+  apiParams?: Record<string, unknown>;
+}): Promise<string> {
   const cached = cacheGet(VRF_CACHE_KEY, triggerUrl);
   if (cached) {
     return cached;
   }
+
+  const computedParams = apiParams ?? new URL(triggerUrl).queryItems;
 
   const pageUrl = triggerUrl.startsWith("http") ? triggerUrl : `${DOMAIN}/home`;
   const html = await getHomeHtml();
@@ -74,115 +75,106 @@ export async function getVrfUrl(opts: CaptureOptions): Promise<string> {
 
   const hookSource = `
     (function () {
-      let resolveFn;
       window.__vrfCapture = new Promise((resolve) => {
-        resolveFn = resolve;
-      });
+        const capturedMap = {};
+        let matchedUrl = null;
 
-      const capturedMap = {};
-      const targetRegex = new RegExp(${JSON.stringify(matcher)});
-      let matchedUrl = null;
-
-      const innerTimer = setTimeout(() => {
-        if (!matchedUrl) {
-          resolveFn(JSON.stringify({ matched: "", all: Object.keys(capturedMap) }));
-        }
-      }, 10000);
-
-      function checkUrl(url) {
-        if (typeof url === "string" && url.includes("/api/")) {
+        function record(url) {
+          if (!url.includes("vrf=")) return;
           capturedMap[url] = true;
-          if (targetRegex.test(url) && !matchedUrl) {
+          if (!matchedUrl && (!targetPath || url.includes(targetPath))) {
             matchedUrl = url;
-            clearTimeout(innerTimer);
-            setTimeout(() => {
-              resolveFn(
-                JSON.stringify({
-                  matched: matchedUrl,
-                  all: Object.keys(capturedMap),
-                }),
-              );
-            }, 200);
           }
         }
-      }
 
-      Object.defineProperty(Object.prototype, "interceptors", {
-        configurable: true,
-        get() {
-          return this._interceptors;
-        },
-        set(val) {
-          this._interceptors = val;
-          if (this?.get && this?.post) {
-            window.__siteAxios = this;
+        function finish() {
+          resolve(
+            JSON.stringify({
+              matched: matchedUrl || "",
+              all: Object.keys(capturedMap),
+            }),
+          );
+        }
+
+        const originalOpen = XMLHttpRequest.prototype.open;
+        const originalSend = XMLHttpRequest.prototype.send;
+
+        XMLHttpRequest.prototype.open = function (method, url) {
+          if (typeof url === "string" && url.includes("/api/")) {
+            this._blocked = true;
+            if (url.includes("vrf=")) record(url);
           }
-        },
-      });
+          return originalOpen.apply(this, arguments);
+        };
 
-      const targetPath = ${JSON.stringify(apiPath || null)};
-      const targetParams = ${JSON.stringify(apiParams || null)};
-      const languages = ${JSON.stringify(selectedLanguages)};
-      const limit = ${pageLimit};
+        XMLHttpRequest.prototype.send = function () {
+          if (this._blocked) return;
+          return originalSend.apply(this, arguments);
+        };
 
-      if (targetPath) {
-        let attempts = 0;
-        const interval = setInterval(() => {
-          attempts++;
-          if (window.__siteAxios) {
-            clearInterval(interval);
-            try {
-              window.__siteAxios.get(targetPath, { params: targetParams || {} });
+        if (window.fetch) {
+          const originalFetch = window.fetch;
+          window.fetch = function (input, init) {
+            const urlStr = typeof input === "string" ? input : input?.url;
+            if (typeof urlStr === "string" && urlStr.includes("/api/")) {
+              if (urlStr.includes("vrf=")) record(urlStr);
+              return Promise.resolve(new Response(JSON.stringify({})));
+            }
+            return originalFetch.apply(this, arguments);
+          };
+        }
+
+        const targetPath = ${JSON.stringify(apiPath || null)};
+        const targetParams = ${JSON.stringify(computedParams || null)};
+        const languages = ${JSON.stringify(selectedLanguages)};
+        const limit = ${pageLimit};
+
+        function triggerRequests(axios) {
+          setTimeout(() => {
+            if (targetPath) {
+              axios.get(targetPath, { params: targetParams || {} });
+
               if (targetPath.match(/\\/titles\\/[^/]+$/)) {
                 for (const lang of languages) {
-                  window.__siteAxios.get(targetPath + "/chapters", {
-                    params: {
-                      language: lang,
-                      sort: "number",
-                      order: "desc",
-                      page: 1,
-                      limit: limit,
-                    },
+                  axios.get(targetPath + "/chapters", {
+                    params: { language: lang, sort: "number", order: "desc", page: 1, limit: limit },
                   });
                 }
               }
-            } catch (e) {
             }
-          } else if (attempts > 100) {
-            clearInterval(interval);
-          }
-        }, 50);
-      }
-
-      const originalOpen = XMLHttpRequest.prototype.open;
-      const originalSend = XMLHttpRequest.prototype.send;
-
-      XMLHttpRequest.prototype.open = function (method, url) {
-        checkUrl(url);
-        if (typeof url === "string" && url.includes("/api/")) {
-          this._blocked = true;
+            setTimeout(finish, 100);
+          }, 100);
         }
-        return originalOpen.apply(this, arguments);
-      };
 
-      XMLHttpRequest.prototype.send = function () {
-        if (this._blocked) {
-          return;
-        }
-        return originalSend.apply(this, arguments);
-      };
+        // MangaFire creates multiple axios instances on load; only the one that
+        // registers a request interceptor (the VRF-signing client) is useful here.
+        // Hooking "interceptors" assignment alone isn't enough to tell them apart,
+        // so also patch request.use to detect when a real interceptor lands.
+        Object.defineProperty(Object.prototype, "interceptors", {
+          configurable: true,
+          get() {
+            return this._interceptors;
+          },
+          set(val) {
+            this._interceptors = val;
+            const axiosInstance = this;
+            if (axiosInstance?.get && axiosInstance?.post && val?.request?.use && !axiosInstance._vrfUsePatched) {
+              axiosInstance._vrfUsePatched = true;
+              const originalUse = val.request.use;
+              val.request.use = function (...args) {
+                const ret = originalUse.apply(val.request, args);
+                if (!window.__siteAxios && val.request.handlers?.length > 0) {
+                  window.__siteAxios = axiosInstance;
+                  triggerRequests(axiosInstance);
+                }
+                return ret;
+              };
+            }
+          },
+        });
 
-      if (window.fetch) {
-        const originalFetch = window.fetch;
-        window.fetch = function (input, init) {
-          const urlStr = typeof input === "string" ? input : input?.url;
-          checkUrl(urlStr);
-          if (typeof urlStr === "string" && urlStr.includes("/api/")) {
-            return Promise.resolve(new Response(JSON.stringify({})));
-          }
-          return originalFetch.apply(this, arguments);
-        };
-      }
+        setTimeout(finish, 3000); // hard cap in case the axios hook never fires
+      });
     })();
   `;
 
@@ -190,10 +182,6 @@ export async function getVrfUrl(opts: CaptureOptions): Promise<string> {
   const fullHtml = html.includes("<head>")
     ? html.replace("<head>", `<head>${scriptTag}`)
     : `${scriptTag}${html}`;
-
-  if (rateLimiter) {
-    await rateLimiter.interceptRequest({ url: pageUrl, method: "GET" });
-  }
 
   const result = await Application.executeInWebView({
     source: {
@@ -224,13 +212,10 @@ export async function getVrfUrl(opts: CaptureOptions): Promise<string> {
   }
 
   if (!payload.matched) {
-    throw new Error(`VRF capture timed out matching ${matcher}`);
+    throw new Error(`VRF capture timed out generating signed URL for ${apiPath}`);
   }
 
-  const matchedPath = payload.matched.startsWith("/") ? payload.matched : `/${payload.matched}`;
-  const matchedFullUrl = payload.matched.startsWith("http")
-    ? payload.matched
-    : `${DOMAIN}${matchedPath}`;
+  const matchedFullUrl = toFullUrl(payload.matched);
 
   cacheSet(VRF_CACHE_KEY, triggerUrl, matchedFullUrl);
   return matchedFullUrl;

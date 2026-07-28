@@ -32,6 +32,7 @@ export class MangaFireInterceptor extends PaperbackInterceptor {
         ...request.headers,
         referer: `${DOMAIN}/`,
         "user-agent": await Application.getDefaultUserAgent(),
+        "x-requested-with": "XMLHttpRequest",
       },
     };
   }

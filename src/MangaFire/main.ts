@@ -51,8 +51,8 @@ class MangaFireExtension implements ExtensionImpl<typeof MangaFireConfig> {
     storage: "stateManager",
   });
   private globalRateLimiter = new BasicRateLimiter("rateLimiter", {
-    numberOfRequests: 20,
-    bufferInterval: 5,
+    numberOfRequests: 4,
+    bufferInterval: 1,
     ignoreImages: true,
   });
 
@@ -144,9 +144,8 @@ class MangaFireExtension implements ExtensionImpl<typeof MangaFireConfig> {
 
     const apiUrl = await getVrfUrl({
       triggerUrl,
-      matcher: "/api/titles\\?",
       cookieInterceptor: this.cookieStorageInterceptor,
-      rateLimiter: this.globalRateLimiter,
+      apiPath: "/titles",
     });
     const data = await fetchApi<ApiList<TitleItem>>(apiUrl);
 
@@ -208,7 +207,7 @@ class MangaFireExtension implements ExtensionImpl<typeof MangaFireConfig> {
     return SORTS;
   }
 
-  // e.g. /api/titles?keyword=one+piece&types[]=manga&genres_in[]=1&genres_ex[]=9&genres_mode=and&statuses[]=releasing&order[relevance]=desc&page=2
+  // e.g. /api/titles?keyword=one+piece&type=manga&genre=1&genre=-9&genre_mode=or&status=releasing&sort=relevance:desc&page=2
   async getSearchResults(
     query: SearchQuery<SearchMetadata>,
     metadata: PageMetadata | undefined,
@@ -221,20 +220,24 @@ class MangaFireExtension implements ExtensionImpl<typeof MangaFireConfig> {
 
     const meta = query.metadata ?? {};
 
-    const genresIn: string[] = [];
-    const genresEx: string[] = [];
+    const genreParams: string[] = [];
     for (const [id, value] of Object.entries(meta.genres ?? {})) {
-      (value === "excluded" ? genresEx : genresIn).push(id);
+      const numericId = Number(id);
+      const val = Number.isNaN(numericId) ? id : numericId;
+      if (value === "excluded") {
+        genreParams.push(typeof val === "number" ? (-val).toString() : `-${val}`);
+      } else {
+        genreParams.push(val.toString());
+      }
     }
-    if (genresIn.length > 0) url.setQueryItem("genres_in[]", genresIn);
-    if (genresEx.length > 0) url.setQueryItem("genres_ex[]", genresEx);
-    if (genresIn.length > 0 && !(meta.genreMode ?? true)) url.setQueryItem("genres_mode", "or");
+    if (genreParams.length > 0) url.setQueryItem("genre", genreParams);
+    if (genreParams.length > 0 && !(meta.genreMode ?? true)) url.setQueryItem("genre_mode", "or");
 
     const arrayFilters = {
-      "types[]": meta.types,
-      "theme_ids[]": meta.themes,
-      "demographics[]": meta.demographics,
-      "statuses[]": meta.statuses,
+      type: meta.types,
+      theme: meta.themes,
+      demographic: meta.demographics,
+      status: meta.statuses,
     };
     for (const [key, value] of Object.entries(arrayFilters)) {
       if (value?.length) url.setQueryItem(key, value);
@@ -254,9 +257,8 @@ class MangaFireExtension implements ExtensionImpl<typeof MangaFireConfig> {
 
     const apiUrl = await getVrfUrl({
       triggerUrl: url.toString(),
-      matcher: "/api/titles\\?",
       cookieInterceptor: this.cookieStorageInterceptor,
-      rateLimiter: this.globalRateLimiter,
+      apiPath: "/titles",
     });
     const data = await fetchApi<ApiList<TitleItem>>(apiUrl);
 
@@ -276,10 +278,9 @@ class MangaFireExtension implements ExtensionImpl<typeof MangaFireConfig> {
 
     const apiUrl = await getVrfUrl({
       triggerUrl,
-      matcher: `/api/titles/${hid}`,
       cookieInterceptor: this.cookieStorageInterceptor,
-      rateLimiter: this.globalRateLimiter,
       apiPath: `/titles/${hid}`,
+      apiParams: { type: "details" },
     });
 
     const data = await fetchApi<{ data: TitleDetails }>(apiUrl);
@@ -305,9 +306,7 @@ class MangaFireExtension implements ExtensionImpl<typeof MangaFireConfig> {
 
         const apiUrl = await getVrfUrl({
           triggerUrl,
-          matcher: `/api/titles/${hid}/chapters`,
           cookieInterceptor: this.cookieStorageInterceptor,
-          rateLimiter: this.globalRateLimiter,
           apiPath: `/titles/${hid}/chapters`,
           apiParams: {
             language: langCode,
@@ -339,9 +338,7 @@ class MangaFireExtension implements ExtensionImpl<typeof MangaFireConfig> {
 
     const apiUrl = await getVrfUrl({
       triggerUrl,
-      matcher: `/api/chapters/${chapter.chapterId}`,
       cookieInterceptor: this.cookieStorageInterceptor,
-      rateLimiter: this.globalRateLimiter,
       apiPath: `/chapters/${chapter.chapterId}`,
     });
 
