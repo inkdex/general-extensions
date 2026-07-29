@@ -17,18 +17,28 @@ const BOOTSTRAP = `
       settled = true;
       doneResolve(value);
     }
+    function capture(parsed, raw) {
+      try {
+        if (parsed && (parsed.chapterPages || (parsed.data && parsed.data.chapterPages))) {
+          finish(raw);
+        }
+      } catch (e) {}
+    }
     var orig = JSON.parse;
     JSON.parse = new Proxy(orig, {
       apply: function (target, thisArg, args) {
         var parsed = Reflect.apply(target, thisArg, args);
-        try {
-          if (parsed && (parsed.chapterPages || (parsed.data && parsed.data.chapterPages))) {
-            finish(args[0]);
-          }
-        } catch (e) {}
+        capture(parsed, args[0]);
         return parsed;
       },
     });
+    var origJson = Response.prototype.json;
+    Response.prototype.json = function () {
+      return origJson.call(this).then(function (parsed) {
+        capture(parsed, JSON.stringify(parsed));
+        return parsed;
+      });
+    };
     setTimeout(function () { finish(""); }, 25000);
   })();
 `;
