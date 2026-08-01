@@ -2,9 +2,16 @@
 /* Copyright © 2026 Inkdex */
 
 import type { Request, Response } from "@paperback/types";
-import { CloudflareError, PaperbackInterceptor } from "@paperback/types";
+import { CloudflareError, PaperbackInterceptor, URL } from "@paperback/types";
 
-import { DOMAIN } from "../implementations/shared/models";
+import { getShowAdult } from "../implementations/settings-form-providing/main";
+import { DOMAIN, HOME_PAGE_SIZE } from "../implementations/shared/models";
+import type {
+  AtsuInfiniteResponse,
+  AtsuMangaItem,
+  HomeEndpoint,
+  HomeTimeframe,
+} from "../implementations/shared/models";
 
 export class AtsuInterceptor extends PaperbackInterceptor {
   async interceptRequest(request: Request): Promise<Request> {
@@ -65,3 +72,23 @@ export async function fetchText(request: Request): Promise<string> {
   const data = Application.arrayBufferToUTF8String(buffer);
   return typeof data === "string" ? data : String(data);
 }
+
+export const fetchHomeItems = async (
+  endpoint: HomeEndpoint,
+  page: number,
+  options: { genre?: string; timeframe?: HomeTimeframe } = {},
+): Promise<AtsuMangaItem[]> => {
+  const url = new URL(DOMAIN)
+    .addPathComponent("api")
+    .addPathComponent("home2")
+    .addPathComponent(endpoint)
+    .setQueryItem("offset", String(page * HOME_PAGE_SIZE))
+    .setQueryItem("limit", String(HOME_PAGE_SIZE));
+
+  if (options.genre) url.setQueryItem("genre", options.genre);
+  if (options.timeframe) url.setQueryItem("timeframe", options.timeframe);
+  if (getShowAdult()) url.setQueryItem("adult", "1");
+
+  const request: Request = { url: url.toString(), method: "GET" };
+  return (await fetchJSON<AtsuInfiniteResponse>(request)).items;
+};

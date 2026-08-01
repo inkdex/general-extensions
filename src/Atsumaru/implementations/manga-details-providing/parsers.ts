@@ -8,13 +8,19 @@ import { buildThumbnailUrl, getContentRating, parseMangaPage } from "../shared/u
 
 export function parseMangaDetails(html: string, mangaId: string): SourceManga {
   const manga = parseMangaPage(html);
+  const primaryTitle = manga.englishTitle || manga.title;
+  const secondaryTitles = Array.from(
+    new Set([manga.title, ...manga.otherNames].map((title) => title.trim())),
+  ).filter((title) => title && title !== primaryTitle);
 
   return {
     mangaId: mangaId,
     mangaInfo: {
-      primaryTitle: manga.title,
-      secondaryTitles: manga.otherNames,
-      thumbnailUrl: buildThumbnailUrl(manga.poster.image),
+      primaryTitle,
+      secondaryTitles,
+      thumbnailUrl: buildThumbnailUrl(
+        manga.poster.mediumImage ?? manga.poster.smallImage ?? manga.poster.image,
+      ),
       synopsis: manga.synopsis,
       author: manga.authors.length > 0 ? manga.authors.map((a) => a.name).join(", ") : undefined,
       status: manga.status,

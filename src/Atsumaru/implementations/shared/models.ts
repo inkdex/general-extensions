@@ -2,24 +2,31 @@
 /* Copyright © 2026 Inkdex */
 
 export const DOMAIN = "https://atsu.moe";
+export const HOME_PAGE_SIZE = 20;
+export const HOME_SECTION_METADATA_ID = "atsumaru-home-section";
 
-export interface AtsuHomePageResponse {
-  homePage: {
-    sections: AtsuSection[];
-  };
-}
+export type HomeEndpoint =
+  | "bingeWorthy"
+  | "genreSpotlight"
+  | "hiddenGems"
+  | "hotArrivals"
+  | "hotUpdates"
+  | "mostBookmarked"
+  | "mostPolarizing"
+  | "mostTalkedAbout"
+  | "popular"
+  | "recentlyAdded"
+  | "recentlyUpdated"
+  | "rising"
+  | "topRated";
 
-export interface AtsuSection {
-  key: string;
-  layout: string;
-  title?: string;
-  seeMoreHref?: string;
-  items?: AtsuMangaItem[];
-}
+export type HomeTimeframe = "daily" | "weekly" | "monthly" | "all";
 
 export interface AtsuMangaItem {
   id: string;
   image: string;
+  smallImage?: string;
+  mediumImage?: string;
   title: string;
   type: string;
 }
@@ -42,6 +49,8 @@ export interface AtsuMangaDetails {
   poster: {
     id: string;
     image: string;
+    smallImage?: string;
+    mediumImage?: string;
   };
   title: string;
   type: string;

@@ -1,91 +1,72 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 /* Copyright © 2026 Inkdex */
 
-import type { DiscoverSection, DiscoverSectionItem, PagedResults, Request } from "@paperback/types";
-import { URL } from "@paperback/types";
+import type { DiscoverSection, DiscoverSectionItem, PagedResults } from "@paperback/types";
+import { DiscoverSectionType } from "@paperback/types";
 
-import { fetchJSON } from "../../services/network";
-import { getShowAdult } from "../settings-form-providing/main";
-import { DOMAIN } from "../shared/models";
-import type { AtsuHomePageResponse, AtsuInfiniteResponse } from "../shared/models";
+import { fetchHomeItems } from "../../services/network";
+import { HOME_PAGE_SIZE, HOME_SECTION_METADATA_ID } from "../shared/models";
 import { buildThumbnailUrl, getContentRating } from "../shared/utils";
-import { parseDiscoverItems, parseDiscoverSections } from "./parsers";
+import { HOME_TIMEFRAMES } from "./models";
+import { buildHomeSections } from "./parsers";
 
 export class DiscoverProvider {
   async getDiscoverSections(): Promise<DiscoverSection[]> {
-    const showAdult = getShowAdult();
-    const url = new URL(DOMAIN)
-      .addPathComponent("api")
-      .addPathComponent("home")
-      .addPathComponent("page");
-    if (showAdult) url.setQueryItem("adult", "1");
-
-    const request: Request = { url: url.toString(), method: "GET" };
-    const data = await fetchJSON<AtsuHomePageResponse>(request);
-
-    return parseDiscoverSections(data);
+    return buildHomeSections().map((section) => ({
+      id: section.id,
+      title: section.title,
+      type: section.usesTimeframes
+        ? DiscoverSectionType.genres
+        : DiscoverSectionType.simpleCarousel,
+    }));
   }
 
   async getDiscoverSectionItems(
     section: DiscoverSection,
     metadata?: { page?: number },
   ): Promise<PagedResults<DiscoverSectionItem>> {
-    const showAdult = getShowAdult();
+    const definition = buildHomeSections().find((candidate) => candidate.id === section.id);
+    if (!definition) throw new Error(`Unknown section: ${section.id}`);
 
-    // top-rated uses home page, no pagination
-    if (section.id === "top-rated") {
-      const url = new URL(DOMAIN)
-        .addPathComponent("api")
-        .addPathComponent("home")
-        .addPathComponent("page");
-      if (showAdult) url.setQueryItem("adult", "1");
-
-      const request: Request = { url: url.toString(), method: "GET" };
-      const data = await fetchJSON<AtsuHomePageResponse>(request);
-
-      const items = parseDiscoverItems(data, section.id);
-      return { items, metadata: undefined };
+    if (definition.usesTimeframes) {
+      return {
+        items: HOME_TIMEFRAMES.map((timeframe) => ({
+          type: "genresCarouselItem" as const,
+          name: timeframe.title,
+          searchQuery: {
+            title: `${definition.title}: ${timeframe.title}`,
+            metadata: [
+              {
+                id: HOME_SECTION_METADATA_ID,
+                value: `${definition.endpoint}:${timeframe.id}`,
+              },
+            ],
+          },
+          contentRating: getContentRating(),
+        })),
+        metadata: undefined,
+      };
     }
 
-    // rest of sections use infinite endpoints
     const page = metadata?.page ?? 0;
-
-    const endpointMap: Record<string, string> = {
-      "trending-carousel": "trending",
-      "most-bookmarked": "mostBookmarked",
-      "recently-updated": "recentlyUpdated",
-      popular: "popular",
-      "recently-added": "recentlyAdded",
-    };
-
-    const endpoint = endpointMap[section.id];
-    if (!endpoint) {
-      throw new Error(`Unknown section: ${section.id}`);
-    }
-
-    const url = new URL(DOMAIN)
-      .addPathComponent("api")
-      .addPathComponent("infinite")
-      .addPathComponent(endpoint)
-      .setQueryItem("page", page.toString())
-      .setQueryItem("types", "Manga,Manwha,Manhua");
-    if (showAdult) url.setQueryItem("adult", "1");
-
-    const request: Request = { url: url.toString(), method: "GET" };
-    const data = await fetchJSON<AtsuInfiniteResponse>(request);
-
-    const items = data.items.map((item) => ({
-      type: "simpleCarouselItem" as const,
+    const genre =
+      definition.id === "genre-spotlight" ? section.title.replace(/^Spotlight:\s*/, "") : undefined;
+    const homeItems = await fetchHomeItems(definition.endpoint, page, {
+      genre,
+      timeframe: definition.timeframe,
+    });
+    const items: DiscoverSectionItem[] = homeItems.map((item) => ({
+      type: "simpleCarouselItem",
       mangaId: item.id,
       title: item.title,
-      imageUrl: buildThumbnailUrl(item.image),
+      imageUrl: buildThumbnailUrl(item.mediumImage ?? item.smallImage ?? item.image),
       subtitle: item.type,
       contentRating: getContentRating(),
     }));
 
     return {
       items,
-      metadata: items.length > 0 ? { page: page + 1 } : undefined,
+      metadata: items.length === HOME_PAGE_SIZE ? { page: page + 1 } : undefined,
     };
   }
 }

@@ -4,7 +4,29 @@
 import type { SearchQuery } from "@paperback/types";
 import type { SearchFilterValue } from "@paperback/types/lib/compat/0.8";
 
-import type { ExtractedFilters } from "../shared/models";
+import { HOME_SECTION_METADATA_ID } from "../shared/models";
+import type { ExtractedFilters, HomeTimeframe } from "../shared/models";
+
+export const readHomeSectionSelection = (
+  filters: SearchFilterValue[] | undefined,
+): { endpoint: "mostBookmarked" | "mostTalkedAbout"; timeframe: HomeTimeframe } | undefined => {
+  const value = filters?.find((filter) => filter.id === HOME_SECTION_METADATA_ID)?.value;
+  if (typeof value !== "string") return undefined;
+
+  const [endpoint, timeframe, extra] = value.split(":");
+  if (
+    extra !== undefined ||
+    (endpoint !== "mostBookmarked" && endpoint !== "mostTalkedAbout") ||
+    (timeframe !== "daily" &&
+      timeframe !== "weekly" &&
+      timeframe !== "monthly" &&
+      timeframe !== "all")
+  ) {
+    return undefined;
+  }
+
+  return { endpoint, timeframe };
+};
 
 export function sanitizeMinChapters(value: string): string {
   return value.replace(/\D/g, "");

@@ -15,12 +15,13 @@ import {
   type SearchFilterValue,
 } from "@paperback/types/lib/compat/0.8";
 
-import { fetchJSON } from "../../services/network";
+import { fetchHomeItems, fetchJSON } from "../../services/network";
 import { getShowAdult } from "../settings-form-providing/main";
-import { DOMAIN } from "../shared/models";
+import { DOMAIN, HOME_PAGE_SIZE } from "../shared/models";
 import type { AtsuAvailableFiltersResponse, AtsuSearchResponse } from "../shared/models";
 import { buildThumbnailUrl, getContentRating } from "../shared/utils";
-import { extractSearchFilters, sanitizeMinChapters } from "./parsers";
+import { HomeSectionSearchForm } from "./forms";
+import { extractSearchFilters, readHomeSectionSelection, sanitizeMinChapters } from "./parsers";
 
 const PAGE_SIZE = 20;
 
@@ -151,7 +152,9 @@ export class SearchProvider {
     return searchFilters;
   }
 
-  async getSortingOptions(): Promise<SortingOption[]> {
+  async getSortingOptions(query?: SearchQuery<SearchFilterValue[]>): Promise<SortingOption[]> {
+    if (readHomeSectionSelection(query?.metadata)) return [];
+
     return [
       { id: "views:desc", label: "Popularity" },
       { id: "trending:desc", label: "Trending" },
@@ -162,6 +165,10 @@ export class SearchProvider {
   }
 
   async getAdvancedSearchForm(query: SearchQuery<SearchFilterValue[]>) {
+    if (readHomeSectionSelection(query.metadata)) {
+      return new HomeSectionSearchForm(query.metadata ?? []);
+    }
+
     // TODO: Replace compat wrapper with proper search form implementation
     return new SearchFilterForm(query.metadata, this.getSearchFilters());
   }
@@ -172,6 +179,25 @@ export class SearchProvider {
     sortingOption?: SortingOption,
   ): Promise<PagedResults<SearchResultItem>> {
     const page = metadata?.page ?? 1;
+    const homeSelection = readHomeSectionSelection(query.metadata);
+    if (homeSelection) {
+      const homeItems = await fetchHomeItems(homeSelection.endpoint, Math.max(0, page - 1), {
+        timeframe: homeSelection.timeframe,
+      });
+      const items: SearchResultItem[] = homeItems.map((item) => ({
+        mangaId: item.id,
+        title: item.title,
+        imageUrl: buildThumbnailUrl(item.mediumImage ?? item.smallImage ?? item.image),
+        subtitle: item.type,
+        contentRating: getContentRating(),
+      }));
+
+      return {
+        items,
+        metadata: items.length === HOME_PAGE_SIZE ? { page: page + 1 } : undefined,
+      };
+    }
+
     const showAdult = getShowAdult();
     const filters = extractSearchFilters(query);
     const searchTerm = query.title?.trim() || "";
@@ -248,7 +274,7 @@ export class SearchProvider {
     const hits = data.hits ?? [];
     const items: SearchResultItem[] = hits.map(({ document: manga }) => ({
       mangaId: manga.id,
-      title: manga.title || manga.englishTitle || "",
+      title: manga.englishTitle || manga.title || "",
       imageUrl: buildThumbnailUrl(manga),
       subtitle: manga.type,
       contentRating: getContentRating(),
