@@ -22,13 +22,28 @@ export type HomeEndpoint =
 
 export type HomeTimeframe = "daily" | "weekly" | "monthly" | "all";
 
+export enum AtsuContentRating {
+  Safe = "Safe",
+  Suggestive = "Suggestive",
+  Erotica = "Erotica",
+  Pornographic = "Pornographic",
+}
+
+export enum AtsuMangaType {
+  Manga = "Manga",
+  Manhwa = "Manwha", // API spelling
+  Manhua = "Manhua",
+  OEL = "OEL",
+}
+
 export interface AtsuMangaItem {
   id: string;
   image: string;
+  isAdult: boolean;
   smallImage?: string;
   mediumImage?: string;
   title: string;
-  type: string;
+  type: AtsuMangaType;
 }
 
 export interface AtsuInfiniteResponse {
@@ -53,11 +68,12 @@ export interface AtsuMangaDetails {
     mediumImage?: string;
   };
   title: string;
-  type: string;
+  type: AtsuMangaType;
   otherNames: string[];
   synopsis: string;
   status: string;
   totalChapterCount: number;
+  isAdult: boolean;
 }
 
 export interface AtsuTag {
@@ -106,6 +122,8 @@ export interface AtsuSearchDocument {
   posterSmall?: string;
   posterMedium?: string;
   type: string;
+  isAdult: boolean;
+  mbContentRating?: AtsuContentRating;
 }
 
 export interface AtsuSearchHit {

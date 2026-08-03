@@ -16,10 +16,11 @@ import {
 } from "@paperback/types/lib/compat/0.8";
 
 import { fetchHomeItems, fetchJSON } from "../../services/network";
-import { getShowAdult } from "../settings-form-providing/main";
-import { DOMAIN, HOME_PAGE_SIZE } from "../shared/models";
+import { getAdultMode, getContentRatings, getContentTypes } from "../settings-form-providing/main";
+import { AtsuContentRating, DOMAIN, HOME_PAGE_SIZE } from "../shared/models";
 import type { AtsuAvailableFiltersResponse, AtsuSearchResponse } from "../shared/models";
-import { buildThumbnailUrl, getContentRating } from "../shared/utils";
+import { parseContentRating } from "../shared/parsers";
+import { buildThumbnailUrl } from "../shared/utils";
 import { HomeSectionSearchForm } from "./forms";
 import { extractSearchFilters, readHomeSectionSelection, sanitizeMinChapters } from "./parsers";
 
@@ -69,6 +70,7 @@ export class SearchProvider {
 
     const request: Request = { url, method: "GET" };
     const filters = await fetchJSON<AtsuAvailableFiltersResponse>(request);
+    const contentTypes = getContentTypes();
 
     const searchFilters: SearchFilter[] = [];
     if (filters.genres && filters.genres.length > 0) {
@@ -87,12 +89,15 @@ export class SearchProvider {
       });
     }
 
-    if (filters.types && filters.types.length > 0) {
+    const availableTypes = filters.types.filter((type) =>
+      contentTypes.some((contentType) => contentType === type.id),
+    );
+    if (availableTypes.length > 0) {
       searchFilters.push({
         type: "multiselect",
         id: "types",
         title: "Types",
-        options: filters.types.map((type) => ({
+        options: availableTypes.map((type) => ({
           id: type.id,
           value: type.name,
         })),
@@ -189,7 +194,7 @@ export class SearchProvider {
         title: item.title,
         imageUrl: buildThumbnailUrl(item.mediumImage ?? item.smallImage ?? item.image),
         subtitle: item.type,
-        contentRating: getContentRating(),
+        contentRating: parseContentRating(item.isAdult),
       }));
 
       return {
@@ -198,12 +203,16 @@ export class SearchProvider {
       };
     }
 
-    const showAdult = getShowAdult();
+    const adultMode = getAdultMode();
+    const contentRatings = getContentRatings();
+    const contentTypes = getContentTypes();
     const filters = extractSearchFilters(query);
     const searchTerm = query.title?.trim() || "";
     const sortBy = sortingOption?.id ?? "views:desc";
 
     const filterBy: string[] = [];
+    filterBy.push(`type:=[${contentTypes.map((type) => escapeFilterValue(type)).join(",")}]`);
+
     for (const tag of filters.includedTags) {
       filterBy.push(`genreIds:=${escapeFilterValue(tag)}`);
     }
@@ -238,8 +247,16 @@ export class SearchProvider {
       filterBy.push("officialTranslation:=true");
     }
 
-    if (!showAdult) {
+    if (adultMode) {
+      filterBy.push("isAdult:=true");
+    } else if (!contentRatings.includes(AtsuContentRating.Pornographic)) {
       filterBy.push("isAdult:=false");
+    }
+
+    if (!adultMode) {
+      filterBy.push(
+        `mbContentRating:=[${contentRatings.map((rating) => escapeFilterValue(rating)).join(",")}]`,
+      );
     }
 
     if (sortBy === "mbRating:desc") {
@@ -257,7 +274,10 @@ export class SearchProvider {
       .setQueryItem("query_by", "title,englishTitle,otherNames,authors")
       .setQueryItem("query_by_weights", "4,3,2,1")
       .setQueryItem("num_typos", "4,3,2,1")
-      .setQueryItem("include_fields", "id,title,englishTitle,poster,posterSmall,posterMedium,type")
+      .setQueryItem(
+        "include_fields",
+        "id,title,englishTitle,poster,posterSmall,posterMedium,type,isAdult,mbContentRating",
+      )
       .setQueryItem("filter_by", filterBy.join(" && "))
       .setQueryItem("page", String(page))
       .setQueryItem("per_page", String(PAGE_SIZE))
@@ -277,7 +297,7 @@ export class SearchProvider {
       title: manga.englishTitle || manga.title || "",
       imageUrl: buildThumbnailUrl(manga),
       subtitle: manga.type,
-      contentRating: getContentRating(),
+      contentRating: parseContentRating(manga.isAdult, manga.mbContentRating),
     }));
 
     const hasMore = page * PAGE_SIZE < data.found && hits.length > 0;

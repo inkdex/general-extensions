@@ -5,8 +5,10 @@ import type { DiscoverSection, DiscoverSectionItem, PagedResults } from "@paperb
 import { DiscoverSectionType } from "@paperback/types";
 
 import { fetchHomeItems } from "../../services/network";
+import { getAdultMode } from "../settings-form-providing/main";
 import { HOME_PAGE_SIZE, HOME_SECTION_METADATA_ID } from "../shared/models";
-import { buildThumbnailUrl, getContentRating } from "../shared/utils";
+import { parseContentRating } from "../shared/parsers";
+import { buildThumbnailUrl } from "../shared/utils";
 import { HOME_TIMEFRAMES } from "./models";
 import { buildHomeSections } from "./parsers";
 
@@ -42,7 +44,7 @@ export class DiscoverProvider {
               },
             ],
           },
-          contentRating: getContentRating(),
+          contentRating: parseContentRating(getAdultMode()),
         })),
         metadata: undefined,
       };
@@ -61,7 +63,7 @@ export class DiscoverProvider {
       title: item.title,
       imageUrl: buildThumbnailUrl(item.mediumImage ?? item.smallImage ?? item.image),
       subtitle: item.type,
-      contentRating: getContentRating(),
+      contentRating: parseContentRating(item.isAdult),
     }));
 
     return {

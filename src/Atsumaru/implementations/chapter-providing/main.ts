@@ -8,7 +8,7 @@ import { fetchJSON, fetchText } from "../../services/network";
 import { SearchProvider } from "../search-results-providing/main";
 import { DOMAIN } from "../shared/models";
 import type { AtsuChaptersResponse, AtsuReadChapterResponse } from "../shared/models";
-import { parseMangaPage } from "../shared/utils";
+import { parseMangaPage } from "../shared/parsers";
 import { parseChapterList } from "./parsers";
 
 export class ChapterProvider {

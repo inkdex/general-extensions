@@ -4,7 +4,11 @@
 import type { Request, Response } from "@paperback/types";
 import { CloudflareError, PaperbackInterceptor, URL } from "@paperback/types";
 
-import { getShowAdult } from "../implementations/settings-form-providing/main";
+import {
+  getAdultMode,
+  getContentRatings,
+  getContentTypes,
+} from "../implementations/settings-form-providing/main";
 import { DOMAIN, HOME_PAGE_SIZE } from "../implementations/shared/models";
 import type {
   AtsuInfiniteResponse,
@@ -87,7 +91,13 @@ export const fetchHomeItems = async (
 
   if (options.genre) url.setQueryItem("genre", options.genre);
   if (options.timeframe) url.setQueryItem("timeframe", options.timeframe);
-  if (getShowAdult()) url.setQueryItem("adult", "1");
+  url.setQueryItem("types", getContentTypes().join(","));
+
+  if (getAdultMode()) {
+    url.setQueryItem("adult", "1");
+  } else {
+    url.setQueryItem("contentRatings", getContentRatings().join(","));
+  }
 
   const request: Request = { url: url.toString(), method: "GET" };
   return (await fetchJSON<AtsuInfiniteResponse>(request)).items;

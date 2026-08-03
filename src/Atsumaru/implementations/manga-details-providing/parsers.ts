@@ -4,7 +4,8 @@
 import type { SourceManga } from "@paperback/types";
 
 import { DOMAIN } from "../shared/models";
-import { buildThumbnailUrl, getContentRating, parseMangaPage } from "../shared/utils";
+import { parseContentRating, parseMangaPage } from "../shared/parsers";
+import { buildThumbnailUrl } from "../shared/utils";
 
 export function parseMangaDetails(html: string, mangaId: string): SourceManga {
   const manga = parseMangaPage(html);
@@ -24,7 +25,7 @@ export function parseMangaDetails(html: string, mangaId: string): SourceManga {
       synopsis: manga.synopsis,
       author: manga.authors.length > 0 ? manga.authors.map((a) => a.name).join(", ") : undefined,
       status: manga.status,
-      contentRating: getContentRating(),
+      contentRating: parseContentRating(manga.isAdult),
       tagGroups:
         manga.genres?.length > 0
           ? [
