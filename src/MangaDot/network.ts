@@ -104,33 +104,29 @@ export class MangaDotApi {
     return {
       items: tags
         .filter((tag) => !hiddenIds.includes(tag.id))
-        .map(
-          (tag): DiscoverSectionItem => ({
-            type: "genresCarouselItem",
-            searchQuery: {
-              title: "",
-              metadata: defaultMetadata(tag.id),
-            },
-            name: tag.title,
-            contentRating: ContentRating.EVERYONE,
-          }),
-        ),
+        .map((tag): DiscoverSectionItem => ({
+          type: "genresCarouselItem",
+          searchQuery: {
+            title: "",
+            metadata: defaultMetadata(tag.id),
+          },
+          name: tag.title,
+          contentRating: ContentRating.EVERYONE,
+        })),
     };
   }
 
   async getRangeSection(section: string): Promise<PagedResults<DiscoverSectionItem>> {
     return {
-      items: RANGE.map(
-        (tag): DiscoverSectionItem => ({
-          type: "genresCarouselItem",
-          searchQuery: {
-            title: "",
-            metadata: { range: tag.id, sectionName: section },
-          },
-          name: tag.title,
-          contentRating: ContentRating.EVERYONE,
-        }),
-      ),
+      items: RANGE.map((tag): DiscoverSectionItem => ({
+        type: "genresCarouselItem",
+        searchQuery: {
+          title: "",
+          metadata: { range: tag.id, sectionName: section },
+        },
+        name: tag.title,
+        contentRating: ContentRating.EVERYONE,
+      })),
     };
   }
 
