@@ -49,6 +49,7 @@ export interface HiveToonsGenre {
 }
 
 export interface HiveToonsPost {
+  id: number;
   slug: string;
   postTitle: string;
   postContent?: string | null;
@@ -80,11 +81,17 @@ export interface HiveToonsChapter {
   isAccessible?: boolean;
   isLocked?: boolean;
   isPermanentlyLocked?: boolean;
+  isShortLinkLocked?: boolean;
   price?: number | null;
 }
 
 export interface HiveToonsPostDetailsResponse {
   post: HiveToonsPost;
+}
+
+export interface HiveToonsChaptersResponse {
+  post: Pick<HiveToonsPost, "chapters">;
+  totalChapterCount: number;
 }
 
 export interface HiveToonsPageImage {

@@ -18,6 +18,8 @@ import {
   API_URL,
   DOMAIN,
   PAGE_SIZE,
+  type HiveToonsChapter,
+  type HiveToonsChaptersResponse,
   type HiveToonsGenre,
   type HiveToonsPostDetailsResponse,
   type HiveToonsSearchResponse,
@@ -26,6 +28,7 @@ import {
 import { decodeMangaId, encodeMangaId, normalizeSearchTerm, parseMangaDetails } from "./parsers";
 
 const IMAGE_EXTENSION_REGEX = /\.(jpe?g|png|webp|gif|avif|bmp|svg)(\?|#|$)/i;
+const CHAPTER_PAGE_SIZE = 100;
 
 export class HiveToonsInterceptor extends PaperbackInterceptor {
   override async interceptRequest(request: Request): Promise<Request> {
@@ -124,6 +127,31 @@ export const fetchPostDetails = async (mangaId: string): Promise<HiveToonsPostDe
   const slug = decodeMangaId(mangaId);
   const url = new URL(API_URL).addPathComponent("post").setQueryItem("postSlug", slug).toString();
   return fetchJSON<HiveToonsPostDetailsResponse>({ url, method: "GET" });
+};
+
+export const fetchChapters = async (postId: number): Promise<HiveToonsChapter[]> => {
+  const chapters: HiveToonsChapter[] = [];
+  let skip = 0;
+  let totalChapterCount = 0;
+
+  do {
+    const url = new URL(API_URL)
+      .addPathComponent("chapters")
+      .setQueryItem("postId", postId.toString())
+      .setQueryItem("skip", skip.toString())
+      .setQueryItem("take", CHAPTER_PAGE_SIZE.toString())
+      .toString();
+    const data = await fetchJSON<HiveToonsChaptersResponse>({ url, method: "GET" });
+    const page = data.post.chapters ?? [];
+
+    if (page.length === 0) break;
+
+    chapters.push(...page);
+    skip += page.length;
+    totalChapterCount = data.totalChapterCount;
+  } while (skip < totalChapterCount);
+
+  return chapters;
 };
 
 export const resolveUrlQuery = async (

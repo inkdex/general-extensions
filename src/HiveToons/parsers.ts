@@ -212,7 +212,10 @@ const chapterNumber = (chapter: HiveToonsChapter): number => {
 };
 
 const chapterIsLocked = (chapter: HiveToonsChapter): boolean =>
-  chapter.isLocked === true || chapter.isPermanentlyLocked === true || (chapter.price ?? 0) > 0;
+  chapter.isLocked === true ||
+  chapter.isPermanentlyLocked === true ||
+  chapter.isShortLinkLocked === true ||
+  (chapter.price ?? 0) > 0; // Coin-lock flags are missing from some paid list records.
 
 export const parseChapterList = (
   chapters: HiveToonsChapter[],

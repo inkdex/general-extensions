@@ -36,6 +36,7 @@ import {
   type SearchMetadata,
 } from "./models";
 import {
+  fetchChapters,
   fetchGenres,
   fetchJSON,
   fetchPostDetails,
@@ -331,7 +332,8 @@ export class HiveToonsExtension implements ExtensionImpl<typeof HiveToonsConfig>
 
   async getChapters(sourceManga: SourceManga): Promise<Chapter[]> {
     const data = await fetchPostDetails(sourceManga.mangaId);
-    return parseChapterList(data.post.chapters ?? [], sourceManga, getShowLockedChapters());
+    const chapters = await fetchChapters(data.post.id);
+    return parseChapterList(chapters, sourceManga, getShowLockedChapters());
   }
 
   async getChapterDetails(chapter: Chapter): Promise<ChapterDetails> {
