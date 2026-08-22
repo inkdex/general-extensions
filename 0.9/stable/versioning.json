@@ -1,5 +1,5 @@
 {
-  "buildTime": "2026-08-17T10:47:19.165Z",
+  "buildTime": "2026-08-22T16:18:45.731Z",
   "builtWith": {
     "toolchain": "1.0.0-alpha.92",
     "types": "1.0.0-alpha.92"
@@ -102,7 +102,7 @@
     {
       "name": "HiveToons",
       "description": "Extension that pulls content from hivetoons.org.",
-      "version": "1.0.0-alpha.2",
+      "version": "1.0.0-alpha.3",
       "icon": "icon.png",
       "language": "en",
       "contentRating": "MATURE",
