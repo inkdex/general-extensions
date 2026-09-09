@@ -4,7 +4,7 @@
 import type { SettingsFormProviding } from "@paperback/types";
 import type { Form } from "@paperback/types";
 
-import type { AtsuContentRating, AtsuMangaType } from "../shared/models";
+import type { AtsuContentRating, AtsuContentType } from "../shared/models";
 import { AtsumaruSettingsForm } from "./forms";
 import { DEFAULT_CONTENT_RATINGS, DEFAULT_CONTENT_TYPES } from "./models";
 
@@ -31,14 +31,14 @@ export function setContentRatings(value: AtsuContentRating[]): void {
   Application.setState(value, CONTENT_RATINGS_STATE_KEY);
 }
 
-export function getContentTypes(): AtsuMangaType[] {
+export function getContentTypes(): AtsuContentType[] {
   return (
-    (Application.getState(CONTENT_TYPES_STATE_KEY) as AtsuMangaType[] | undefined) ??
+    (Application.getState(CONTENT_TYPES_STATE_KEY) as AtsuContentType[] | undefined) ??
     DEFAULT_CONTENT_TYPES
   );
 }
 
-export function setContentTypes(value: AtsuMangaType[]): void {
+export function setContentTypes(value: AtsuContentType[]): void {
   Application.setState(value, CONTENT_TYPES_STATE_KEY);
 }
 

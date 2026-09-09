@@ -9,13 +9,14 @@ import {
   getContentRatings,
   getContentTypes,
 } from "../implementations/settings-form-providing/main";
-import { DOMAIN, HOME_PAGE_SIZE } from "../implementations/shared/models";
+import { AtsuMedium, DOMAIN, HOME_PAGE_SIZE } from "../implementations/shared/models";
 import type {
   AtsuInfiniteResponse,
   AtsuMangaItem,
   HomeEndpoint,
   HomeTimeframe,
 } from "../implementations/shared/models";
+import { splitContentTypes } from "../implementations/shared/utils";
 
 export class AtsuInterceptor extends PaperbackInterceptor {
   async interceptRequest(request: Request): Promise<Request> {
@@ -81,7 +82,12 @@ export const fetchHomeItems = async (
   endpoint: HomeEndpoint,
   page: number,
   options: { genre?: string; timeframe?: HomeTimeframe } = {},
-): Promise<AtsuMangaItem[]> => {
+): Promise<{ items: AtsuMangaItem[]; hasMore: boolean }> => {
+  const { comicTypes, includesNovels } = splitContentTypes(getContentTypes());
+  const mediums = [
+    ...(comicTypes.length > 0 ? [AtsuMedium.Comic] : []),
+    ...(includesNovels ? [AtsuMedium.Novel] : []),
+  ];
   const url = new URL(DOMAIN)
     .addPathComponent("api")
     .addPathComponent("home2")
@@ -91,7 +97,14 @@ export const fetchHomeItems = async (
 
   if (options.genre) url.setQueryItem("genre", options.genre);
   if (options.timeframe) url.setQueryItem("timeframe", options.timeframe);
-  url.setQueryItem("types", getContentTypes().join(","));
+  url.setQueryItem("mediums", mediums.join(","));
+
+  // The home API combines its medium and type parameters with AND. Applying a
+  // comic type there would incorrectly remove novels whose legacy type is Manga,
+  // Manwha, or Manhua, so mixed-medium pages are filtered locally instead.
+  if (!includesNovels && comicTypes.length > 0) {
+    url.setQueryItem("types", comicTypes.join(","));
+  }
 
   if (getAdultMode()) {
     url.setQueryItem("adult", "1");
@@ -100,5 +113,13 @@ export const fetchHomeItems = async (
   }
 
   const request: Request = { url: url.toString(), method: "GET" };
-  return (await fetchJSON<AtsuInfiniteResponse>(request)).items;
+  const rawItems = (await fetchJSON<AtsuInfiniteResponse>(request)).items;
+  const items = rawItems.filter((item) =>
+    item.medium === AtsuMedium.Novel
+      ? includesNovels
+      : comicTypes.some((type) => type === item.type),
+  );
+  const hasMore = rawItems.length === HOME_PAGE_SIZE;
+
+  return { items, hasMore };
 };

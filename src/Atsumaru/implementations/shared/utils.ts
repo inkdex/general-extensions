@@ -1,8 +1,8 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 /* Copyright © 2026 Inkdex */
 
-import { DOMAIN } from "./models";
-import type { AtsuSearchDocument } from "./models";
+import { AtsuMedium, DOMAIN } from "./models";
+import type { AtsuComicType, AtsuContentType, AtsuSearchDocument } from "./models";
 
 type ThumbnailSource = string | Pick<AtsuSearchDocument, "poster" | "posterMedium" | "posterSmall">;
 
@@ -26,4 +26,21 @@ export function buildThumbnailUrl(source?: ThumbnailSource): string {
   if (!imagePath) return "";
   if (imagePath.startsWith("http")) return imagePath;
   return `${DOMAIN}${imagePath.startsWith("/") ? imagePath : `/static/${imagePath}`}`;
+}
+
+export function getContentTypeLabel(item: { medium: AtsuMedium; type: string }): string {
+  if (item.medium === AtsuMedium.Novel) return "Novel";
+  return item.type === "Manwha" ? "Manhwa" : item.type;
+}
+
+export function splitContentTypes(contentTypes: readonly AtsuContentType[]): {
+  comicTypes: AtsuComicType[];
+  includesNovels: boolean;
+} {
+  return {
+    comicTypes: contentTypes.filter(
+      (contentType): contentType is AtsuComicType => contentType !== AtsuMedium.Novel,
+    ),
+    includesNovels: contentTypes.includes(AtsuMedium.Novel),
+  };
 }

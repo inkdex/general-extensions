@@ -6,7 +6,10 @@ import { ContentRating } from "@paperback/types";
 import { AtsuContentRating } from "./models";
 import type { AtsuMangaPageResponse } from "./models";
 
-export function parseContentRating(isAdult: boolean, rating?: AtsuContentRating): ContentRating {
+export function parseContentRating(
+  isAdult: boolean,
+  rating?: AtsuContentRating | null,
+): ContentRating | undefined {
   if (
     isAdult ||
     rating === AtsuContentRating.Erotica ||
@@ -15,7 +18,8 @@ export function parseContentRating(isAdult: boolean, rating?: AtsuContentRating)
     return ContentRating.ADULT;
   }
   if (rating === AtsuContentRating.Suggestive) return ContentRating.MATURE;
-  return ContentRating.EVERYONE;
+  if (rating === AtsuContentRating.Safe) return ContentRating.EVERYONE;
+  return undefined;
 }
 
 export function parseMangaPage(html: string): AtsuMangaPageResponse["mangaPage"] {

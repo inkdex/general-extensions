@@ -7,9 +7,26 @@ import { URL } from "@paperback/types";
 import { fetchJSON, fetchText } from "../../services/network";
 import { SearchProvider } from "../search-results-providing/main";
 import { DOMAIN } from "../shared/models";
-import type { AtsuChaptersResponse, AtsuReadChapterResponse } from "../shared/models";
+import type {
+  AtsuChaptersResponse,
+  AtsuReadChapterResponse,
+  AtsuReadNovelChapterResponse,
+} from "../shared/models";
 import { parseMangaPage } from "../shared/parsers";
-import { parseChapterList } from "./parsers";
+import { parseChapterList, parseNovelChapter } from "./parsers";
+
+async function fetchNovelChapterDetails(chapter: Chapter): Promise<ChapterDetails> {
+  const mangaId = chapter.sourceManga.mangaId;
+  const url = new URL(DOMAIN)
+    .addPathComponent("api")
+    .addPathComponent("read")
+    .addPathComponent("novelChapter")
+    .setQueryItem("mangaId", mangaId)
+    .setQueryItem("chapterId", chapter.chapterId)
+    .toString();
+  const data = await fetchJSON<AtsuReadNovelChapterResponse>({ url, method: "GET" });
+  return parseNovelChapter(data, mangaId);
+}
 
 export class ChapterProvider {
   async getChapters(sourceManga: SourceManga): Promise<Chapter[]> {
@@ -59,6 +76,10 @@ export class ChapterProvider {
   async getChapterDetails(chapter: Chapter): Promise<ChapterDetails> {
     const mangaId = chapter.sourceManga.mangaId;
     const chapterId = chapter.chapterId;
+
+    if (chapter.sourceManga.mangaInfo.contentType === "novel") {
+      return fetchNovelChapterDetails(chapter);
+    }
 
     const url = new URL(DOMAIN)
       .addPathComponent("api")

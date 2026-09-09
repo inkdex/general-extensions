@@ -3,7 +3,7 @@
 
 import { Form, Section, SelectRow, ToggleRow } from "@paperback/types";
 
-import type { AtsuContentRating, AtsuMangaType } from "../shared/models";
+import type { AtsuContentRating, AtsuContentType } from "../shared/models";
 import {
   getAdultMode,
   getContentRatings,
@@ -91,7 +91,7 @@ export class AtsumaruSettingsForm extends Form {
   }
 
   async handleContentTypesChange(value: string[]): Promise<void> {
-    setContentTypes(value as AtsuMangaType[]);
+    setContentTypes(value as AtsuContentType[]);
     this.reloadForm();
   }
 }

@@ -6,9 +6,9 @@ import { DiscoverSectionType } from "@paperback/types";
 
 import { fetchHomeItems } from "../../services/network";
 import { getAdultMode } from "../settings-form-providing/main";
-import { HOME_PAGE_SIZE, HOME_SECTION_METADATA_ID } from "../shared/models";
+import { HOME_SECTION_METADATA_ID } from "../shared/models";
 import { parseContentRating } from "../shared/parsers";
-import { buildThumbnailUrl } from "../shared/utils";
+import { buildThumbnailUrl, getContentTypeLabel } from "../shared/utils";
 import { HOME_TIMEFRAMES } from "./models";
 import { buildHomeSections } from "./parsers";
 
@@ -53,22 +53,22 @@ export class DiscoverProvider {
     const page = metadata?.page ?? 0;
     const genre =
       definition.id === "genre-spotlight" ? section.title.replace(/^Spotlight:\s*/, "") : undefined;
-    const homeItems = await fetchHomeItems(definition.endpoint, page, {
+    const homePage = await fetchHomeItems(definition.endpoint, page, {
       genre,
       timeframe: definition.timeframe,
     });
-    const items: DiscoverSectionItem[] = homeItems.map((item) => ({
+    const items: DiscoverSectionItem[] = homePage.items.map((item) => ({
       type: "simpleCarouselItem",
       mangaId: item.id,
       title: item.title,
       imageUrl: buildThumbnailUrl(item.mediumImage ?? item.smallImage ?? item.image),
-      subtitle: item.type,
-      contentRating: parseContentRating(item.isAdult),
+      subtitle: getContentTypeLabel(item),
+      contentRating: parseContentRating(item.isAdult, item.mbContentRating),
     }));
 
     return {
       items,
-      metadata: items.length === HOME_PAGE_SIZE ? { page: page + 1 } : undefined,
+      metadata: homePage.hasMore ? { page: page + 1 } : undefined,
     };
   }
 }
