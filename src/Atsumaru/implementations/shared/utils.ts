@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 /* Copyright © 2026 Inkdex */
 
-import { AtsuMedium, DOMAIN } from "./models";
+import { AtsuMedium, DOMAIN_CDN } from "./models";
 import type { AtsuComicType, AtsuContentType, AtsuSearchDocument } from "./models";
 
 type ThumbnailSource = string | Pick<AtsuSearchDocument, "poster" | "posterMedium" | "posterSmall">;
@@ -25,7 +25,7 @@ export function buildThumbnailUrl(source?: ThumbnailSource): string {
       : (source?.posterMedium ?? source?.posterSmall ?? source?.poster);
   if (!imagePath) return "";
   if (imagePath.startsWith("http")) return imagePath;
-  return `${DOMAIN}${imagePath.startsWith("/") ? imagePath : `/static/${imagePath}`}`;
+  return `${DOMAIN_CDN}${imagePath.startsWith("/") ? imagePath : `/static/${imagePath}`}`;
 }
 
 export function getContentTypeLabel(item: { medium: AtsuMedium; type: string }): string {

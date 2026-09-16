@@ -2,6 +2,7 @@
 /* Copyright © 2026 Inkdex */
 
 export const DOMAIN = "https://atsu.moe";
+export const DOMAIN_CDN = "https://cdn.atsu.moe";
 export const HOME_PAGE_SIZE = 20;
 export const HOME_SECTION_METADATA_ID = "atsumaru-home-section";
 

@@ -6,7 +6,7 @@ import { URL } from "@paperback/types";
 
 import { fetchJSON, fetchText } from "../../services/network";
 import { SearchProvider } from "../search-results-providing/main";
-import { DOMAIN } from "../shared/models";
+import { DOMAIN, DOMAIN_CDN } from "../shared/models";
 import type {
   AtsuChaptersResponse,
   AtsuReadChapterResponse,
@@ -94,7 +94,7 @@ export class ChapterProvider {
 
     const pages = data.readChapter.pages
       .sort((a, b) => a.number - b.number)
-      .map((page) => (page.image.startsWith("http") ? page.image : `${DOMAIN}${page.image}`));
+      .map((page) => (page.image.startsWith("http") ? page.image : `${DOMAIN_CDN}${page.image}`));
 
     return {
       id: chapterId,
