@@ -5,8 +5,47 @@ import { ButtonRow, Form, Section, SelectRow, ToggleRow } from "@paperback/types
 
 import { Language } from "./MangaPlusHelper";
 
+const LANGUAGE_ALIASES: Record<string, Language> = {
+  en: Language.ENGLISH,
+  eng: Language.ENGLISH,
+  english: Language.ENGLISH,
+  es: Language.SPANISH,
+  esp: Language.SPANISH,
+  spanish: Language.SPANISH,
+  fr: Language.FRENCH,
+  fra: Language.FRENCH,
+  french: Language.FRENCH,
+  id: Language.INDONESIAN,
+  ind: Language.INDONESIAN,
+  indonesian: Language.INDONESIAN,
+  pt: Language.PORTUGUESE_BR,
+  ptbr: Language.PORTUGUESE_BR,
+  portuguesebr: Language.PORTUGUESE_BR,
+  ru: Language.RUSSIAN,
+  russian: Language.RUSSIAN,
+  th: Language.THAI,
+  thai: Language.THAI,
+  vi: Language.VIETNAMESE,
+  vietnamese: Language.VIETNAMESE,
+};
+
+function normalizeLanguage(value: string | undefined): Language | undefined {
+  if (!value) return undefined;
+  const normalized = value.replace(/[^a-zA-Z]/g, "").toLowerCase();
+  return LANGUAGE_ALIASES[normalized];
+}
+
 export const getLanguages = (): string[] => {
-  return (Application.getState("languages") as string[]) ?? [Language.ENGLISH];
+  const state = (Application.getState("languages") as string[] | undefined) ?? [Language.ENGLISH];
+  const mapped = state
+    .map(
+      (value) =>
+        normalizeLanguage(value) ??
+        (Object.values(Language).includes(value as Language) ? (value as Language) : undefined),
+    )
+    .filter((value): value is Language => Boolean(value));
+
+  return mapped.length > 0 ? mapped : [Language.ENGLISH];
 };
 
 export const getSplitImages = (): string => {
@@ -31,7 +70,7 @@ export class MangaPlusSettingForm extends Form {
             { id: Language.SPANISH, title: "Español" },
             { id: Language.FRENCH, title: "Français" },
             { id: Language.INDONESIAN, title: "Bahasa (IND)" },
-            { id: Language.PORTUGUESE_BR, title: "Portugûes (BR)" },
+            { id: Language.PORTUGUESE_BR, title: "Português (BR)" },
             { id: Language.RUSSIAN, title: "Русский" },
             { id: Language.THAI, title: "ภาษาไทย" },
             { id: Language.VIETNAMESE, title: "Tiếng Việt" },
