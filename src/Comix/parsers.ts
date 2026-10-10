@@ -116,11 +116,14 @@ export function parseChapterDetails(
   chapterId: string,
   pages: ApiResponse<ChapterPages>,
 ): ChapterDetails {
-  const { items } = pages.result.pages;
+  const { baseUrl, items } = pages.result.pages;
+  const base = (baseUrl ?? "").replace(/\/$/, "");
   return {
     id: chapterId,
     mangaId: pages.result.mangaId.toString(),
-    pages: items.map((img) => img.url),
+    pages: items.map((img) =>
+      img.url.startsWith("http") ? img.url : `${base}/${img.url.replace(/^\//, "")}`,
+    ),
   };
 }
 
