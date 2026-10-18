@@ -76,9 +76,22 @@ export class MangaFireSettingsForm extends Form {
         {
           id: "cdn",
           footer:
-            "If chapter images fail to load, test the CDNs. Broken CDNs will be swapped to a working one when fetching images.",
+            "If chapter images fail to load, test the CDNs or disable one manually. Disabled CDNs will be swapped to a working one when fetching images.",
         },
         [
+          SelectRow("disabledCdns", {
+            title: "Disabled CDNs",
+            subtitle:
+              this.brokenCdnPrefixes.length === 0 ? "None" : this.brokenCdnPrefixes.join(", "),
+            value: this.brokenCdnPrefixes,
+            options: CDN_PREFIXES.map((prefix) => ({ id: prefix, title: prefix })),
+            minItemCount: 0,
+            maxItemCount: CDN_PREFIXES.length - 1,
+            onValueChange: Application.Selector(
+              this as MangaFireSettingsForm,
+              "updateDisabledCdns",
+            ),
+          }),
           LabelRow("cdnStatus", {
             title: "Status",
             value: this.isTestingCdns
@@ -104,6 +117,11 @@ export class MangaFireSettingsForm extends Form {
   async handleContentRatingsChange(value: string[]): Promise<void> {
     this.contentRatings = value;
     Application.setState(value, "contentRatings");
+  }
+
+  async updateDisabledCdns(value: string[]): Promise<void> {
+    this.brokenCdnPrefixes = value;
+    Application.setState(value, BROKEN_CDN_PREFIXES_KEY);
   }
 
   async testCdns(): Promise<void> {
