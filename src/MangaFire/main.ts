@@ -208,7 +208,7 @@ class MangaFireExtension implements ExtensionImpl<typeof MangaFireConfig> {
     return SORTS;
   }
 
-  // e.g. /api/titles?keyword=one+piece&types[]=manga&genres_in[]=1&genres_ex[]=9&genres_mode=and&statuses[]=releasing&order[relevance]=desc&page=2
+  // e.g. /api/titles?keyword=one+piece&types=manga&genres_in=1,2&genres_ex=9&genres_mode=and&statuses=releasing&order[relevance]=desc&page=2
   async getSearchResults(
     query: SearchQuery<SearchMetadata>,
     metadata: PageMetadata | undefined,
@@ -226,18 +226,18 @@ class MangaFireExtension implements ExtensionImpl<typeof MangaFireConfig> {
     for (const [id, value] of Object.entries(meta.genres ?? {})) {
       (value === "excluded" ? genresEx : genresIn).push(id);
     }
-    if (genresIn.length > 0) url.setQueryItem("genres_in[]", genresIn);
-    if (genresEx.length > 0) url.setQueryItem("genres_ex[]", genresEx);
+    if (genresIn.length > 0) url.setQueryItem("genres_in", genresIn.join(","));
+    if (genresEx.length > 0) url.setQueryItem("genres_ex", genresEx.join(","));
     if (genresIn.length > 0 && !(meta.genreMode ?? true)) url.setQueryItem("genres_mode", "or");
 
     const arrayFilters = {
-      "types[]": meta.types,
-      "theme_ids[]": meta.themes,
-      "demographics[]": meta.demographics,
-      "statuses[]": meta.statuses,
+      types: meta.types,
+      theme_ids: meta.themes,
+      demographics: meta.demographics,
+      statuses: meta.statuses,
     };
     for (const [key, value] of Object.entries(arrayFilters)) {
-      if (value?.length) url.setQueryItem(key, value);
+      if (value?.length) url.setQueryItem(key, value.join(","));
     }
 
     let content_ratings: string =
