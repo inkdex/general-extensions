@@ -253,18 +253,33 @@ export function saveTags(apiResponse: CategoryGroup[]) {
   TAGS = groupTagsByCategory(apiResponse);
 }
 
-function groupTagsByCategory(apiResponse: CategoryGroup[]): Record<string, TagItem[]> {
-  let dataArray: CategoryGroup[] = apiResponse;
-  if (!Array.isArray(apiResponse)) {
-    dataArray = Object.values(apiResponse).find((val) => Array.isArray(val)) || [];
-  }
-  return dataArray.reduce(
-    (acc, current) => {
-      if (current && current.category && current.tags) {
-        acc[current.category] = current.tags;
-      }
-      return acc;
-    },
-    {} as Record<string, TagItem[]>,
-  );
+function groupTagsByCategory(apiResponse: any): Record<string, TagItem[]> {
+  const categoriesList: string[] = apiResponse.categories || [];
+  const terms: any[] = apiResponse.terms || [];
+  const grouped: Record<string, TagItem[]> = {};
+  grouped["Genres"] = [];
+  categoriesList.forEach((catName) => {
+    grouped[catName] = [];
+  });
+  terms.forEach((term) => {
+    const tagName = term[1];
+    const categoryIndex = term[3];
+    const seriesCount = term[4];
+    const isAdult = term[5];
+    let categoryName = "Other";
+    if (categoryIndex === -1) {
+      categoryName = "Genres";
+    } else if (typeof categoryIndex === "number" && categoriesList[categoryIndex]) {
+      categoryName = categoriesList[categoryIndex];
+    }
+    if (!grouped[categoryName]) {
+      grouped[categoryName] = [];
+    }
+    grouped[categoryName].push({
+      name: tagName,
+      series_count: seriesCount,
+      is_adult: isAdult,
+    });
+  });
+  return grouped;
 }

@@ -17,7 +17,7 @@ import {
   WebViewRow,
 } from "@paperback/types";
 
-import { ADULT_FILTER, discoverySections, ORIGIN } from "../models";
+import { ADULT_FILTER, discoverySections, ORIGIN, type TagItem } from "../models";
 import type { LogInManager } from "../network";
 import { type MangaDotApi } from "../network";
 import {
@@ -33,6 +33,8 @@ import {
   getRangeStatus,
   getMultipageStatus,
   getEnglishOnly,
+  TAGS,
+  normalizeId,
 } from "../utils";
 
 export class SettingsForm extends Form {
@@ -83,6 +85,10 @@ export class SettingsForm extends Form {
             title: "Logged in as",
             subtitle: `Account ID: ${this.username}`,
             isHidden: !this.login.isLoggedIn(),
+          }),
+          NavigationRow("searchFilters", {
+            title: "Profile Settings",
+            form: new ProfileSettings(this.api),
           }),
           ButtonRow("logout", {
             title: "Logout",
@@ -202,12 +208,10 @@ export class SettingsForm extends Form {
     await this.login.logIn(cookies);
     Application.invalidateDiscoverSections();
     this.reloadForm();
-    return;
   }
 
   async handleLoginCancel(): Promise<void> {
     this.reloadForm();
-    return;
   }
 
   async handleLogoutButton(): Promise<void> {
@@ -509,5 +513,66 @@ class AddSectionSelect {
     await setDiscoverySections(sections);
     await setDeletedDiscoverySections(this.deletedForms.filter((item) => item.id !== rowId));
     this.deletedForms = getDeletedDiscoverySections();
+  }
+}
+
+class ProfileSettings extends Form {
+  api: MangaDotApi;
+  hiddenTags?: string[];
+  getSettingRequest?: Promise<unknown>;
+  override formWillAppear(): void {
+    this.getSettingRequest = this.api
+      .getProfileSettings()
+      .then((settings) => {
+        this.hiddenTags = settings.hidden_terms;
+      })
+      .finally(() => {
+        this.reloadForm();
+      });
+  }
+  constructor(api: MangaDotApi) {
+    super();
+    this.api = api;
+  }
+  getTagsFilter(): FormItemElement<unknown>[] {
+    if (this.hiddenTags && this.hiddenTags.length > 0) {
+    }
+    return Object.entries(TAGS).map(([categoryName, tags]) => {
+      const rowId = categoryName.toLowerCase().replace(/[^a-z0-9]/g, "_");
+      const itemsArray = tags.map((tag: TagItem) => ({
+        id: normalizeId(tag.name),
+        title: tag.name,
+      }));
+      const categoryItemIds = new Set(itemsArray.map((item) => normalizeId(item.id)));
+      const rowInitialValue = this.hiddenTags
+        ? this.hiddenTags.filter((id) => categoryItemIds.has(normalizeId(id)))
+        : [];
+      return SelectRow(rowId, {
+        title: categoryName,
+        layout: "list",
+        onValueChange: Application.Selector(this as ProfileSettings, "handleTagsChange"),
+        items: itemsArray,
+        value: rowInitialValue.map((tag) => normalizeId(tag)),
+        minItemCount: 0,
+        maxItemCount: tags.length,
+        isHidden: false,
+      });
+    });
+  }
+
+  override getSections() {
+    if (this.hiddenTags == undefined) {
+      return [Section("loading", [LabelRow("loading", { title: "Loading..." })])];
+    }
+    return [Section({ id: "tags", header: "Tags" }, this.getTagsFilter())];
+  }
+
+  async handleTagsChange(value: string[]) {
+    console.log("handleTagsChange");
+    await this.api.putFilters(value);
+    console.log(value);
+    console.log("PUT DONE");
+    this.reloadForm();
+    Application.invalidateDiscoverSections();
   }
 }

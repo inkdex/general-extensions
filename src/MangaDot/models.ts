@@ -302,4 +302,16 @@ export interface CategoryGroup {
   tags: TagItem[];
 }
 
+export interface ProfileSettings {
+  hidden_terms: string[];
+}
+
+export type TagTermTuple = [number, string, number, number, number, number];
+
+export interface TagsRequest {
+  v: number;
+  categories: string[];
+  terms: TagTermTuple[];
+}
+
 export type CategorizedTagsMap = Record<string, TagItem[]>;

@@ -53,7 +53,7 @@ export class MangaDotExtension implements ExtensionImpl<typeof MangaDotConfig> {
   async initialise(): Promise<void> {
     this.globalRateLimiter.registerInterceptor();
     this.cookieStorageInterceptor.registerInterceptor();
-    //  this.loginManager.loginCookieStorageInterceptor.registerInterceptor();
+    this.loginManager.loginCookieStorageInterceptor.registerInterceptor();
     this.mainInterceptor.registerInterceptor();
   }
 

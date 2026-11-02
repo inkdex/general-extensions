@@ -31,8 +31,9 @@ import {
   type SearchSuggestionsResponse,
   type Volumes,
   type Languages,
-  type CategoryGroup,
   type Profile,
+  type ProfileSettings,
+  type TagsRequest,
 } from "./models";
 import {
   defaultMetadata,
@@ -49,13 +50,6 @@ import {
 
 export class MangaDotInterceptor extends PaperbackInterceptor {
   override async interceptRequest(request: Request): Promise<Request> {
-    const login_cr = Application.getSecureState("ory_kratos_session") as string | undefined;
-    if (login_cr) {
-      request.cookies = {
-        ...request.cookies,
-        ory_kratos_session: login_cr,
-      };
-    }
     return {
       ...request,
       headers: {
@@ -379,10 +373,9 @@ export class MangaDotApi {
 
   async getTagsList() {
     const params: ApiRequestConfig = {
-      path: ["api", "manga", "tags"],
-      query: { in_use: "1" },
+      path: ["api", "filters", "catalog"],
     };
-    return this.buildApiRequest<CategoryGroup[]>(params);
+    return this.buildApiRequest<TagsRequest>(params);
   }
 
   async getProfile() {
@@ -390,6 +383,27 @@ export class MangaDotApi {
       path: ["api", "profile"],
     };
     return this.buildApiRequest<Profile>(params);
+  }
+
+  async getProfileSettings() {
+    const params: ApiRequestConfig = {
+      path: ["api", "filters", "me"],
+    };
+    return this.buildApiRequest<ProfileSettings>(params);
+  }
+
+  async putFilters(filters: string[]) {
+    await Application.scheduleRequest({
+      url: `${DOMAIN}/api/filters/me`,
+      method: "PUT",
+      headers: {
+        Origin: `${DOMAIN}`,
+        Referer: `${DOMAIN}`,
+      },
+      body: JSON.stringify({
+        hidden_terms: filters.map((f) => deNormalizeId(f)),
+      }),
+    });
   }
 }
 
@@ -414,6 +428,7 @@ export class LogInManager {
       Application.setSecureState(profile.profile.username, "MangaDot_Username");
       return profile.profile.username;
     } catch {
+      this.logOut();
       return "";
     }
   }
@@ -444,8 +459,8 @@ export class LogInManager {
         .filter((cookie) => this.isAuthCookie(cookie))
         .forEach((cookie) => {
           if (this.AUTH_COOKIE_NAMES.has(cookie.name)) {
-            Application.setSecureState(cookie.value, "ory_kratos_session");
-            //this.loginCookieStorageInterceptor.setCookie(cookie);
+            //Application.setSecureState(cookie.value, "ory_kratos_session");
+            this.loginCookieStorageInterceptor.setCookie(cookie);
           }
         });
       Application.invalidateDiscoverSections();
