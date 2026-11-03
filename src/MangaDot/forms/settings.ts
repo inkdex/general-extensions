@@ -21,15 +21,9 @@ import { ADULT_FILTER, discoverySections, ORIGIN, type TagItem } from "../models
 import type { LogInManager } from "../network";
 import { type MangaDotApi } from "../network";
 import {
-  getContentTypes,
-  getGenresHidden,
   getSectionContentTypes,
   getShowAdultStatus,
   updateFilters,
-  getFilters,
-  getThemesHidden,
-  getDemographicHidden,
-  getMoreHidden,
   getRangeStatus,
   getMultipageStatus,
   getEnglishOnly,
@@ -97,12 +91,6 @@ export class SettingsForm extends Form {
           }),
         ],
       ),
-      Section({ id: "search", header: "Default Search Filters" }, [
-        NavigationRow("searchFilters", {
-          title: "Search Filters",
-          form: new DefaultMetadata(),
-        }),
-      ]),
       Section(
         {
           id: "section_settings",
@@ -291,112 +279,6 @@ export function getDiscoverySectionsOrder() {
     (Application.getState("sections") as { id: string; title: string }[] | undefined) ??
     discoverySections
   );
-}
-
-class DefaultMetadata extends Form {
-  override getSections() {
-    const filters = getFilters();
-    return [
-      Section(
-        {
-          id: "update_settings",
-          header: "Default Search Filter",
-        },
-        [
-          SelectRow("type", {
-            title: "Content Type",
-            subtitle: "This settings only as default search filter",
-            value: getContentTypes(),
-            options: ORIGIN,
-            minItemCount: 0,
-            maxItemCount: ORIGIN.length,
-            onValueChange: Application.Selector(this as DefaultMetadata, "handleTypeStatusChange"),
-          }),
-          SelectRow("hide_genres", {
-            title: "Hide Genres",
-            subtitle: "Default value for contents",
-            value: getGenresHidden(),
-            options: filters.genre,
-            minItemCount: 0,
-            maxItemCount: filters.genre.length,
-            onValueChange: Application.Selector(
-              this as DefaultMetadata,
-              "handleHideGenresStatusChange",
-            ),
-          }),
-          SelectRow("hide_demographic", {
-            title: "Hide Demographic",
-            subtitle: "Default value for contents",
-            value: getDemographicHidden(),
-            options: filters.demographic,
-            minItemCount: 0,
-            maxItemCount: filters.demographic.length,
-            onValueChange: Application.Selector(
-              this as DefaultMetadata,
-              "handleHideDemographicStatusChange",
-            ),
-          }),
-          SelectRow("hide_themes", {
-            title: "Hide Themes",
-            subtitle: "Default value for contents",
-            value: getThemesHidden(),
-            options: filters.themeAndContent,
-            minItemCount: 0,
-            maxItemCount: filters.themeAndContent.length,
-            onValueChange: Application.Selector(
-              this as DefaultMetadata,
-              "handleHideThemesStatusChange",
-            ),
-          }),
-          SelectRow("hide_more", {
-            title: "Hide More",
-            subtitle: "Default value for contents",
-            value: getMoreHidden(),
-            options: filters.more,
-            minItemCount: 0,
-            maxItemCount: filters.more.length,
-            onValueChange: Application.Selector(
-              this as DefaultMetadata,
-              "handleHideMoreStatusChange",
-            ),
-          }),
-        ],
-      ),
-    ];
-  }
-  async updateValue<T>(value: T, filter: string): Promise<void> {
-    Application.setState(value, filter);
-    this.reloadForm();
-  }
-  async handleHideGenresStatusChange(value: string[]): Promise<void> {
-    await this.updateValue(value, "hidden_genres");
-  }
-
-  async handleHideDemographicStatusChange(value: string[]): Promise<void> {
-    await this.updateValue(value, "hidden_demographic");
-  }
-
-  async handleHideThemesStatusChange(value: string[]): Promise<void> {
-    await this.updateValue(value, "hidden_themes");
-  }
-
-  async handleHideMoreStatusChange(value: string[]): Promise<void> {
-    await this.updateValue(value, "hidden_more");
-  }
-
-  async handleTypeStatusChange(value: string[]): Promise<void> {
-    const previous = getContentTypes();
-
-    const hadAnyBefore = previous.includes("");
-    const hasAnyNow = value.includes("");
-
-    if (hadAnyBefore && value.length > 1) {
-      value = value.filter((v) => v !== "");
-    } else if (!hadAnyBefore && hasAnyNow) {
-      value = [""];
-    }
-    await this.updateValue(value, "content_type");
-  }
 }
 
 class EditableListTestForm extends Form {

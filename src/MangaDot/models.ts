@@ -165,6 +165,21 @@ export const CHAPTERS_NUM = [
   },
 ];
 
+export const IN_LIBRARY = [
+  {
+    id: "any",
+    title: "Any",
+  },
+  {
+    id: "in",
+    title: "In Library",
+  },
+  {
+    id: "out",
+    title: "Not in Library",
+  },
+];
+
 export interface MangaData extends MangaSectionItem {
   genres: string[];
   date_added: string;
@@ -256,6 +271,7 @@ export type SearchMetadata = {
   contentRating?: string[];
   rating?: string[];
   language?: string[];
+  library?: string[];
   volume?: string[];
   chapters?: string[];
   sectionName?: string;

@@ -81,10 +81,7 @@ export class MangaDotInterceptor extends PaperbackInterceptor {
 
 export class MangaDotApi {
   private async fetchApi<T>(request: Request): Promise<T> {
-    const [response, data] = await Application.scheduleRequest(request);
-    if (response.status > 300) {
-      return JSON.parse("");
-    }
+    const [_, data] = await Application.scheduleRequest(request);
     try {
       return JSON.parse(Application.arrayBufferToUTF8String(data)) as T;
     } catch {
@@ -286,13 +283,21 @@ export class MangaDotApi {
         ...(query.metadata?.artist?.length && {
           artist: (query.metadata?.artist ?? []).join(","),
         }),
+        ...(query.metadata?.min_chapters?.length && {
+          min_chapters: query.metadata?.chapters ?? "",
+        }),
+        ...(query.metadata?.min_rating?.length && {
+          min_rating: query.metadata?.rating ?? "",
+        }),
+        ...(query.metadata?.volumes?.length && {
+          volumes: query.metadata?.volume ?? "",
+        }),
+        ...(query.metadata?.library?.length && {
+          library: query.metadata?.library ?? "",
+        }),
         sortBy: sort,
         sortOrder: order ? order : "",
         content_rating: query.metadata?.contentRating ?? "",
-        min_rating: query.metadata?.rating ?? "",
-        lang: query.metadata?.language ?? "",
-        volumes: query.metadata?.volume ?? "",
-        min_chapters: query.metadata?.chapters ?? "",
         adult: query.metadata?.adult ?? getShowAdultStatus(),
       },
     };
@@ -428,7 +433,6 @@ export class LogInManager {
       Application.setSecureState(profile.profile.username, "MangaDot_Username");
       return profile.profile.username;
     } catch {
-      this.logOut();
       return "";
     }
   }
@@ -444,7 +448,7 @@ export class LogInManager {
 
   isLoggedIn() {
     const username = Application.getSecureState("MangaDot_Username") as string | undefined;
-    if (username) {
+    if (username != undefined) {
       if (username.length === 0) {
         this.logOut();
       }

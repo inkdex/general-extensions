@@ -206,7 +206,7 @@ export class MangaDotExtension implements ExtensionImpl<typeof MangaDotConfig> {
     searchQuery: SearchQuery<SearchMetadata>,
   ): Promise<AdvancedSearchForm> {
     await checkFilters(this.api);
-    return new MangaDotAdvancedSearchForm(searchQuery);
+    return new MangaDotAdvancedSearchForm(searchQuery, this.loginManager);
   }
 
   async getSearchResults(

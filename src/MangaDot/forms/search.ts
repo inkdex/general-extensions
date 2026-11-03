@@ -21,6 +21,7 @@ import {
   ADULT_FILTER,
   CHAPTERS_NUM,
   CONTENT_RATING,
+  IN_LIBRARY,
   ORIGIN,
   RATING,
   type SearchMetadata,
@@ -28,6 +29,7 @@ import {
   type TagItem,
   VOLUME,
 } from "../models";
+import type { LogInManager } from "../network";
 import {
   defaultMetadata,
   deNormalizeId,
@@ -59,12 +61,14 @@ class MangaDotAdvancedSearchForm extends AdvancedSearchForm {
   private hasVolume: string[] = ["any"];
   private minRating: string[] = ["any"];
   private contentRating: string[] = ["any"];
+  private library: string[] = ["any"];
   private status: string[] = [""];
   private origin: string[] = [""];
   private adult: string[] = getShowAdultStatus();
-
-  constructor(searchQuery: SearchQuery<SearchMetadata>) {
+  private login: LogInManager;
+  constructor(searchQuery: SearchQuery<SearchMetadata>, login: LogInManager) {
     super();
+    this.login = login;
     if (searchQuery.metadata !== undefined) {
       this.searchMetadata = searchQuery.metadata;
     } else {
@@ -73,6 +77,7 @@ class MangaDotAdvancedSearchForm extends AdvancedSearchForm {
     this.chapterNum = this.searchMetadata.chapters ? this.searchMetadata.chapters : ["any"];
     this.hasVolume = this.searchMetadata.volume ? this.searchMetadata.volume : ["any"];
     this.minRating = this.searchMetadata.rating ? this.searchMetadata.rating : ["any"];
+    this.library = this.searchMetadata.library ? this.searchMetadata.library : ["any"];
     this.adult = this.searchMetadata.adult ? this.searchMetadata.adult : getShowAdultStatus();
     this.contentRating = this.searchMetadata.contentRating
       ? this.searchMetadata.contentRating
@@ -95,11 +100,11 @@ class MangaDotAdvancedSearchForm extends AdvancedSearchForm {
     this.searchMetadata.status = this.status;
     this.searchMetadata.origin = this.origin;
     this.searchMetadata.adult = this.adult;
+    this.searchMetadata.library = this.library;
   }
 
   override getSections(): FormSectionElement<unknown>[] {
     return [
-      Section({ id: "genres", header: "Genres" }, this.getGenresFilter()),
       Section({ id: "tags", header: "Tags" }, this.getTagsFilter()),
       SelectSection(this, {
         header: "Status",
@@ -174,6 +179,19 @@ class MangaDotAdvancedSearchForm extends AdvancedSearchForm {
           onValueChange: Application.Selector(this as MangaDotAdvancedSearchForm, "handleLanguage"),
         }),
       ]),
+      ...(this.login.isLoggedIn()
+        ? [
+            SelectSection(this, {
+              header: "Library",
+              id: "library",
+              layout: "list",
+              value: this.library ?? ["any"],
+              items: IN_LIBRARY,
+              minItemCount: 1,
+              maxItemCount: 1,
+            }),
+          ]
+        : []),
       Section({ id: "author_artist", header: "Author & Artist" }, [
         NavigationRow("author_filter", {
           title: "Authors",
@@ -189,54 +207,6 @@ class MangaDotAdvancedSearchForm extends AdvancedSearchForm {
     ];
   }
 
-  getGenresFilter(): FormItemElement<unknown>[] {
-    return [
-      TriStateSelectRow("genres", {
-        title: "Genres",
-        layout: "list",
-        onValueChange: Application.Selector(this as MangaDotAdvancedSearchForm, "handleGenres"),
-        items: getFilters().genre,
-        value: this.searchMetadata.genres ?? {},
-        allowEmptySelection: true,
-        allowExclusion: true,
-        isHidden: false,
-      }),
-      TriStateSelectRow("demographic", {
-        title: "Demographic",
-        layout: "list",
-        onValueChange: Application.Selector(
-          this as MangaDotAdvancedSearchForm,
-          "handleDemographic",
-        ),
-        items: getFilters().demographic,
-        value: this.searchMetadata.demographic ?? {},
-        allowEmptySelection: true,
-        allowExclusion: true,
-        isHidden: false,
-      }),
-      TriStateSelectRow("themes", {
-        title: "Themes",
-        layout: "list",
-        onValueChange: Application.Selector(this as MangaDotAdvancedSearchForm, "handleThemes"),
-        items: getFilters().themeAndContent,
-        value: this.searchMetadata.themes ?? {},
-        allowEmptySelection: true,
-        allowExclusion: true,
-        isHidden: false,
-      }),
-      TriStateSelectRow("more", {
-        title: "More",
-        layout: "list",
-        onValueChange: Application.Selector(this as MangaDotAdvancedSearchForm, "handleMore"),
-        items: getFilters().more,
-        value: this.searchMetadata.more ?? {},
-        allowEmptySelection: true,
-        allowExclusion: true,
-        isHidden: false,
-      }),
-    ];
-  }
-
   getTagsFilter(): FormItemElement<unknown>[] {
     return Object.entries(TAGS).map(([categoryName, tags]) => {
       const rowId = categoryName.toLowerCase().replace(/[^a-z0-9]/g, "_");
@@ -244,11 +214,14 @@ class MangaDotAdvancedSearchForm extends AdvancedSearchForm {
         id: normalizeId(tag.name),
         title: tag.name,
       }));
-      const rowInitialValue: Record<string, "included" | "excluded"> = {};
-      if (this.searchMetadata.tag) {
+      let rowInitialValue: Record<string, "included" | "excluded"> = {};
+      if (this.searchMetadata.genres && rowId === "genres") {
+        rowInitialValue = this.searchMetadata.genres;
+      } else if (this.searchMetadata.tag) {
         for (const tag of tags) {
-          if (this.searchMetadata.tag[tag.name]) {
-            rowInitialValue[tag.name] = this.searchMetadata.tag[tag.name];
+          const index = normalizeId(tag.name);
+          if (this.searchMetadata.tag[index]) {
+            rowInitialValue[index] = this.searchMetadata.tag[index];
           }
         }
       }
@@ -293,52 +266,20 @@ class MangaDotAdvancedSearchForm extends AdvancedSearchForm {
     rowId: string,
     value: { [id: string]: "included" | "excluded" },
   ): Promise<void> {
-    this.rowStates[rowId] = value;
-    const mergedTags: Record<string, "included" | "excluded"> = {};
-    for (const rowState of Object.values(this.rowStates)) {
-      Object.assign(mergedTags, rowState);
+    if (rowId === "genres") {
+      this.searchMetadata.genres = value;
+    } else {
+      this.rowStates[rowId] = value;
+      const mergedTags: Record<string, "included" | "excluded"> = {};
+      for (const rowState of Object.values(this.rowStates)) {
+        Object.assign(mergedTags, rowState);
+      }
+      this.searchMetadata.tag = mergedTags;
     }
-    this.searchMetadata.tag = mergedTags;
   }
 
   async handleLanguage(value: string[]): Promise<void> {
     this.searchMetadata.language = value;
-  }
-
-  async handleAdult(value: string[]): Promise<void> {
-    this.searchMetadata.adult = value;
-  }
-
-  async handleDemographic(value: { [id: string]: "included" | "excluded" }): Promise<void> {
-    this.searchMetadata.demographic = value;
-  }
-
-  async handleThemes(value: { [id: string]: "included" | "excluded" }): Promise<void> {
-    this.searchMetadata.themes = value;
-  }
-
-  async handleMore(value: { [id: string]: "included" | "excluded" }): Promise<void> {
-    this.searchMetadata.more = value;
-  }
-
-  async handleGenres(value: { [id: string]: "included" | "excluded" }): Promise<void> {
-    this.searchMetadata.genres = value;
-  }
-
-  async handleStatus(value: string[]): Promise<void> {
-    this.searchMetadata.status = value;
-  }
-
-  async handleOrigin(value: string[]): Promise<void> {
-    const previous = this.searchMetadata?.origin ?? [""];
-    const hadAnyBefore = previous.includes("");
-    const hasAnyNow = value.includes("");
-    if (hadAnyBefore && value.length > 1) {
-      value = value.filter((v) => v !== "");
-    } else if (!hadAnyBefore && hasAnyNow) {
-      value = [""];
-    }
-    this.searchMetadata.origin = value;
   }
 }
 
