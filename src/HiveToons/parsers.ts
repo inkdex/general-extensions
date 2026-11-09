@@ -33,11 +33,7 @@ export const decodeMangaId = (value: string): string => {
 };
 
 export const normalizeSearchTerm = (term: string): string =>
-  term
-    .trim()
-    .replace(/[‘’]/g, "'")
-    .replace(/[“”]/g, '"')
-    .replace(/\s+/g, " ");
+  term.trim().replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/\s+/g, " ");
 
 const isNovel = (post: Pick<HiveToonsPost, "isNovel" | "seriesType">): boolean =>
   post.isNovel === true || (post.seriesType ?? "").toUpperCase() === "NOVEL";

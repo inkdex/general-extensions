@@ -167,11 +167,7 @@ const parseViewMore = ($: CheerioAPI): ComicCard[] => {
 
     const title = Application.decodeHTMLEntities($("img", obj).first().attr("alt") ?? "");
     const mangaId = $("a", obj).attr("href")?.replace(/\/$/, "").split("/").pop() ?? "";
-    const rating = $(".comic-card__stat--rating", obj)
-      .text()
-      .trim()
-      .replace(/[⭐★]/g, "")
-      .trim();
+    const rating = $(".comic-card__stat--rating", obj).text().trim().replace(/[⭐★]/g, "").trim();
     const views =
       $(".comic-card__stat--hot span", obj)
         .map((_, el) => $(el).text().trim())
