@@ -12,6 +12,7 @@ import * as cheerio from "cheerio";
 
 import {
   DOMAIN,
+  DEFAULT_COVER_URL,
   type HiveToonsChapter,
   type HiveToonsChapterData,
   type HiveToonsPost,
@@ -143,7 +144,7 @@ export const parseMangaList = (posts: HiveToonsPost[]): MangaListItem[] =>
     return {
       mangaId: encodeMangaId(post.slug),
       title: Application.decodeHTMLEntities(post.postTitle),
-      imageUrl: post.featuredImage ?? "",
+      imageUrl: post.featuredImage?.trim() || DEFAULT_COVER_URL,
       subtitle: subtitle || formatSeriesSubtitle(post.seriesType, post.seriesStatus),
       summary: stripHtml(post.postContent ?? "") || undefined,
       author:
@@ -188,7 +189,7 @@ export const parseMangaDetails = (post: HiveToonsPost): SourceManga => {
     mangaInfo: {
       primaryTitle,
       secondaryTitles,
-      thumbnailUrl: post.featuredImage ?? "",
+      thumbnailUrl: post.featuredImage?.trim() || DEFAULT_COVER_URL,
       synopsis: stripHtml(post.postContent ?? ""),
       author: normalizeCreatorName(post.author),
       artist: normalizeCreatorName(post.artist),
