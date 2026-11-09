@@ -1,7 +1,13 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 /* Copyright © 2026 Inkdex */
 
-import type { ManagedCollection, ManagedCollectionChangeset, SourceManga } from "@paperback/types";
+import type {
+  ManagedCollection,
+  ManagedCollectionChange,
+  ManagedCollectionChangeFailure,
+  ManagedCollectionItems,
+  SourceManga,
+} from "@paperback/types";
 
 import { fetchJSON } from "../../services/network";
 import { resolveMangaId } from "../shared/legacy";
@@ -16,53 +22,64 @@ import {
 } from "../shared/urls";
 import { MANGA_PAGE_LIMIT, chunk } from "../shared/utils";
 
-export async function getManagedLibraryCollections(): Promise<ManagedCollection[]> {
+// MangaDex keeps a single reading status per title.
+const STATUS_GROUP = "status";
+
+export async function getManagedCollections(): Promise<ManagedCollection[]> {
   return [
-    { id: "reading", title: "Reading" },
-    { id: "on_hold", title: "On Hold" },
-    { id: "plan_to_read", title: "Planned" },
-    { id: "dropped", title: "Dropped" },
-    { id: "re_reading", title: "Re-reading" },
-    { id: "completed", title: "Completed" },
+    { id: "reading", title: "Reading", exclusiveGroup: STATUS_GROUP },
+    { id: "on_hold", title: "On Hold", exclusiveGroup: STATUS_GROUP },
+    { id: "plan_to_read", title: "Planned", exclusiveGroup: STATUS_GROUP },
+    { id: "dropped", title: "Dropped", exclusiveGroup: STATUS_GROUP },
+    { id: "re_reading", title: "Re-reading", exclusiveGroup: STATUS_GROUP },
+    { id: "completed", title: "Completed", exclusiveGroup: STATUS_GROUP },
   ];
 }
 
-export async function commitManagedCollectionChanges(
-  changeset: ManagedCollectionChangeset,
-): Promise<void> {
+export async function applyManagedCollectionChanges(
+  changes: ManagedCollectionChange[],
+): Promise<ManagedCollectionChangeFailure[]> {
   if (!getAccessToken()) {
     throw new Error("You need to be logged in");
   }
 
-  const postStatus = async (mangaId: string, status: string | null, action: string) => {
+  const postStatus = async (mangaId: string, status: string | null) => {
     // Convert legacy numeric ids before posting.
     const resolvedId = await resolveMangaId(mangaId);
-    try {
-      await fetchJSON<{ result?: string }>({
-        url: buildMangaStatusWriteUrl(resolvedId).toString(),
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
-      });
-    } catch (e) {
-      const detail = e instanceof Error ? e.message : String(e);
-      throw new Error(`MangaDex collection ${action} failed for ${resolvedId}: ${detail}`);
-    }
+    await fetchJSON<{ result?: string }>({
+      url: buildMangaStatusWriteUrl(resolvedId).toString(),
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    });
   };
 
-  // Promise.all aborts the whole changeset on any failure.
-  const additionRequests = (changeset.additions ?? []).map((a) =>
-    postStatus(a.mangaId, changeset.collection.id, "add"),
+  const results = await Promise.allSettled(
+    changes.map((change) =>
+      postStatus(change.sourceManga.mangaId, change.type === "remove" ? null : change.to.id),
+    ),
   );
-  const deletionRequests = (changeset.deletions ?? []).map((d) =>
-    postStatus(d.mangaId, null, "remove"),
-  );
-  await Promise.all([...additionRequests, ...deletionRequests]);
+
+  const failures: ManagedCollectionChangeFailure[] = [];
+  results.forEach((result, i) => {
+    if (result.status === "rejected") {
+      const e: unknown = result.reason;
+      failures.push({
+        changeId: changes[i].id,
+        reason: e instanceof Error ? e.message : String(e),
+      });
+    }
+  });
+
+  if (changes.length > 0 && failures.length === changes.length) {
+    throw new Error(`MangaDex collection update failed: ${failures[0].reason}`);
+  }
+  return failures;
 }
 
-export async function getSourceMangaInManagedCollection(
-  managedCollection: ManagedCollection,
-): Promise<SourceManga[]> {
+export async function getManagedCollectionItems(
+  collections: ManagedCollection[],
+): Promise<ManagedCollectionItems[]> {
   if (!getAccessToken()) {
     throw new Error("You need to be logged in");
   }
@@ -80,10 +97,17 @@ export async function getSourceMangaInManagedCollection(
     throw new Error("MangaDex returned no status data");
   }
 
-  const ids = Object.keys(statusjson.statuses).filter(
-    (x) => statusjson.statuses[x] === managedCollection.id,
-  );
+  const wanted = new Set(collections.map((c) => c.id));
+  const ids = Object.keys(statusjson.statuses).filter((x) => wanted.has(statusjson.statuses[x]));
 
+  const manga = await fetchSourceManga(ids);
+  return collections.map((collection) => ({
+    collectionId: collection.id,
+    items: manga.filter((m) => statusjson.statuses[m.mangaId] === collection.id),
+  }));
+}
+
+async function fetchSourceManga(ids: string[]): Promise<SourceManga[]> {
   // Fail on any batch error rather than render a silently partial collection,
   // which could make the user think kept titles were removed. The host retries.
   const responses = await Promise.all(

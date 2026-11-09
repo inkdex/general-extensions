@@ -13,9 +13,9 @@ import {
   getDiscoverSections,
 } from "./implementations/discover-section/main";
 import {
-  commitManagedCollectionChanges,
-  getManagedLibraryCollections,
-  getSourceMangaInManagedCollection,
+  applyManagedCollectionChanges,
+  getManagedCollectionItems,
+  getManagedCollections,
 } from "./implementations/managed-collection/main";
 import { getMangaDetails } from "./implementations/manga/main";
 import {
@@ -44,9 +44,9 @@ export class MangaDexExtension implements ExtensionImpl<typeof MangaDexConfig> {
   }
 
   getMangaDetails = getMangaDetails;
-  getManagedLibraryCollections = getManagedLibraryCollections;
-  commitManagedCollectionChanges = commitManagedCollectionChanges;
-  getSourceMangaInManagedCollection = getSourceMangaInManagedCollection;
+  getManagedCollections = getManagedCollections;
+  getManagedCollectionItems = getManagedCollectionItems;
+  applyManagedCollectionChanges = applyManagedCollectionChanges;
   getSettingsForm = getSettingsForm;
   getSearchTags = getSearchTags;
   getAdvancedSearchForm = getAdvancedSearchForm;
