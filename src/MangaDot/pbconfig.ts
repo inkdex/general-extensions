@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 /* Copyright © 2026 Inkdex */
 
-import { ContentRating, SourceIntents, type ExtensionInfo } from "@paperback/types";
+import { ContentRating, type ExtensionInfo, SourceIntents } from "@paperback/types";
 
 export default {
   name: "MangaDot",

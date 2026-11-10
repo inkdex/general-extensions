@@ -190,6 +190,7 @@ export interface MangaData extends MangaSectionItem {
   authors: string[] | string | null;
   artists: string[] | string | null;
   is_adult: boolean;
+  is_longstrip: boolean | null;
 }
 
 export interface MangaSectionItem {

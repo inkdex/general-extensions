@@ -29,6 +29,7 @@ import {
   getEnglishOnly,
   TAGS,
   normalizeId,
+  deNormalizeId,
 } from "../utils";
 
 export class SettingsForm extends Form {
@@ -43,7 +44,7 @@ export class SettingsForm extends Form {
     this.userAgent = userAgent;
     this.api = api;
   }
-  override formWillAppear(): void {
+  override formDidAppear(): void {
     this.loadUsernameRequest = this.login
       .getAccountID()
       .then((user) => {
@@ -82,6 +83,7 @@ export class SettingsForm extends Form {
           }),
           NavigationRow("searchFilters", {
             title: "Profile Settings",
+            isHidden: !this.login.isLoggedIn(),
             form: new ProfileSettings(this.api),
           }),
           ButtonRow("logout", {
@@ -402,7 +404,7 @@ class ProfileSettings extends Form {
   api: MangaDotApi;
   hiddenTags?: string[];
   getSettingRequest?: Promise<unknown>;
-  override formWillAppear(): void {
+  override formDidAppear(): void {
     this.getSettingRequest = this.api
       .getProfileSettings()
       .then((settings) => {
@@ -450,10 +452,8 @@ class ProfileSettings extends Form {
   }
 
   async handleTagsChange(value: string[]) {
-    console.log("handleTagsChange");
+    value = value.map((val) => deNormalizeId(val));
     await this.api.putFilters(value);
-    console.log(value);
-    console.log("PUT DONE");
     this.reloadForm();
     Application.invalidateDiscoverSections();
   }

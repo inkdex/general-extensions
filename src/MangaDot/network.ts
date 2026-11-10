@@ -50,13 +50,11 @@ import {
 
 export class MangaDotInterceptor extends PaperbackInterceptor {
   override async interceptRequest(request: Request): Promise<Request> {
-    return {
-      ...request,
-      headers: {
-        "user-agent": await Application.getDefaultUserAgent(),
-        ...request.headers,
-      },
+    request.headers = {
+      "user-agent": await Application.getDefaultUserAgent(),
+      ...request.headers,
     };
+    return request;
   }
 
   override async interceptResponse(
@@ -402,6 +400,7 @@ export class MangaDotApi {
       url: `${DOMAIN}/api/filters/me`,
       method: "PUT",
       headers: {
+        "Content-Type": "application/json",
         Origin: `${DOMAIN}`,
         Referer: `${DOMAIN}`,
       },
@@ -421,29 +420,29 @@ export class LogInManager {
   loginCookieStorageInterceptor = new CookieStorageInterceptor({
     storage: "stateManager",
   });
-  private readonly AUTH_COOKIE_NAMES = new Set(["ory_kratos_session"]);
-
-  private getCookie(name: string) {
-    return this.loginCookieStorageInterceptor.cookies.find((cookie) => cookie.name === name);
-  }
+  private readonly AUTH_COOKIE_NAME = "ory_kratos_session";
 
   async getAccountID() {
+    let username = "";
     try {
-      const profile = await this.api.getProfile();
-      Application.setSecureState(profile.profile.username, "MangaDot_Username");
-      return profile.profile.username;
+      username = (await this.api.getProfile()).profile.username;
+      if (username && username.length > 0) {
+        Application.setSecureState(username, "MangaDot_Username");
+        return username;
+      }
     } catch {
-      return "";
+      this.logOut();
     }
+    return username;
   }
 
   private isAuthCookie(cookie: Cookie): boolean {
-    return this.AUTH_COOKIE_NAMES.has(cookie.name);
+    return cookie.name === this.AUTH_COOKIE_NAME;
   }
 
   checkLoginCookie(cookies: Cookie[]) {
     const cookieNames = new Set(cookies.map((c) => c.name));
-    return [...this.AUTH_COOKIE_NAMES].every((name) => cookieNames.has(name));
+    return cookieNames.has(this.AUTH_COOKIE_NAME);
   }
 
   isLoggedIn() {
@@ -457,13 +456,20 @@ export class LogInManager {
     return false;
   }
 
+  async isLoggedInForcedCheck() {
+    const username = await this.getAccountID();
+    if (!username || username.length === 0) {
+      this.logOut();
+    }
+    return username.length > 0;
+  }
+
   async logIn(cookies: Cookie[]): Promise<void> {
     if (this.checkLoginCookie(cookies)) {
       cookies
         .filter((cookie) => this.isAuthCookie(cookie))
         .forEach((cookie) => {
-          if (this.AUTH_COOKIE_NAMES.has(cookie.name)) {
-            //Application.setSecureState(cookie.value, "ory_kratos_session");
+          if (cookie.name === this.AUTH_COOKIE_NAME) {
             this.loginCookieStorageInterceptor.setCookie(cookie);
           }
         });
@@ -476,7 +482,6 @@ export class LogInManager {
       this.loginCookieStorageInterceptor.deleteCookie(cookie);
     });
     Application.setSecureState(undefined, "MangaDot_Username");
-    Application.setSecureState(undefined, "ory_kratos_session");
     Application.invalidateDiscoverSections();
   }
 }

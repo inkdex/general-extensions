@@ -46,10 +46,6 @@ export function getShowAdultStatus(): string[] {
   return (Application.getState("show_adult_content") as string[] | undefined) ?? ["0"];
 }
 
-export function getTimeRangeStatus(): string[] {
-  return (Application.getState("content_range") as string[] | undefined) ?? [""];
-}
-
 export function getRangeStatus(): boolean {
   return (Application.getState("range_type") as boolean | undefined) ?? false;
 }

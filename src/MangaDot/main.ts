@@ -59,6 +59,7 @@ export class MangaDotExtension implements ExtensionImpl<typeof MangaDotConfig> {
 
   async getSettingsForm(): Promise<Form> {
     await checkFilters(this.api);
+    await this.loginManager.isLoggedInForcedCheck();
     return new SettingsForm(this.api, await Application.getDefaultUserAgent(), this.loginManager);
   }
 
@@ -196,7 +197,11 @@ export class MangaDotExtension implements ExtensionImpl<typeof MangaDotConfig> {
     _localStorage: Record<string, string>,
   ): Promise<void> {
     for (const cookie of cookies) {
-      if (cookie.name == "cf_clearance") {
+      if (
+        cookie.name.startsWith("cf") ||
+        cookie.name.startsWith("_cf") ||
+        cookie.name.startsWith("__cf")
+      ) {
         this.cookieStorageInterceptor.setCookie(cookie);
       }
     }
@@ -206,6 +211,7 @@ export class MangaDotExtension implements ExtensionImpl<typeof MangaDotConfig> {
     searchQuery: SearchQuery<SearchMetadata>,
   ): Promise<AdvancedSearchForm> {
     await checkFilters(this.api);
+    await this.loginManager.isLoggedInForcedCheck();
     return new MangaDotAdvancedSearchForm(searchQuery, this.loginManager);
   }
 
