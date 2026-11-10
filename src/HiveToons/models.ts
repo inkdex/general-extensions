@@ -4,6 +4,7 @@
 import type { ContentRating, SortingOption, Tag } from "@paperback/types";
 
 export const DOMAIN = "https://hivetoons.org";
+export const DEFAULT_COVER_URL = `${DOMAIN}/theme/defaults/nocover.jpg`;
 export const API_URL = "https://api.hivetoons.org/api";
 export const PAGE_SIZE = 18;
 
