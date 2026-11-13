@@ -423,17 +423,15 @@ export class LogInManager {
   private readonly AUTH_COOKIE_NAME = "ory_kratos_session";
 
   async getAccountID() {
-    let username = "";
     try {
-      username = (await this.api.getProfile()).profile.username;
+      const response = await this.api.getProfile();
+      const username = response?.profile?.username;
       if (username && username.length > 0) {
         Application.setSecureState(username, "MangaDot_Username");
         return username;
       }
-    } catch {
-      this.logOut();
-    }
-    return username;
+    } catch {}
+    return undefined;
   }
 
   private isAuthCookie(cookie: Cookie): boolean {
@@ -447,21 +445,20 @@ export class LogInManager {
 
   isLoggedIn() {
     const username = Application.getSecureState("MangaDot_Username") as string | undefined;
-    if (username != undefined) {
-      if (username.length === 0) {
-        this.logOut();
-      }
-      return true;
+    if (!username || username.length === 0) {
+      this.logOut();
+      return false;
     }
-    return false;
+    return true;
   }
 
   async isLoggedInForcedCheck() {
     const username = await this.getAccountID();
-    if (!username || username.length === 0) {
+    if (!username) {
       this.logOut();
+      return false;
     }
-    return username.length > 0;
+    return true;
   }
 
   async logIn(cookies: Cookie[]): Promise<void> {
@@ -469,10 +466,9 @@ export class LogInManager {
       cookies
         .filter((cookie) => this.isAuthCookie(cookie))
         .forEach((cookie) => {
-          if (cookie.name === this.AUTH_COOKIE_NAME) {
-            this.loginCookieStorageInterceptor.setCookie(cookie);
-          }
+          this.loginCookieStorageInterceptor.setCookie(cookie);
         });
+      await this.getAccountID();
       Application.invalidateDiscoverSections();
     }
   }

@@ -192,16 +192,19 @@ export class SettingsForm extends Form {
   async updateValue<T>(value: T, filter: string): Promise<void> {
     Application.setState(value, filter);
     this.reloadForm();
+    return;
   }
 
   async handleLogin(cookies: Cookie[]): Promise<void> {
     await this.login.logIn(cookies);
     Application.invalidateDiscoverSections();
     this.reloadForm();
+    return;
   }
 
   async handleLoginCancel(): Promise<void> {
     this.reloadForm();
+    return;
   }
 
   async handleLogoutButton(): Promise<void> {
