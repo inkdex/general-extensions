@@ -2,9 +2,9 @@
 /* Copyright © 2026 Inkdex */
 
 import {
-  ContentRating,
   type Chapter,
   type ChapterDetails,
+  ContentRating,
   type DiscoverSectionItem,
   type PagedResults,
   type SearchResultItem,
@@ -12,9 +12,9 @@ import {
 } from "@paperback/types";
 
 import {
-  DOMAIN,
   type ChapterListResponse,
   type ChapterPagesResponse,
+  DOMAIN,
   type ItemInfo,
   type ItemInfoElements,
   type MangaData,
@@ -73,6 +73,7 @@ export const parseMangaInfo = (manga: MangaDataResponse, volumes: string[]): Sou
       synopsis: mangaInfo.description,
       primaryTitle: mangaInfo.title,
       secondaryTitles: parseStringArray(mangaInfo.alt_titles),
+      isWebtoon: mangaInfo.is_longstrip ? mangaInfo.is_longstrip : false,
       contentRating: getRating(mangaInfo),
       status: mangaInfo.status,
       artist: parseStringArray(mangaInfo.artists).join(","),

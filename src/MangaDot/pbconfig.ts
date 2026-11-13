@@ -1,12 +1,12 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 /* Copyright © 2026 Inkdex */
 
-import { ContentRating, SourceIntents, type ExtensionInfo } from "@paperback/types";
+import { ContentRating, type ExtensionInfo, SourceIntents } from "@paperback/types";
 
 export default {
   name: "MangaDot",
   description: "Extension that pulls content from MangaDot.net",
-  version: "1.0.0-alpha.6",
+  version: "1.0.0-alpha.7",
   icon: "icon.png",
   language: "en",
   contentRating: ContentRating.EVERYONE,

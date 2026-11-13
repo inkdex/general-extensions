@@ -14,6 +14,8 @@ import {
   type SearchResultItem,
   type SortingOption,
   type Tag,
+  type Cookie,
+  CookieStorageInterceptor,
 } from "@paperback/types";
 
 import {
@@ -28,6 +30,10 @@ import {
   type SearchResponse,
   type SearchSuggestionsResponse,
   type Volumes,
+  type Languages,
+  type Profile,
+  type ProfileSettings,
+  type TagsRequest,
 } from "./models";
 import {
   defaultMetadata,
@@ -44,13 +50,11 @@ import {
 
 export class MangaDotInterceptor extends PaperbackInterceptor {
   override async interceptRequest(request: Request): Promise<Request> {
-    return {
-      ...request,
-      headers: {
-        "user-agent": await Application.getDefaultUserAgent(),
-        ...request.headers,
-      },
+    request.headers = {
+      "user-agent": await Application.getDefaultUserAgent(),
+      ...request.headers,
     };
+    return request;
   }
 
   override async interceptResponse(
@@ -75,8 +79,7 @@ export class MangaDotInterceptor extends PaperbackInterceptor {
 
 export class MangaDotApi {
   private async fetchApi<T>(request: Request): Promise<T> {
-    const [, data] = await Application.scheduleRequest(request);
-
+    const [_, data] = await Application.scheduleRequest(request);
     try {
       return JSON.parse(Application.arrayBufferToUTF8String(data)) as T;
     } catch {
@@ -145,11 +148,28 @@ export class MangaDotApi {
     if (section === "most_viewed") {
       return this.getMostViewed(page);
     }
+    if (section === "for_you") {
+      return this.getForYouSection(page);
+    }
     if (section === "latest_updates") {
       return this.getLatestUpdateSection(page);
     }
     return this.getAllTimesSection(section, page);
   }
+
+  async getForYouSection(page: number): Promise<MangaSection> {
+    const params: ApiRequestConfig = {
+      path: ["api", "manga", "for-you"],
+      query: {
+        origin: getSectionContentTypes().join(",").replaceAll("&", ","),
+        adult: getShowAdultStatus(),
+        limit: "100",
+        page: page.toString(),
+      },
+    };
+    return this.buildApiRequest<MangaSection>(params);
+  }
+
   async getAllTimesSection(section: string, page: number): Promise<SearchResponse> {
     const params: ApiRequestConfig = {
       path: ["api", "manga", "section", section.replaceAll("_", "-")],
@@ -230,7 +250,14 @@ export class MangaDotApi {
       ...query.metadata?.more,
       ...query.metadata?.themes,
     };
+    const tags = {
+      ...query.metadata?.tag,
+    };
     const formattedGenres = Object.entries(genres).map(([genre, state]) => {
+      const normalized = deNormalizeId(genre);
+      return state === "excluded" ? `-${normalized}` : normalized;
+    });
+    const formattedTags = Object.entries(tags).map(([genre, state]) => {
       const normalized = deNormalizeId(genre);
       return state === "excluded" ? `-${normalized}` : normalized;
     });
@@ -241,6 +268,7 @@ export class MangaDotApi {
         ...(query.title && { search: query.title }),
         page: page.toString(),
         ...(formattedGenres.length && { genres: formattedGenres.join(",") }),
+        ...(formattedTags.length && { tags: formattedTags.join(",") }),
         ...(query.metadata?.origin?.length && {
           origin: (query.metadata?.origin ?? []).join(",").replaceAll("&", ","),
         }),
@@ -253,8 +281,21 @@ export class MangaDotApi {
         ...(query.metadata?.artist?.length && {
           artist: (query.metadata?.artist ?? []).join(","),
         }),
+        ...(query.metadata?.min_chapters?.length && {
+          min_chapters: query.metadata?.chapters ?? "",
+        }),
+        ...(query.metadata?.min_rating?.length && {
+          min_rating: query.metadata?.rating ?? "",
+        }),
+        ...(query.metadata?.volumes?.length && {
+          volumes: query.metadata?.volume ?? "",
+        }),
+        ...(query.metadata?.library?.length && {
+          library: query.metadata?.library ?? "",
+        }),
         sortBy: sort,
         sortOrder: order ? order : "",
+        content_rating: query.metadata?.contentRating ?? "",
         adult: query.metadata?.adult ?? getShowAdultStatus(),
       },
     };
@@ -275,6 +316,13 @@ export class MangaDotApi {
       path: ["api", "manga", "genres"],
     };
     return this.buildApiRequest<string[]>(params);
+  }
+
+  async getLanguages() {
+    const params: ApiRequestConfig = {
+      path: ["api", "languages"],
+    };
+    return this.buildApiRequest<Languages>(params);
   }
 
   async getAuthor(value: string) {
@@ -324,5 +372,112 @@ export class MangaDotApi {
       })),
       metadata: undefined,
     };
+  }
+
+  async getTagsList() {
+    const params: ApiRequestConfig = {
+      path: ["api", "filters", "catalog"],
+    };
+    return this.buildApiRequest<TagsRequest>(params);
+  }
+
+  async getProfile() {
+    const params: ApiRequestConfig = {
+      path: ["api", "profile"],
+    };
+    return this.buildApiRequest<Profile>(params);
+  }
+
+  async getProfileSettings() {
+    const params: ApiRequestConfig = {
+      path: ["api", "filters", "me"],
+    };
+    return this.buildApiRequest<ProfileSettings>(params);
+  }
+
+  async putFilters(filters: string[]) {
+    await Application.scheduleRequest({
+      url: `${DOMAIN}/api/filters/me`,
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Origin: `${DOMAIN}`,
+        Referer: `${DOMAIN}`,
+      },
+      body: JSON.stringify({
+        hidden_terms: filters.map((f) => deNormalizeId(f)),
+      }),
+    });
+  }
+}
+
+export class LogInManager {
+  api: MangaDotApi;
+  constructor(api: MangaDotApi) {
+    this.api = api;
+  }
+
+  loginCookieStorageInterceptor = new CookieStorageInterceptor({
+    storage: "stateManager",
+  });
+  private readonly AUTH_COOKIE_NAME = "ory_kratos_session";
+
+  async getAccountID() {
+    try {
+      const response = await this.api.getProfile();
+      const username = response?.profile?.username;
+      if (username && username.length > 0) {
+        Application.setSecureState(username, "MangaDot_Username");
+        return username;
+      }
+    } catch {}
+    return undefined;
+  }
+
+  private isAuthCookie(cookie: Cookie): boolean {
+    return cookie.name === this.AUTH_COOKIE_NAME;
+  }
+
+  checkLoginCookie(cookies: Cookie[]) {
+    const cookieNames = new Set(cookies.map((c) => c.name));
+    return cookieNames.has(this.AUTH_COOKIE_NAME);
+  }
+
+  isLoggedIn() {
+    const username = Application.getSecureState("MangaDot_Username") as string | undefined;
+    if (!username || username.length === 0) {
+      this.logOut();
+      return false;
+    }
+    return true;
+  }
+
+  async isLoggedInForcedCheck() {
+    const username = await this.getAccountID();
+    if (!username) {
+      this.logOut();
+      return false;
+    }
+    return true;
+  }
+
+  async logIn(cookies: Cookie[]): Promise<void> {
+    if (this.checkLoginCookie(cookies)) {
+      cookies
+        .filter((cookie) => this.isAuthCookie(cookie))
+        .forEach((cookie) => {
+          this.loginCookieStorageInterceptor.setCookie(cookie);
+        });
+      await this.getAccountID();
+      Application.invalidateDiscoverSections();
+    }
+  }
+
+  logOut(): void {
+    this.loginCookieStorageInterceptor.cookies.forEach((cookie) => {
+      this.loginCookieStorageInterceptor.deleteCookie(cookie);
+    });
+    Application.setSecureState(undefined, "MangaDot_Username");
+    Application.invalidateDiscoverSections();
   }
 }

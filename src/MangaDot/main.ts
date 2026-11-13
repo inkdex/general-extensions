@@ -25,7 +25,7 @@ import {
 import MangaDotAdvancedSearchForm from "./forms/search";
 import { SettingsForm } from "./forms/settings";
 import { DOMAIN, type PageMetadata, type SearchMetadata } from "./models";
-import { MangaDotApi, MangaDotInterceptor } from "./network";
+import { LogInManager, MangaDotApi, MangaDotInterceptor } from "./network";
 import {
   parseChapterPages,
   parseChapters,
@@ -44,7 +44,7 @@ export class MangaDotExtension implements ExtensionImpl<typeof MangaDotConfig> {
     bufferInterval: 1,
     ignoreImages: true,
   });
-
+  loginManager = new LogInManager(this.api);
   mainInterceptor = new MangaDotInterceptor("main");
   cookieStorageInterceptor = new CookieStorageInterceptor({
     storage: "stateManager",
@@ -53,12 +53,14 @@ export class MangaDotExtension implements ExtensionImpl<typeof MangaDotConfig> {
   async initialise(): Promise<void> {
     this.globalRateLimiter.registerInterceptor();
     this.cookieStorageInterceptor.registerInterceptor();
+    this.loginManager.loginCookieStorageInterceptor.registerInterceptor();
     this.mainInterceptor.registerInterceptor();
   }
 
   async getSettingsForm(): Promise<Form> {
     await checkFilters(this.api);
-    return new SettingsForm(this.api);
+    await this.loginManager.isLoggedInForcedCheck();
+    return new SettingsForm(this.api, await Application.getDefaultUserAgent(), this.loginManager);
   }
 
   async getMangaDetails(mangaId: string): Promise<SourceManga> {
@@ -84,6 +86,7 @@ export class MangaDotExtension implements ExtensionImpl<typeof MangaDotConfig> {
   }
 
   async getDiscoverSections(): Promise<DiscoverSection[]> {
+    const isLogged = this.loginManager.isLoggedIn();
     const allSections: Record<string, DiscoverSection> = {
       most_viewed: {
         id: "most_viewed",
@@ -126,6 +129,13 @@ export class MangaDotExtension implements ExtensionImpl<typeof MangaDotConfig> {
         title: "Demographics",
         type: DiscoverSectionType.genres,
       },
+      ...(isLogged && {
+        for_you: {
+          id: "for_you",
+          title: "For You",
+          type: DiscoverSectionType.simpleCarousel,
+        },
+      }),
     };
     return getDiscoverySectionsOrder()
       .map((key) => allSections[key.id])
@@ -176,6 +186,7 @@ export class MangaDotExtension implements ExtensionImpl<typeof MangaDotConfig> {
       most_tracked: "simpleCarouselItem",
       top_rated: "prominentCarouselItem",
       recently_added: "simpleCarouselItem",
+      for_you: "simpleCarouselItem",
     };
     return parseSection(sectionElements, page, itemTypes[section.id] ?? "simpleCarouselItem");
   }
@@ -186,7 +197,11 @@ export class MangaDotExtension implements ExtensionImpl<typeof MangaDotConfig> {
     _localStorage: Record<string, string>,
   ): Promise<void> {
     for (const cookie of cookies) {
-      if (cookie.name == "cf_clearance") {
+      if (
+        cookie.name.startsWith("cf") ||
+        cookie.name.startsWith("_cf") ||
+        cookie.name.startsWith("__cf")
+      ) {
         this.cookieStorageInterceptor.setCookie(cookie);
       }
     }
@@ -196,7 +211,8 @@ export class MangaDotExtension implements ExtensionImpl<typeof MangaDotConfig> {
     searchQuery: SearchQuery<SearchMetadata>,
   ): Promise<AdvancedSearchForm> {
     await checkFilters(this.api);
-    return new MangaDotAdvancedSearchForm(searchQuery);
+    await this.loginManager.isLoggedInForcedCheck();
+    return new MangaDotAdvancedSearchForm(searchQuery, this.loginManager);
   }
 
   async getSearchResults(
