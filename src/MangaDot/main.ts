@@ -35,8 +35,9 @@ import {
   type SectionItemType,
 } from "./parsers";
 import type MangaDotConfig from "./pbconfig";
-import { checkFilters, defaultMetadata, getDiscoverySectionsOrder, getRangeStatus } from "./utils";
+import { defaultMetadata, Filters, getDiscoverySectionsOrder, getRangeStatus } from "./utils";
 
+export const MangaDotFilters = new Filters();
 export class MangaDotExtension implements ExtensionImpl<typeof MangaDotConfig> {
   api = new MangaDotApi();
   globalRateLimiter = new BasicRateLimiter("rateLimiter", {
@@ -58,7 +59,7 @@ export class MangaDotExtension implements ExtensionImpl<typeof MangaDotConfig> {
   }
 
   async getSettingsForm(): Promise<Form> {
-    await checkFilters(this.api);
+    await MangaDotFilters.checkFilters(this.api);
     await this.loginManager.isLoggedInForcedCheck();
     return new SettingsForm(this.api, await Application.getDefaultUserAgent(), this.loginManager);
   }
@@ -156,7 +157,7 @@ export class MangaDotExtension implements ExtensionImpl<typeof MangaDotConfig> {
     section: DiscoverSection,
     metadata: PageMetadata | undefined,
   ): Promise<PagedResults<DiscoverSectionItem>> {
-    await checkFilters(this.api);
+    await MangaDotFilters.checkFilters(this.api);
 
     if (section.id === "genres") {
       return this.api.getGenreSection();
@@ -210,7 +211,7 @@ export class MangaDotExtension implements ExtensionImpl<typeof MangaDotConfig> {
   async getAdvancedSearchForm(
     searchQuery: SearchQuery<SearchMetadata>,
   ): Promise<AdvancedSearchForm> {
-    await checkFilters(this.api);
+    await MangaDotFilters.checkFilters(this.api);
     await this.loginManager.isLoggedInForcedCheck();
     return new MangaDotAdvancedSearchForm(searchQuery, this.loginManager);
   }

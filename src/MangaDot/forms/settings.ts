@@ -3,31 +3,31 @@
 
 import {
   ButtonRow,
-  type Cookie,
   EditSection,
   Form,
   FormConfirmationError,
-  type FormItemElement,
-  type FormSectionElement,
   LabelRow,
+  MenuRow,
   NavigationRow,
   Section,
   SelectRow,
   ToggleRow,
   WebViewRow,
+  type Cookie,
+  type FormItemElement,
+  type FormSectionElement,
 } from "@paperback/types";
 
+import { MangaDotFilters } from "../main";
 import { ADULT_FILTER, discoverySections, ORIGIN, type TagItem } from "../models";
 import type { LogInManager } from "../network";
 import { type MangaDotApi } from "../network";
 import {
   getSectionContentTypes,
   getShowAdultStatus,
-  updateFilters,
   getRangeStatus,
   getMultipageStatus,
   getEnglishOnly,
-  TAGS,
   normalizeId,
   deNormalizeId,
 } from "../utils";
@@ -55,7 +55,7 @@ export class SettingsForm extends Form {
       });
   }
   override getSections() {
-    if (this.username == undefined) {
+    if (this.username == undefined && this.login.isLoggedIn()) {
       return [Section("loading", [LabelRow("loading", { title: "Loading..." })])];
     }
     return [
@@ -80,11 +80,6 @@ export class SettingsForm extends Form {
             title: "Logged in as",
             subtitle: `Account ID: ${this.username}`,
             isHidden: !this.login.isLoggedIn(),
-          }),
-          NavigationRow("searchFilters", {
-            title: "Profile Settings",
-            isHidden: !this.login.isLoggedIn(),
-            form: new ProfileSettings(this.api),
           }),
           ButtonRow("logout", {
             title: "Logout",
@@ -143,16 +138,17 @@ export class SettingsForm extends Form {
           header: "Global Settings",
         },
         [
-          SelectRow("toggle_adult", {
+          NavigationRow("searchFilters", {
+            title: "Content Settings",
+            isDisabled: !this.login.isLoggedIn(),
+            subtitle: `${!this.login.isLoggedIn() ? "You need to be logged in to use this settings" : ""}`,
+            form: new ProfileSettingsForm(this.api),
+          }),
+          MenuRow("toggle_adult", {
             title: "Show Adult results",
             value: getShowAdultStatus(),
-            options: ADULT_FILTER,
-            minItemCount: 1,
-            maxItemCount: 1,
-            onValueChange: Application.Selector(
-              this as SettingsForm,
-              "handleShowAdultStatusChange",
-            ),
+            items: ADULT_FILTER,
+            onSelect: Application.Selector(this as SettingsForm, "handleShowAdultStatusChange"),
           }),
         ],
       ),
@@ -219,7 +215,7 @@ export class SettingsForm extends Form {
     this.reloadForm();
   }
 
-  async handleShowAdultStatusChange(value: string[]): Promise<void> {
+  async handleShowAdultStatusChange(value: string): Promise<void> {
     await this.updateValue(value, "show_adult_content");
   }
 
@@ -260,7 +256,7 @@ export class SettingsForm extends Form {
   }
 
   async resetFilters() {
-    await updateFilters(true, this.api);
+    await MangaDotFilters.updateFilters(true, this.api);
   }
 }
 
@@ -403,7 +399,7 @@ class AddSectionSelect {
   }
 }
 
-class ProfileSettings extends Form {
+class ProfileSettingsForm extends Form {
   api: MangaDotApi;
   hiddenTags?: string[];
   getSettingRequest?: Promise<unknown>;
@@ -424,7 +420,7 @@ class ProfileSettings extends Form {
   getTagsFilter(): FormItemElement<unknown>[] {
     if (this.hiddenTags && this.hiddenTags.length > 0) {
     }
-    return Object.entries(TAGS).map(([categoryName, tags]) => {
+    return Object.entries(MangaDotFilters.getTags()).map(([categoryName, tags]) => {
       const rowId = categoryName.toLowerCase().replace(/[^a-z0-9]/g, "_");
       const itemsArray = tags.map((tag: TagItem) => ({
         id: normalizeId(tag.name),
@@ -437,7 +433,7 @@ class ProfileSettings extends Form {
       return SelectRow(rowId, {
         title: categoryName,
         layout: "list",
-        onValueChange: Application.Selector(this as ProfileSettings, "handleTagsChange"),
+        onValueChange: Application.Selector(this as ProfileSettingsForm, "handleTagsChange"),
         items: itemsArray,
         value: rowInitialValue.map((tag) => normalizeId(tag)),
         minItemCount: 0,
@@ -451,7 +447,16 @@ class ProfileSettings extends Form {
     if (this.hiddenTags == undefined) {
       return [Section("loading", [LabelRow("loading", { title: "Loading..." })])];
     }
-    return [Section({ id: "tags", header: "Tags" }, this.getTagsFilter())];
+    return [
+      Section(
+        {
+          id: "tags",
+          header: "Tags",
+          footer: "Choose Tags to be hidden on home, browse and search",
+        },
+        this.getTagsFilter(),
+      ),
+    ];
   }
 
   async handleTagsChange(value: string[]) {

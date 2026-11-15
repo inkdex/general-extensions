@@ -4,6 +4,7 @@
 import {
   CloudflareError,
   ContentRating,
+  CookieStorageInterceptor,
   PaperbackInterceptor,
   URL,
   type DiscoverSectionItem,
@@ -15,9 +16,9 @@ import {
   type SortingOption,
   type Tag,
   type Cookie,
-  CookieStorageInterceptor,
 } from "@paperback/types";
 
+import { MangaDotFilters } from "./main";
 import {
   DOMAIN,
   RANGE,
@@ -40,7 +41,6 @@ import {
   deNormalizeId,
   getDemographicHidden,
   getEnglishOnly,
-  getFilters,
   getGenresHidden,
   getMultipageStatus,
   getSectionContentTypes,
@@ -134,15 +134,15 @@ export class MangaDotApi {
   }
 
   async getGenreSection(): Promise<PagedResults<DiscoverSectionItem>> {
-    return this.buildTagSection(getFilters().genre, getGenresHidden());
+    return this.buildTagSection(MangaDotFilters.getFilters().genre, getGenresHidden());
   }
 
   async getDemographicSection(): Promise<PagedResults<DiscoverSectionItem>> {
-    return this.buildTagSection(getFilters().demographic, getDemographicHidden());
+    return this.buildTagSection(MangaDotFilters.getFilters().demographic, getDemographicHidden());
   }
 
   async getThemesSection(): Promise<PagedResults<DiscoverSectionItem>> {
-    return this.buildTagSection(getFilters().themeAndContent, getThemesHidden());
+    return this.buildTagSection(MangaDotFilters.getFilters().themeAndContent, getThemesHidden());
   }
   async getSection(section: string, page: number): Promise<SearchResponse | MangaSection> {
     if (section === "most_viewed") {
@@ -273,7 +273,7 @@ export class MangaDotApi {
           origin: (query.metadata?.origin ?? []).join(",").replaceAll("&", ","),
         }),
         ...(query.metadata?.status?.length && {
-          status: (query.metadata?.status ?? []).join(","),
+          status: query.metadata?.status ?? "",
         }),
         ...(query.metadata?.author?.length && {
           author: (query.metadata?.author ?? []).join(","),
@@ -281,13 +281,13 @@ export class MangaDotApi {
         ...(query.metadata?.artist?.length && {
           artist: (query.metadata?.artist ?? []).join(","),
         }),
-        ...(query.metadata?.min_chapters?.length && {
+        ...(query.metadata?.chapters?.length && {
           min_chapters: query.metadata?.chapters ?? "",
         }),
-        ...(query.metadata?.min_rating?.length && {
+        ...(query.metadata?.rating?.length && {
           min_rating: query.metadata?.rating ?? "",
         }),
-        ...(query.metadata?.volumes?.length && {
+        ...(query.metadata?.volume?.length && {
           volumes: query.metadata?.volume ?? "",
         }),
         ...(query.metadata?.library?.length && {

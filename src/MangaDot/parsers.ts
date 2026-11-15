@@ -2,9 +2,9 @@
 /* Copyright © 2026 Inkdex */
 
 import {
+  ContentRating,
   type Chapter,
   type ChapterDetails,
-  ContentRating,
   type DiscoverSectionItem,
   type PagedResults,
   type SearchResultItem,
@@ -12,9 +12,9 @@ import {
 } from "@paperback/types";
 
 import {
+  DOMAIN,
   type ChapterListResponse,
   type ChapterPagesResponse,
-  DOMAIN,
   type ItemInfo,
   type ItemInfoElements,
   type MangaData,
