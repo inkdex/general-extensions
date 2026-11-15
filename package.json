@@ -14,7 +14,7 @@
     "serve": "paperback-cli serve",
     "dev": "paperback-cli serve --watch",
     "logcat": "paperback-cli logcat",
-    "test": "paperback-cli test --noConsole --ignoreErrors --output ./bundles/tests.json",
+    "test": "paperback-cli test --noConsole --output ./bundles/tests.json",
     "prepare": "husky"
   },
   "devDependencies": {
