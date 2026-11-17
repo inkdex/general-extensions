@@ -23,13 +23,13 @@ import { ADULT_FILTER, discoverySections, ORIGIN, type TagItem } from "../models
 import type { LogInManager } from "../network";
 import { type MangaDotApi } from "../network";
 import {
+  deNormalizeId,
+  getChaptersLanguage,
   getSectionContentTypes,
   getShowAdultStatus,
   getRangeStatus,
   getMultipageStatus,
-  getEnglishOnly,
   normalizeId,
-  deNormalizeId,
 } from "../utils";
 
 export class SettingsForm extends Form {
@@ -158,14 +158,15 @@ export class SettingsForm extends Form {
           footer: "Chapters Settings",
         },
         [
-          ToggleRow("en_only", {
-            title: "Show English only chapters",
-            value: getEnglishOnly(),
-            subtitle:
-              "Fetch only English chapters. Will need a `Reload Chapters` to update the existing one",
+          SelectRow("language", {
+            title: "Language",
+            value: getChaptersLanguage(),
+            options: MangaDotFilters.getFilters().language,
+            minItemCount: 0,
+            maxItemCount: 1,
             onValueChange: Application.Selector(
               this as SettingsForm,
-              "handleEnglishOnlyStatusChange",
+              "handleLanguageChaptersChange",
             ),
           }),
         ],
@@ -219,8 +220,8 @@ export class SettingsForm extends Form {
     await this.updateValue(value, "show_adult_content");
   }
 
-  async handleEnglishOnlyStatusChange(value: boolean): Promise<void> {
-    await this.updateValue(value, "english_only_content");
+  async handleLanguageChaptersChange(value: string[]): Promise<void> {
+    await this.updateValue(value, "chapters_lang");
   }
 
   async handleRangeTypeStatusChange(value: boolean): Promise<void> {

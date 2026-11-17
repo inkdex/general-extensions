@@ -38,8 +38,8 @@ export function getMoreHidden() {
   return (Application.getState("hidden_more") as string[] | undefined) ?? [];
 }
 
-export function getEnglishOnly() {
-  return (Application.getState("english_only_content") as boolean | undefined) ?? false;
+export function getChaptersLanguage() {
+  return (Application.getState("chapters_lang") as string[] | undefined) ?? [""];
 }
 
 export function getShowAdultStatus(): string {

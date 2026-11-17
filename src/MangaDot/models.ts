@@ -184,7 +184,7 @@ export interface MangaData extends MangaSectionItem {
   genres: string[];
   date_added: string;
   description: string;
-  banner_image: string;
+  banner_image: string | null;
   content_rating: string | null;
   alt_titles: string[] | string | null;
   authors: string[] | string | null;
@@ -208,6 +208,24 @@ export interface MangaSectionItem {
   last_chapter_date: string;
   latest_chapter_number: string | null;
   is_blurworthy: number;
+}
+
+interface MangaRecommendationItem {
+  id: number;
+  title: string;
+  title_romanized: string;
+  photo: string;
+}
+
+export interface MangaSuggestions {
+  suggestions?: MangaRecommendationItem[];
+}
+
+export interface MangaRelations {
+  relations?: {
+    prequel?: MangaRecommendationItem[];
+    sequel?: MangaRecommendationItem[];
+  };
 }
 
 export interface MangaSection {

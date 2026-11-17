@@ -26,7 +26,9 @@ import {
   type ChapterListResponse,
   type ChapterPagesResponse,
   type MangaDataResponse,
+  type MangaRelations,
   type MangaSection,
+  type MangaSuggestions,
   type SearchMetadata,
   type SearchResponse,
   type SearchSuggestionsResponse,
@@ -39,8 +41,8 @@ import {
 import {
   defaultMetadata,
   deNormalizeId,
+  getChaptersLanguage,
   getDemographicHidden,
-  getEnglishOnly,
   getGenresHidden,
   getMultipageStatus,
   getSectionContentTypes,
@@ -231,9 +233,23 @@ export class MangaDotApi {
   async getChapterList(mangaId: string) {
     const params: ApiRequestConfig = {
       path: ["api", "manga", mangaId, "chapters", "list"],
-      query: getEnglishOnly() ? { lang: "en" } : {},
+      query: getChaptersLanguage().length > 0 ? { lang: getChaptersLanguage() } : {},
     };
     return this.buildApiRequest<ChapterListResponse[]>(params);
+  }
+
+  async getRelationsList(mangaId: string) {
+    const params: ApiRequestConfig = {
+      path: ["api", "manga", mangaId, "relations"],
+    };
+    return this.buildApiRequest<MangaRelations>(params);
+  }
+
+  async getSuggestionsList(mangaId: string) {
+    const params: ApiRequestConfig = {
+      path: ["api", "manga", mangaId, "suggestions"],
+    };
+    return this.buildApiRequest<MangaSuggestions>(params);
   }
 
   async getVolumes(mangaId: string) {

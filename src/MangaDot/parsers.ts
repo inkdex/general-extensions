@@ -6,6 +6,7 @@ import {
   type Chapter,
   type ChapterDetails,
   type DiscoverSectionItem,
+  type MangaInfoRelationSection,
   type PagedResults,
   type SearchResultItem,
   type SourceManga,
@@ -19,8 +20,10 @@ import {
   type ItemInfoElements,
   type MangaData,
   type MangaDataResponse,
+  type MangaRelations,
   type MangaSection,
   type MangaSectionItem,
+  type MangaSuggestions,
   type PageMetadata,
   type SearchResponse,
 } from "./models";
@@ -64,7 +67,56 @@ function getRating(mangaData: MangaData) {
   }
 }
 
-export const parseMangaInfo = (manga: MangaDataResponse, volumes: string[]): SourceManga => {
+function parseSuggestion(elements: MangaSuggestions): MangaInfoRelationSection {
+  return {
+    type: "relation",
+    id: "suggestions",
+    title: "Suggestions",
+    items: elements.suggestions
+      ? elements.suggestions.map((element) => ({
+          id: element.id.toString(),
+          title: element.title,
+          imageUrl: `${DOMAIN}${element.photo}`,
+          subtitle: element.title_romanized,
+        }))
+      : [],
+  };
+}
+
+function parseRelations(elements: MangaRelations): MangaInfoRelationSection {
+  return {
+    type: "relation",
+    id: "relation",
+    title: "Relations",
+    items: [
+      ...(elements.relations && elements.relations.prequel
+        ? elements.relations.prequel.map((element) => ({
+            id: element.id.toString(),
+            title: element.title,
+            imageUrl: `${DOMAIN}${element.photo}`,
+            subtitle: "Prequel",
+          }))
+        : []),
+      ...(elements.relations && elements.relations.sequel
+        ? elements.relations.sequel.map((element) => ({
+            id: element.id.toString(),
+            title: element.title,
+            imageUrl: `${DOMAIN}${element.photo}`,
+            subtitle: "Sequel",
+          }))
+        : []),
+    ],
+  };
+}
+
+export async function parseMangaInfo(
+  manga: MangaDataResponse,
+  volumes: string[],
+  relations: MangaRelations,
+  suggestions: MangaSuggestions,
+): Promise<SourceManga> {
+  const mangaRelations = parseRelations(relations);
+  const mangaSuggestions = parseSuggestion(suggestions);
   const mangaInfo = manga.manga;
   return {
     mangaId: mangaInfo.id.toString(),
@@ -76,10 +128,15 @@ export const parseMangaInfo = (manga: MangaDataResponse, volumes: string[]): Sou
       isWebtoon: mangaInfo.is_longstrip ? mangaInfo.is_longstrip : false,
       contentRating: getRating(mangaInfo),
       status: mangaInfo.status,
+      extras: [mangaRelations, mangaSuggestions],
       artist: parseStringArray(mangaInfo.artists).join(","),
       author: getArrayAuthor(mangaInfo),
-      bannerUrl: `${DOMAIN}${mangaInfo.banner_image}`,
-      artworkUrls: [`${DOMAIN}${mangaInfo.banner_image}`, ...volumes],
+      bannerUrl: mangaInfo.banner_image != null ? `${DOMAIN}${mangaInfo.banner_image}` : undefined,
+      artworkUrls: [
+        ...(mangaInfo.banner_image != null ? [`${DOMAIN}${mangaInfo.banner_image}`] : []),
+        ...volumes,
+      ],
+
       rating: mangaInfo.avg_rating ? mangaInfo.avg_rating / 10 : 0,
       tagGroups: [
         {
@@ -91,7 +148,7 @@ export const parseMangaInfo = (manga: MangaDataResponse, volumes: string[]): Sou
       shareUrl: `${DOMAIN}/manga/${mangaInfo.id}`,
     },
   };
-};
+}
 
 export const parseChapters = (
   chapterList: ChapterListResponse[],

@@ -69,7 +69,9 @@ export class MangaDotExtension implements ExtensionImpl<typeof MangaDotConfig> {
     const volumes = (await this.api.getVolumes(mangaId)).map(
       (volume) => `${DOMAIN}${volume.cover_url}`,
     );
-    return parseMangaInfo(mangaInfo, volumes);
+    const relations = await this.api.getRelationsList(mangaId);
+    const suggestions = await this.api.getSuggestionsList(mangaId);
+    return parseMangaInfo(mangaInfo, volumes, relations, suggestions);
   }
 
   async getChapters(sourceManga: SourceManga): Promise<Chapter[]> {
