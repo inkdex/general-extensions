@@ -4,6 +4,7 @@
 import {
   AdvancedSearchForm,
   InputRow,
+  MenuRow,
   NavigationRow,
   Section,
   SelectRow,
@@ -16,55 +17,141 @@ import {
   type SearchQuery,
 } from "@paperback/types";
 
-import { MangaDot } from "../main";
-import { ADULT_FILTER, ORIGIN, STATUS, type SearchMetadata } from "../models";
+import { MangaDot, MangaDotFilters } from "../main";
+import {
+  ADULT_FILTER,
+  CHAPTERS_NUM,
+  CONTENT_RATING,
+  IN_LIBRARY,
+  ORIGIN,
+  RATING,
+  STATUS,
+  VOLUME,
+  type SearchMetadata,
+  type TagItem,
+} from "../models";
+import type { LogInManager } from "../network";
 import {
   defaultMetadata,
   deNormalizeId,
   generateTagElement,
-  getFilters,
   getShowAdultStatus,
+  normalizeId,
 } from "../utils";
+const PROXY_HANDLERS = {
+  handle_: "onHandleDynamicTag",
+} as const;
 
+function matchProxyHandler(p: string | symbol) {
+  if (typeof p !== "string") return undefined;
+  for (const [prefix, method] of Object.entries(PROXY_HANDLERS)) {
+    if (p.startsWith(prefix)) return { method, rowId: p.slice(prefix.length) };
+  }
+  return undefined;
+}
 class MangaDotAdvancedSearchForm extends AdvancedSearchForm {
   override getSearchQueryMetadata(): SearchMetadata {
     return this.searchMetadata;
   }
 
   private searchMetadata: SearchMetadata;
-
-  constructor(searchQuery: SearchQuery<SearchMetadata>) {
+  private origin: string[] = [""];
+  private login: LogInManager;
+  constructor(searchQuery: SearchQuery<SearchMetadata>, login: LogInManager) {
     super();
+    this.login = login;
     if (searchQuery.metadata !== undefined) {
       this.searchMetadata = searchQuery.metadata;
     } else {
       this.searchMetadata = defaultMetadata();
     }
+    this.origin =
+      this.searchMetadata.origin && this.searchMetadata.origin.length > 0
+        ? this.searchMetadata.origin
+        : [""];
+  }
+
+  override async formDidSubmit(): Promise<void> {
+    this.searchMetadata.origin = this.origin;
   }
 
   override getSections(): FormSectionElement<unknown>[] {
     return [
-      Section("genres", this.getGenresFilter()),
-      Section("status", this.getStatusFilter()),
-      Section("origin", this.getOriginFilter()),
-      Section("adult", [
-        SelectRow("adultToggle", {
-          title: "Show Adult results",
-          value: this.searchMetadata.adult ?? getShowAdultStatus(),
-          options: ADULT_FILTER,
+      Section({ id: "tags", header: "Tags" }, this.getTagsFilter()),
+      SelectSection(this, {
+        header: "Origin",
+        id: "origin",
+        layout: "list",
+        value: this.origin ?? [""],
+        items: ORIGIN,
+        minItemCount: 1,
+        maxItemCount: ORIGIN.length,
+      }),
+      Section("filters", [
+        MenuRow("status", {
+          title: "Status",
+          items: STATUS,
+          value:
+            this.searchMetadata.status && this.searchMetadata.status.length > 0
+              ? this.searchMetadata.status
+              : "",
+          onSelect: Application.Selector(this as MangaDotAdvancedSearchForm, "handleStatus"),
+        }),
+        MenuRow("adult_filter", {
+          title: "Adult Filter",
+          value: this.searchMetadata.adult ? this.searchMetadata.adult : getShowAdultStatus(),
+          items: ADULT_FILTER,
+          onSelect: Application.Selector(this as MangaDotAdvancedSearchForm, "handleAdult"),
+        }),
+        MenuRow("content_rating", {
+          title: "Content Rating",
+          value: this.searchMetadata.contentRating ? this.searchMetadata.contentRating : "any",
+          items: CONTENT_RATING,
+          onSelect: Application.Selector(this as MangaDotAdvancedSearchForm, "handleContentRating"),
+        }),
+        MenuRow("has_volume", {
+          title: "Has Volume",
+          value: this.searchMetadata.volume ? this.searchMetadata.volume : "any",
+          items: VOLUME,
+          onSelect: Application.Selector(this as MangaDotAdvancedSearchForm, "handleVolume"),
+        }),
+        MenuRow("chap_number", {
+          title: "Chapter Number",
+          value: this.searchMetadata.chapters ? this.searchMetadata.chapters : "any",
+          items: CHAPTERS_NUM,
+          onSelect: Application.Selector(this as MangaDotAdvancedSearchForm, "handleMinChapters"),
+        }),
+        MenuRow("minimum_rating", {
+          title: "Minimum Rating",
+          value: this.searchMetadata.rating ? this.searchMetadata.rating : "any",
+          items: RATING,
+          onSelect: Application.Selector(this as MangaDotAdvancedSearchForm, "handleMinRating"),
+        }),
+        ...(this.login.isLoggedIn()
+          ? [
+              MenuRow("stat", {
+                title: "In Library",
+                value: this.searchMetadata.library ? this.searchMetadata.library : "any",
+                items: IN_LIBRARY,
+                onSelect: Application.Selector(this as MangaDotAdvancedSearchForm, "handleLibrary"),
+              }),
+            ]
+          : []),
+        SelectRow("language", {
+          title: "Language",
+          value: this.searchMetadata.language ?? [""],
+          options: MangaDotFilters.getFilters().language,
           minItemCount: 1,
           maxItemCount: 1,
-          onValueChange: Application.Selector(this as MangaDotAdvancedSearchForm, "handleAdult"),
+          onValueChange: Application.Selector(this as MangaDotAdvancedSearchForm, "handleLanguage"),
         }),
       ]),
-      Section("author", [
+      Section({ id: "author_artist", header: "Author & Artist" }, [
         NavigationRow("author_filter", {
           title: "Authors",
           subtitle: this.searchMetadata.author?.flatMap(deNormalizeId).join(", ") ?? "",
           form: new AuthorFilter(this.searchMetadata),
         }),
-      ]),
-      Section("artist", [
         NavigationRow("artist_filter", {
           title: "Artists",
           subtitle: this.searchMetadata.artist?.flatMap(deNormalizeId).join(", ") ?? "",
@@ -74,124 +161,102 @@ class MangaDotAdvancedSearchForm extends AdvancedSearchForm {
     ];
   }
 
-  getGenresFilter(): FormItemElement<unknown>[] {
-    return [
-      TriStateSelectRow("genres", {
-        title: "Genres",
+  getTagsFilter(): FormItemElement<unknown>[] {
+    return Object.entries(MangaDotFilters.getTags()).map(([categoryName, tags]) => {
+      const rowId = categoryName.toLowerCase().replace(/[^a-z0-9]/g, "_");
+      const itemsArray = tags.map((tag: TagItem) => ({
+        id: normalizeId(tag.name),
+        title: tag.name,
+      }));
+      let rowInitialValue: Record<string, "included" | "excluded"> = {};
+      if (this.searchMetadata.genres && rowId === "genres") {
+        rowInitialValue = this.searchMetadata.genres;
+      } else if (this.searchMetadata.tag) {
+        for (const tag of tags) {
+          const index = normalizeId(tag.name);
+          if (this.searchMetadata.tag[index]) {
+            rowInitialValue[index] = this.searchMetadata.tag[index];
+          }
+        }
+      }
+      return TriStateSelectRow(rowId, {
+        title: categoryName,
         layout: "list",
-        onValueChange: Application.Selector(this as MangaDotAdvancedSearchForm, "handleGenres"),
-        items: getFilters().genre,
-        value: this.searchMetadata.genres ?? {},
+        onValueChange: this.proxySel(`handle_${rowId}`),
+        items: itemsArray,
+        value: rowInitialValue,
         allowEmptySelection: true,
         allowExclusion: true,
         isHidden: false,
-      }),
-      TriStateSelectRow("demographic", {
-        title: "Demographic",
-        layout: "list",
-        onValueChange: Application.Selector(
-          this as MangaDotAdvancedSearchForm,
-          "handleDemographic",
-        ),
-        items: getFilters().demographic,
-        value: this.searchMetadata.demographic ?? {},
-        allowEmptySelection: true,
-        allowExclusion: true,
-        isHidden: false,
-      }),
-      TriStateSelectRow("themes", {
-        title: "Themes",
-        layout: "list",
-        onValueChange: Application.Selector(this as MangaDotAdvancedSearchForm, "handleThemes"),
-        items: getFilters().themeAndContent,
-        value: this.searchMetadata.themes ?? {},
-        allowEmptySelection: true,
-        allowExclusion: true,
-        isHidden: false,
-      }),
-      TriStateSelectRow("more", {
-        title: "More",
-        layout: "list",
-        onValueChange: Application.Selector(this as MangaDotAdvancedSearchForm, "handleMore"),
-        items: getFilters().more,
-        value: this.searchMetadata.more ?? {},
-        allowEmptySelection: true,
-        allowExclusion: true,
-        isHidden: false,
-      }),
-    ];
+      });
+    });
   }
 
-  getStatusFilter(): FormItemElement<unknown>[] {
-    return [
-      SelectRow("status", {
-        title: "Status",
-        layout: "list",
-        onValueChange: Application.Selector(this as MangaDotAdvancedSearchForm, "handleStatus"),
-        items: STATUS,
-        value:
-          this.searchMetadata.status && this.searchMetadata.status.length > 0
-            ? this.searchMetadata.status
-            : [""],
-        minItemCount: 1,
-        maxItemCount: 1,
-        isHidden: false,
-      }),
-    ];
+  private rowStates: Record<string, Record<string, "included" | "excluded">> = {};
+
+  onValueChangeLabelProxy = new Proxy(this, {
+    has(target, p) {
+      return matchProxyHandler(p) !== undefined ? true : Object.hasOwn(target, p);
+    },
+    get(target, p) {
+      const handler = matchProxyHandler(p);
+      if (handler) {
+        const fn = target[handler.method] as (rowId: string, value?: any) => Promise<void>;
+        return async (value?: any) => {
+          await fn.call(target, handler.rowId, value);
+        };
+      }
+      // @ts-ignore
+      return target[p];
+    },
+  });
+
+  private proxySel(name: string): any {
+    // @ts-expect-error dynamic selector
+    return Application.Selector(this.onValueChangeLabelProxy, name);
   }
 
-  getOriginFilter(): FormItemElement<unknown>[] {
-    return [
-      SelectRow("origin", {
-        title: "Content Type",
-        layout: "list",
-        onValueChange: Application.Selector(this as MangaDotAdvancedSearchForm, "handleOrigin"),
-        items: ORIGIN,
-        value:
-          this.searchMetadata.origin && this.searchMetadata.origin.length > 0
-            ? this.searchMetadata.origin
-            : [""],
-        minItemCount: 1,
-        maxItemCount: ORIGIN.length,
-        isHidden: false,
-      }),
-    ];
+  async onHandleDynamicTag(
+    rowId: string,
+    value: { [id: string]: "included" | "excluded" },
+  ): Promise<void> {
+    if (rowId === "genres") {
+      this.searchMetadata.genres = value;
+    } else {
+      this.rowStates[rowId] = value;
+      const mergedTags: Record<string, "included" | "excluded"> = {};
+      for (const rowState of Object.values(this.rowStates)) {
+        Object.assign(mergedTags, rowState);
+      }
+      this.searchMetadata.tag = mergedTags;
+    }
   }
 
-  async handleAdult(value: string[]): Promise<void> {
-    this.searchMetadata.adult = value;
+  async handleLanguage(value: string[]): Promise<void> {
+    this.searchMetadata.language = value;
   }
 
-  async handleDemographic(value: { [id: string]: "included" | "excluded" }): Promise<void> {
-    this.searchMetadata.demographic = value;
-  }
-
-  async handleThemes(value: { [id: string]: "included" | "excluded" }): Promise<void> {
-    this.searchMetadata.themes = value;
-  }
-
-  async handleMore(value: { [id: string]: "included" | "excluded" }): Promise<void> {
-    this.searchMetadata.more = value;
-  }
-
-  async handleGenres(value: { [id: string]: "included" | "excluded" }): Promise<void> {
-    this.searchMetadata.genres = value;
-  }
-
-  async handleStatus(value: string[]): Promise<void> {
+  async handleStatus(value: string): Promise<void> {
     this.searchMetadata.status = value;
   }
 
-  async handleOrigin(value: string[]): Promise<void> {
-    const previous = this.searchMetadata?.origin ?? [""];
-    const hadAnyBefore = previous.includes("");
-    const hasAnyNow = value.includes("");
-    if (hadAnyBefore && value.length > 1) {
-      value = value.filter((v) => v !== "");
-    } else if (!hadAnyBefore && hasAnyNow) {
-      value = [""];
-    }
-    this.searchMetadata.origin = value;
+  async handleAdult(value: string): Promise<void> {
+    this.searchMetadata.adult = value;
+  }
+  async handleContentRating(value: string): Promise<void> {
+    this.searchMetadata.contentRating = value;
+  }
+  async handleMinChapters(value: string): Promise<void> {
+    this.searchMetadata.chapters = value;
+  }
+  async handleVolume(value: string): Promise<void> {
+    this.searchMetadata.volume = value;
+  }
+  async handleMinRating(value: string): Promise<void> {
+    this.searchMetadata.rating = value;
+  }
+  async handleLibrary(value: string): Promise<void> {
+    this.searchMetadata.library = value;
   }
 }
 
