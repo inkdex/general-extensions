@@ -25,10 +25,10 @@ import {
   IN_LIBRARY,
   ORIGIN,
   RATING,
-  type SearchMetadata,
   STATUS,
-  type TagItem,
   VOLUME,
+  type SearchMetadata,
+  type TagItem,
 } from "../models";
 import type { LogInManager } from "../network";
 import {
